@@ -49,3 +49,4 @@ $(buildDir)/cover.html:$(buildDir)/cover.out
 
 vendor-clean:
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*" | xargs rm -rf
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify
