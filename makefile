@@ -43,7 +43,6 @@ lintArgs += --exclude=".*unused variable or constant \w+Key"
 #   implementation details for being able to lazily install dependencies
 gopath := $(shell go env GOPATH)
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
-srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "./buildscripts/*" )
 $(gopath)/src/%:
 	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
 	go get $(subst $(gopath)/src/,,$@)
@@ -54,7 +53,7 @@ $(buildDir)/.lintSetup:$(lintDeps)
 # end dependency installation tools
 
 
-testArgs := -v
+testArgs := -v -timeout=40m
 ifneq (,$(RUN_TEST))
 testArgs += -run='$(RUN_TEST)'
 endif
@@ -106,12 +105,10 @@ coverage:$(buildDir)/cover.out
 coverage-html:$(buildDir)/cover.html
 
 benchmark:
-	go test -v -benchmem -bench=. -run="Benchmark.*" -timeout=40m
+	go test -v -benchmem -bench=. -run="Benchmark.*" -timeout=20m
 lint:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
 
-list-tests:
-	@echo -e "test targets:" $(foreach target,$(packages),\\n\\ttest-$(target))
-phony += lint lint-deps build build-race race test coverage coverage-html list-tests
+phony += lint lint-deps build build-race race test coverage coverage-html
 .PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
 .PRECIOUS:$(buildDir)/output.lint
 # end front-ends
