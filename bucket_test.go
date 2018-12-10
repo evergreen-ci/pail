@@ -57,7 +57,7 @@ func cleanUpS3Bucket(name, prefix, region string) error {
 		result, err = svc.ListObjects(listInput)
 		if err != nil {
 			catcher.Add(errors.Wrap(err, "clean up failed"))
-			continue
+			break
 		}
 		for _, object := range result.Contents {
 			if !strings.HasPrefix(*object.Key, prefix) {
@@ -77,9 +77,11 @@ func cleanUpS3Bucket(name, prefix, region string) error {
 		return catcher.Resolve()
 	}
 
-	_, err = svc.DeleteObjects(doi)
-	if err != nil {
-		return errors.Wrap(err, "failed to delete S3 bucket")
+	if doi.Delete.Objects != nil {
+		_, err = svc.DeleteObjects(doi)
+		if err != nil {
+			return errors.Wrap(err, "failed to delete S3 bucket")
+		}
 	}
 
 	return nil
