@@ -71,6 +71,22 @@ $(buildDir)/.lintSetup:$(lintDeps)
 # end dependency installation tools
 
 
+# implementation details for building the binary and creating a
+# convienent link in the working directory
+$(name):$(buildDir)/$(name)
+	@[ -e $@ ] || ln -s $<
+$(buildDir)/$(name):$(srcFiles)
+	go build -ldflags "-X github.com/evergreen-ci/pail.BuildRevision=`git rev-parse HEAD`" -o $@ cmd/$(name)/$(name).go
+# end dependency installation tools
+
+
+# distribution targets and implementation
+dist:$(buildDir)/dist.tar.gz
+$(buildDir)/dist.tar.gz:$(buildDir)/$(name)
+	tar -C $(buildDir) -czvf $@ $(name)
+# end main build
+
+
 # userfacing targets for basic build and development operations
 proto:
 	@mkdir -p rpc/internal
