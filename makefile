@@ -1,30 +1,9 @@
-# start project configuration
-name := pail
 buildDir := build
 srcFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "*\#*")
 testFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -path "*\#*")
-orgPath := github.com/evergreen-ci
-projectPath := $(orgPath)/$(name)
-_testPackages := ./ 
-# end project configuration
 
+packages := pail
 
-testArgs := -v
-ifneq (,$(RUN_TEST))
-testArgs += -run='$(RUN_TEST)'
-endif
-ifneq (,$(RUN_COUNT))
-testArgs += -count='$(RUN_COUNT)'
-endif
-ifneq (,$(SKIP_LONG))
-testArgs += -short
-endif
-ifneq (,$(DISABLE_COVERAGE))
-testArgs += -cover
-endif
-ifneq (,$(RACE_DETECTOR))
-testArgs += -race
-endif
 
 # start linting configuration
 #   package, testing, and linter dependencies specified
@@ -32,7 +11,7 @@ endif
 #   vendorize all of these dependencies.
 lintDeps := github.com/alecthomas/gometalinter
 #   include test files and give linters 40s to run to avoid timeouts
-lintArgs := --tests --deadline=14m --vendor
+lintArgs := --tests --deadline=13m --vendor
 #   gotype produces false positives because it reads .a files which
 #   are rarely up to date.
 lintArgs += --disable="gotype" --disable="gosec" --disable="gocyclo" --disable="golint"
@@ -64,6 +43,7 @@ lintArgs += --exclude=".*unused variable or constant \w+Key"
 #   implementation details for being able to lazily install dependencies
 gopath := $(shell go env GOPATH)
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
+srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "./buildscripts/*" )
 $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup
 	 go build -o $@ $<
 $(buildDir)/.lintSetup:$(lintDeps)
@@ -71,62 +51,22 @@ $(buildDir)/.lintSetup:$(lintDeps)
 # end dependency installation tools
 
 
-# implementation details for building the binary and creating a
-# convienent link in the working directory
-$(name):$(buildDir)/$(name)
-	@[ -e $@ ] || ln -s $<
-$(buildDir)/$(name):$(srcFiles)
-	go build -ldflags "-X github.com/evergreen-ci/pail.BuildRevision=`git rev-parse HEAD`" -o $@ cmd/$(name)/$(name).go
-# end dependency installation tools
-
-
-# distribution targets and implementation
-dist:$(buildDir)/dist.tar.gz
-$(buildDir)/dist.tar.gz:$(buildDir)/$(name)
-	tar -C $(buildDir) -czvf $@ $(name)
-# end main build
-
-
-# userfacing targets for basic build and development operations
-proto:
-	@mkdir -p rpc/internal
-	protoc --go_out=plugins=grpc:rpc/internal *.proto
-lint:$(foreach target,$(_testPackages),$(buildDir)/output.$(target).lint)
-test:$(buildDir)/output.test
-build:$(buildDir)/$(name)
-coverage:$(coverageOutput)
-coverage-html:$(coverageHtmlOutput)
-list-tests:
-	@echo -e "test targets:" $(foreach target,$(_testPackages),\\n\\ttest-$(target))
-phony += lint lint-deps build build-race race test coverage coverage-html list-race list-tests
-.PRECIOUS:$(coverageOutput) $(coverageHtmlOutput)
-.PRECIOUS:$(foreach target,$(_testPackages),$(buildDir)/output.$(target).test)
-.PRECIOUS:$(foreach target,$(_testPackages),$(buildDir)/output.$(target).lint)
-.PRECIOUS:$(buildDir)/output.lint
-# end front-ends
-
-compile:
-	go build $(_testPackages)
-test:$(buildDir)/test.out
-$(buildDir)/test.out:.FORCE
-	@mkdir -p $(buildDir)
-	go test $(testArgs) $(_testPackages) | tee $@
-	@grep -s -q -e "^PASS" $@
-coverage:$(buildDir)/cover.out
-	@go tool cover -func=$< | sed -E 's%github.com/.*/ftdc/%%' | column -t
-coverage-html:$(buildDir)/cover.html
-
-benchmark:
-	go test -v -benchmem -bench=. -run="Benchmark.*" -timeout=20m
-
-$(buildDir):$(srcFiles) compile
-	@mkdir -p $@
-$(buildDir)/cover.out:$(buildDir) $(testFiles) .FORCE
-	go test $(testArgs) -covermode=count -coverprofile $@ -cover ./
-$(buildDir)/cover.html:$(buildDir)/cover.out
-	go tool cover -html=$< -o $@
-.FORCE:
-
+testArgs := -v
+ifneq (,$(RUN_TEST))
+testArgs += -run='$(RUN_TEST)'
+endif
+ifneq (,$(RUN_COUNT))
+testArgs += -count='$(RUN_COUNT)'
+endif
+ifneq (,$(SKIP_LONG))
+testArgs += -short
+endif
+ifneq (,$(DISABLE_COVERAGE))
++= -cover
+endif
+ifneq (,$(RACE_DETECTOR))
+testArgs += -race
+endif
 # test execution and output handlers
 $(buildDir)/:
 	mkdir -p $@
@@ -150,6 +90,45 @@ $(buildDir)/output.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
 # end test and coverage artifacts
 
 
+# userfacing targets for basic build and development operations
+compile:
+	go build ./
+test:$(buildDir)/test.out
+$(buildDir)/test.out:.FORCE
+	@mkdir -p $(buildDir)
+	go test $(testArgs) $(packages) | tee $@
+	@grep -s -q -e "^PASS" $@
+coverage:$(buildDir)/cover.out
+	@go tool cover -func=$< | sed -E 's%github.com/.*/ftdc/%%' | column -t
+coverage-html:$(buildDir)/cover.html
+
+benchmark:
+	go test -v -benchmem -bench=. -run="Benchmark.*" -timeout=20m
+lint:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
+
+list-tests:
+	@echo -e "test targets:" $(foreach target,$(packages),\\n\\ttest-$(target))
+phony += lint lint-deps build build-race race test coverage coverage-html list-tests
+.PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
+.PRECIOUS:$(buildDir)/output.lint
+# end front-ends
+
+
+
+
+$(buildDir):$(srcFiles) compile
+	@mkdir -p $@
+$(buildDir)/cover.out:$(buildDir) $(testFiles) .FORCE
+	go test $(testArgs) -covermode=count -coverprofile $@ -cover ./
+$(buildDir)/cover.html:$(buildDir)/cover.out
+	go tool cover -html=$< -o $@
+
+
 vendor-clean:
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*" | xargs rm -rf
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify
+phony += vendor-clean
+
+# configure phony targets
+.FORCE:
+.PHONY:$(phony) .FORCE
