@@ -68,6 +68,15 @@ func cleanUpS3Bucket(name, prefix, region string) error {
 			})
 
 		}
+
+		if doi.Delete.Objects != nil {
+			_, err = svc.DeleteObjects(doi)
+			if err != nil {
+				return errors.Wrap(err, "failed to delete S3 bucket")
+			}
+			doi.Delete = &s3.Delete{}
+		}
+
 		if !*result.IsTruncated {
 			break
 		}
@@ -75,13 +84,6 @@ func cleanUpS3Bucket(name, prefix, region string) error {
 
 	if catcher.HasErrors() {
 		return catcher.Resolve()
-	}
-
-	if doi.Delete.Objects != nil {
-		_, err = svc.DeleteObjects(doi)
-		if err != nil {
-			return errors.Wrap(err, "failed to delete S3 bucket")
-		}
 	}
 
 	return nil
@@ -618,7 +620,6 @@ func TestBucket(t *testing.T) {
 				err = bucket.Download(ctx, "key", "location-\x00-key-name")
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "problem creating file")
-
 			})
 		})
 	}
