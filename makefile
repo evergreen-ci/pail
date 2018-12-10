@@ -96,14 +96,14 @@ compile:
 test:$(buildDir)/test.out
 $(buildDir)/test.out:.FORCE
 	@mkdir -p $(buildDir)
-	go test $(testArgs) $(packages) | tee $@
+	go test $(testArgs) ./ | tee $@
 	@grep -s -q -e "^PASS" $@
 coverage:$(buildDir)/cover.out
 	@go tool cover -func=$< | sed -E 's%github.com/.*/ftdc/%%' | column -t
 coverage-html:$(buildDir)/cover.html
 
 benchmark:
-	go test -v -benchmem -bench=. -run="Benchmark.*" -timeout=20m
+	go test -v -benchmem -bench=. -run="Benchmark.*" -timeout=40m
 lint:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
 
 list-tests:
