@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,7 +47,6 @@ func cleanUpS3Bucket(name, prefix, region string) error {
 		Bucket: aws.String(name),
 		Delete: &s3.Delete{},
 	}
-	catcher := grip.NewCatcher()
 	var result *s3.ListObjectsOutput
 	for {
 		listInput := &s3.ListObjectsInput{
@@ -56,8 +54,7 @@ func cleanUpS3Bucket(name, prefix, region string) error {
 		}
 		result, err = svc.ListObjects(listInput)
 		if err != nil {
-			catcher.Add(errors.Wrap(err, "clean up failed"))
-			break
+			return errors.Wrap(err, "clean up failed")
 		}
 		for _, object := range result.Contents {
 			if !strings.HasPrefix(*object.Key, prefix) {
@@ -82,10 +79,6 @@ func cleanUpS3Bucket(name, prefix, region string) error {
 		}
 	}
 
-	if catcher.HasErrors() {
-		return catcher.Resolve()
-	}
-
 	return nil
 }
 
@@ -105,7 +98,7 @@ func TestBucket(t *testing.T) {
 	defer ses.Close()
 	defer func() { ses.DB(uuid).DropDatabase() }()
 
-	s3BucketName := "build-test-curator"
+	s3BucketName := "pail-bucket-test"
 	s3Prefix := "pail-test-"
 	s3Region := "us-east-1"
 	defer func() { require.NoError(t, cleanUpS3Bucket(s3BucketName, s3Prefix, s3Region)) }()
