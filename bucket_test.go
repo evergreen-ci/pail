@@ -52,7 +52,9 @@ func cleanUpS3Bucket(name, prefix, region string) error {
 		listInput := &s3.ListObjectsInput{
 			Bucket: aws.String(name),
 		}
+		fmt.Println("HERE")
 		result, err = svc.ListObjects(listInput)
+		fmt.Println(result)
 		if err != nil {
 			return errors.Wrap(err, "clean up failed")
 		}
