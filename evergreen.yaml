@@ -194,12 +194,6 @@ tasks:
         vars:
           target: "coverage-html"
 
-  - <<: *run-build
-    tags: ["dist"]
-    name: dist
-    depends_on:
-      - name: "test"
-
   - <<: *run-build-with-mongodb
     tags: ["test"]
     name: test
@@ -231,7 +225,6 @@ buildvariants:
       - ubuntu1604-test
     tasks:
       - name: ".test"
-      - name: "dist"
 
   - name: macos
     display_name: macOS 10.12
@@ -242,7 +235,6 @@ buildvariants:
       - macos-1012
     tasks:
       - name: ".test"
-      - name: "dist"
 
   - name: windows
     display_name: Windows
@@ -255,4 +247,3 @@ buildvariants:
       archiveExt: ".zip"
     tasks:
       - name: ".test"
-      - name: "dist"
