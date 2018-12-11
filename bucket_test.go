@@ -327,9 +327,6 @@ func TestBucket(t *testing.T) {
 		},
 	} {
 		t.Run(impl.name, func(t *testing.T) {
-			if impl.name == "LegacyGridFS" {
-				t.Skip("not working")
-			}
 			for _, test := range impl.tests {
 				t.Run(test.id, func(t *testing.T) {
 					bucket := impl.constructor(t)
