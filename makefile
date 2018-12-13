@@ -21,14 +21,11 @@ lintDeps := github.com/alecthomas/gometalinter
 lintArgs := --tests --deadline=13m --vendor
 #   gotype produces false positives because it reads .a files which
 #   are rarely up to date.
-lintArgs += --disable="gotype" --disable="gosec" --disable="gocyclo" --disable="golint"
-lintArgs += --disable="megacheck" --enable="unused" --enable="gosimple"
+lintArgs += --disable="gotype" --disable="gosec" --disable="gocyclo" --enable="golint"
+lintArgs += --enable="megacheck" --enable="unused" --enable="gosimple"
 lintArgs += --skip="build"
 #   enable and configure additional linters
-lintArgs += --line-length=100 --dupl-threshold=150 --cyclo-over=15
-#   the gotype linter has an imperfect compilation simulator and
-#   produces the following false postive errors:
-lintArgs += --exclude="error: could not import github.com/mongodb/greenbay"
+lintArgs += --line-length=100 --dupl-threshold=150
 #   some test cases are structurally similar, and lead to dupl linter
 #   warnings, but are important to maintain separately, and would be
 #   difficult to test without a much more complex reflection/code
@@ -40,9 +37,6 @@ lintArgs += --exclude="warning: package comment should be of the form \"Package 
 #   known issues that the linter picks up that are not relevant in our cases
 lintArgs += --exclude="file is not goimported" # top-level mains aren't imported
 lintArgs += --exclude="error return value not checked .defer.*"
-lintArgs += --exclude="\w+Key is unused.*"
-lintArgs += --exclude="unused global variable \w+Key"
-lintArgs += --exclude=".*unused variable or constant \w+Key"
 # end linting configuration
 
 
