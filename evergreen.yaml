@@ -50,84 +50,45 @@ variables:
 #######################################
 functions:
   setup-credentials:
-    command: shell.exec
+    command: subprocess.exec
     type: setup
     params:
-       silent: true
-       script: |
-         mkdir ~/.aws
-         cat <<EOF > ~/.aws/config
-         [default]
-         region = us-east-1
-         EOF
-         cat <<EOF > ~/.aws/credentials
-         [default]
-         aws_access_key_id = ${aws_key}
-         aws_secret_access_key = ${aws_secret}
-         EOF
+      silent: true
+      working_dir: gopath/src/github.com/evergreen-ci/pail
+      env:
+        AWS_KEY: ${aws_key}
+        AWS_SECRET: ${aws_secret}
+      command: bash scripts/setup-credentials.sh
   run-make:
-    command: shell.exec
+    command: subprocess.exec
     type: test
     params:
-       script: |
-         set -o errexit
-         set -o verbose
-
-         # Configure a local go path for this build.
-         export GOPATH=`pwd`/gopath
-
-         # on windows we need to turn the slashes the other way
-         if [ "Windows_NT" == "$OS" ]; then
-            export GOPATH=$(cygpath -m $GOPATH)
-         fi
-
-         cd gopath/src/github.com/evergreen-ci/pail
-
-         # Run make, called with proper environment variables set,
-         # running the target.
-         ${build_env|} make -k ${target}
+      working_dir: gopath/src/github.com/evergreen-ci/pail
+      binary: make
+      args: ["${make_args|}", "${target}"]
+      env:
+        PATH: ${path}:$PATH
+        DISABLE_COVERAGE: ${disable_coverage}
+        GOROOT: ${goroot}
+        GOPATH: ${workdir}/gopath
   set-up-mongodb:
-    - command: shell.exec
+    - command: subprocess.exec
       type: setup
       params:
-        script: |
-          set -o errexit
-          set -o verbose
-
-          rm -rf mongodb
-          mkdir mongodb
-          cd mongodb
-          curl ${mongodb_url} -o mongodb${archiveExt|.tgz}
-
-          ${decompress} mongodb${archiveExt|.tgz}
-          chmod +x ./mongodb-*/bin/*
-          mv ./mongodb-*/bin/* .
-          rm -rf db_files
-          rm -rf db_logs
-          mkdir db_files
-          mkdir db_logs
-    - command: shell.exec
+        env:
+            MONGODB_URL: ${mongodb_url}
+            DECOMPRESS: ${decompress}
+        command: make get-mongodb
+    - command: subprocess.exec
       type: setup
       params:
         background: true
-        script: |
-          set -o errexit
-          set -o verbose
-
-          cd mongodb
-          echo "starting mongod..."
-          ./mongod${extension|} --dbpath ./db_files &
-          echo "waiting for mongod to start up"
-    - command: shell.exec
+        command: make start-mongod
+    - command: subprocess.exec
       type: setup
       params:
-        script: |
-          set -o errexit
-          set -o verbose
-
-          cd mongodb
-          ./mongo${extension|} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
-          echo "mongod is up."
+        working_dir: gopath/src/github.com/evergreen-ci/pail
+        command: make check-mongod
 
 #######################################
 #                Tasks                #
@@ -220,7 +181,9 @@ buildvariants:
     display_name: Ubuntu 16.04
     expansions:
       mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
-      build_env: "GOROOT=/opt/go1.8/go PATH=/opt/go1.8/go/bin:$PATH DISABLE_COVERAGE=true"
+      goroot: /opt/go1.8/go
+      path: /opt/go1.8/go/bin
+      disable_coverage: true
     run_on:
       - ubuntu1604-test
     tasks:
@@ -230,7 +193,9 @@ buildvariants:
     display_name: macOS 10.12
     expansions:
       mongodb_url: https://fastdl.mongodb.org/osx/mongodb-osx-ssl-x86_64-4.0.1.tgz
-      build_env: "GOROOT=/usr/local/go1.8/go PATH=/usr/local/go1.8/go/bin:$PATH DISABLE_COVERAGE=true"
+      goroot: /opt/go1.8/go
+      path: /opt/go1.8/go/bin
+      disable_coverage: true
     run_on:
       - macos-1012
     tasks:
@@ -242,7 +207,9 @@ buildvariants:
       - windows-64-vs2015-small
     expansions:
       mongodb_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-4.0.1.zip
-      build_env: "GOROOT=c:/go1.8/go PATH=/cygdrive/c/go1.8/go/bin:$PATH DISABLE_COVERAGE=true"
+      goroot: c:/go1.8/go
+      path: /cygdrive/c/go1.8/go/bin
+      disable_coverage: true
       extension: ".exe"
       archiveExt: ".zip"
     tasks:
