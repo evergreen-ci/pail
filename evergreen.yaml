@@ -75,6 +75,7 @@ functions:
     - command: subprocess.exec
       type: setup
       params:
+        working_dir: gopath/src/github.com/evergreen-ci/pail
         env:
             MONGODB_URL: ${mongodb_url}
             DECOMPRESS: ${decompress}
@@ -82,6 +83,7 @@ functions:
     - command: subprocess.exec
       type: setup
       params:
+        working_dir: gopath/src/github.com/evergreen-ci/pail
         background: true
         command: make start-mongod
     - command: subprocess.exec
