@@ -67,7 +67,7 @@ functions:
       binary: make
       args: ["${make_args|}", "${target}"]
       env:
-        PATH: ${path}:$PATH
+        GO_BIN_PATH: ${gobin}
         DISABLE_COVERAGE: ${disable_coverage}
         GOROOT: ${goroot}
         GOPATH: ${workdir}/gopath
@@ -184,7 +184,7 @@ buildvariants:
     expansions:
       mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
       goroot: /opt/go1.8/go
-      path: /opt/go1.8/go/bin
+      gobin: /opt/go1.8/go/bin
       disable_coverage: true
     run_on:
       - ubuntu1604-test
@@ -196,7 +196,7 @@ buildvariants:
     expansions:
       mongodb_url: https://fastdl.mongodb.org/osx/mongodb-osx-ssl-x86_64-4.0.1.tgz
       goroot: /opt/go1.8/go
-      path: /opt/go1.8/go/bin
+      gobin: /opt/go1.8/go/bin
       disable_coverage: true
     run_on:
       - macos-1012
@@ -210,7 +210,7 @@ buildvariants:
     expansions:
       mongodb_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-4.0.1.zip
       goroot: c:/go1.8/go
-      path: /cygdrive/c/go1.8/go/bin
+      gobin: /cygdrive/c/go1.8/go/bin
       disable_coverage: true
       extension: ".exe"
       archiveExt: ".zip"
