@@ -4,6 +4,7 @@ set -o errexit
 
 echo "building aws creds file!"
 
+rm -rf ~/.aws
 mkdir ~/.aws
 cat <<EOF > ~/.aws/config
 [default]
