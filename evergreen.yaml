@@ -53,7 +53,7 @@ functions:
     command: subprocess.exec
     type: setup
     params:
-        silent: true
+      silent: true
       working_dir: gopath/src/github.com/evergreen-ci/pail
       env:
         AWS_KEY: ${aws_key}
