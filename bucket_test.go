@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,42 +43,41 @@ func cleanUpS3Bucket(name, prefix, region string) error {
 	if err != nil {
 		return errors.Wrap(err, "clean up failed")
 	}
-	doi := &s3.DeleteObjectsInput{
+	deleteObjectsInput := &s3.DeleteObjectsInput{
 		Bucket: aws.String(name),
 		Delete: &s3.Delete{},
 	}
-	catcher := grip.NewCatcher()
+	listInput := &s3.ListObjectsInput{
+		Bucket: aws.String(name),
+		Prefix: aws.String(prefix),
+	}
 	var result *s3.ListObjectsOutput
+
 	for {
-		listInput := &s3.ListObjectsInput{
-			Bucket: aws.String(name),
-		}
 		result, err = svc.ListObjects(listInput)
 		if err != nil {
-			catcher.Add(errors.Wrap(err, "clean up failed"))
-			continue
+			return errors.Wrap(err, "clean up failed")
 		}
+
 		for _, object := range result.Contents {
-			if !strings.HasPrefix(*object.Key, prefix) {
-				continue
-			}
-			doi.Delete.Objects = append(doi.Delete.Objects, &s3.ObjectIdentifier{
+			deleteObjectsInput.Delete.Objects = append(deleteObjectsInput.Delete.Objects, &s3.ObjectIdentifier{
 				Key: object.Key,
 			})
-
 		}
-		if !*result.IsTruncated {
+
+		if deleteObjectsInput.Delete.Objects != nil {
+			_, err = svc.DeleteObjects(deleteObjectsInput)
+			if err != nil {
+				return errors.Wrap(err, "failed to delete S3 bucket")
+			}
+			deleteObjectsInput.Delete = &s3.Delete{}
+		}
+
+		if *result.IsTruncated {
+			listInput.Marker = result.Contents[len(result.Contents)-1].Key
+		} else {
 			break
 		}
-	}
-
-	if catcher.HasErrors() {
-		return catcher.Resolve()
-	}
-
-	_, err = svc.DeleteObjects(doi)
-	if err != nil {
-		return errors.Wrap(err, "failed to delete S3 bucket")
 	}
 
 	return nil
@@ -616,7 +614,6 @@ func TestBucket(t *testing.T) {
 				err = bucket.Download(ctx, "key", "location-\x00-key-name")
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "problem creating file")
-
 			})
 		})
 	}
