@@ -25,10 +25,11 @@ type s3BucketLarge struct {
 }
 
 type s3Bucket struct {
-	name   string
-	prefix string
-	sess   *session.Session
-	svc    *s3.S3
+	name       string
+	prefix     string
+	sess       *session.Session
+	svc        *s3.S3
+	permission string
 }
 
 // S3Options support the use and creation of S3 backed buckets.
@@ -37,6 +38,12 @@ type S3Options struct {
 	Region      string
 	Name        string
 	Prefix      string
+	Permission  string
+}
+
+// Wrapper for creating AWS credentials.
+func CreateAWSCredentials(awsKey, awsPassword, awsToken string) *credentials.Credentials {
+	return credentials.NewStaticCredentials(awsKey, awsPassword, awsToken)
 }
 
 func (s *s3Bucket) normalizeKey(key string) string {
@@ -74,7 +81,13 @@ func newS3BucketBase(options S3Options) (*s3Bucket, error) {
 		return &s3Bucket{}, errors.Wrap(err, "problem connecting to AWS")
 	}
 	svc := s3.New(sess)
-	return &s3Bucket{name: options.Name, prefix: options.Prefix, sess: sess, svc: svc}, nil
+	return &s3Bucket{
+		name:       options.Name,
+		prefix:     options.Prefix,
+		sess:       sess,
+		svc:        svc,
+		permission: options.Permission,
+	}, nil
 }
 
 // NewS3Bucket returns a Bucket implementation backed by S3. This
@@ -118,12 +131,13 @@ func (s *s3Bucket) Check(ctx context.Context) error {
 }
 
 type smallWriteCloser struct {
-	buffer   []byte
-	isClosed bool
-	name     string
-	svc      *s3.S3
-	ctx      context.Context
-	key      string
+	buffer     []byte
+	isClosed   bool
+	name       string
+	svc        *s3.S3
+	ctx        context.Context
+	key        string
+	permission string
 }
 
 type largeWriteCloser struct {
@@ -135,6 +149,7 @@ type largeWriteCloser struct {
 	svc            *s3.S3
 	ctx            context.Context
 	key            string
+	permission     string
 	partNumber     int64
 	uploadId       string
 	completedParts []*s3.CompletedPart
@@ -144,6 +159,7 @@ func (w *largeWriteCloser) create() error {
 	input := &s3.CreateMultipartUploadInput{
 		Bucket: aws.String(w.name),
 		Key:    aws.String(w.key),
+		ACL:    aws.String(w.permission),
 	}
 
 	result, err := w.svc.CreateMultipartUploadWithContext(w.ctx, input)
@@ -248,6 +264,7 @@ func (w *smallWriteCloser) Close() error {
 		Body:   aws.ReadSeekCloser(strings.NewReader(string(w.buffer))),
 		Bucket: aws.String(w.name),
 		Key:    aws.String(w.key),
+		ACL:    aws.String(w.permission),
 	}
 
 	_, err := w.svc.PutObjectWithContext(w.ctx, input)
@@ -271,19 +288,22 @@ func (w *largeWriteCloser) Close() error {
 
 func (s *s3BucketSmall) Writer(ctx context.Context, key string) (io.WriteCloser, error) {
 	return &smallWriteCloser{
-		name: s.name,
-		svc:  s.svc,
-		ctx:  ctx,
-		key:  s.normalizeKey(key),
+		name:       s.name,
+		svc:        s.svc,
+		ctx:        ctx,
+		key:        s.normalizeKey(key),
+		permission: s.permission,
 	}, nil
 }
+
 func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser, error) {
 	return &largeWriteCloser{
-		maxSize: s.minPartSize,
-		name:    s.name,
-		svc:     s.svc,
-		ctx:     ctx,
-		key:     s.normalizeKey(key),
+		maxSize:    s.minPartSize,
+		name:       s.name,
+		svc:        s.svc,
+		ctx:        ctx,
+		key:        s.normalizeKey(key),
+		permission: s.permission,
 	}, nil
 }
 

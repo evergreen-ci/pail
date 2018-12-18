@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/pkg/errors"
@@ -291,13 +290,54 @@ func TestBucket(t *testing.T) {
 					test: func(t *testing.T, b Bucket) {
 						assert.NoError(t, b.Check(ctx))
 						badOptions := S3Options{
-							Credentials: credentials.NewStaticCredentials("asdf", "asdf", "asdf"),
+							Credentials: CreateAWSCredentials("asdf", "asdf", "asdf"),
 							Region:      s3Region,
 							Name:        s3BucketName,
 						}
 						badBucket, err := NewS3Bucket(badOptions)
 						assert.Nil(t, err)
 						assert.Error(t, badBucket.Check(ctx))
+					},
+				},
+				{
+					id: "TestPermissions",
+					test: func(t *testing.T, b Bucket) {
+						// default permissions
+						key := newUUID()
+						writer, err := b.Writer(ctx, key)
+						require.NoError(t, err)
+						writer.Write([]byte("hello world"))
+						require.NoError(t, writer.Close())
+						objectAclInput := &s3.GetObjectAclInput{
+							Bucket: aws.String(s3BucketName),
+							Key:    aws.String(key),
+						}
+						objectAclOutput, err := b.(*s3BucketSmall).svc.GetObjectAcl(objectAclInput)
+						require.NoError(t, err)
+						require.Equal(t, 1, len(objectAclOutput.Grants))
+						assert.Equal(t, "FULL_CONTROL", objectAclOutput.Grants[0].Permission)
+
+						// custom permissions
+						openOptions := S3Options{
+							Region:     s3Region,
+							Name:       s3BucketName,
+							Prefix:     s3Prefix + newUUID(),
+							Permission: "public-read",
+						}
+						openBucket, err := NewS3Bucket(openOptions)
+						key = newUUID()
+						writer, err = openBucket.Writer(ctx, key)
+						require.NoError(t, err)
+						writer.Write([]byte("hello world"))
+						require.NoError(t, writer.Close())
+						objectAclInput = &s3.GetObjectAclInput{
+							Bucket: aws.String(s3BucketName),
+							Key:    aws.String(key),
+						}
+						objectAclOutput, err = openBucket.(*s3BucketSmall).svc.GetObjectAcl(objectAclInput)
+						require.NoError(t, err)
+						require.Equal(t, 2, len(objectAclOutput.Grants))
+						assert.Equal(t, "READ", objectAclOutput.Grants[1].Permission)
 					},
 				},
 			},
@@ -321,6 +361,47 @@ func TestBucket(t *testing.T) {
 						bucket, ok := b.(*s3BucketLarge)
 						require.True(t, ok)
 						assert.NotNil(t, bucket)
+					},
+				},
+				{
+					id: "TestPermissions",
+					test: func(t *testing.T, b Bucket) {
+						// default permissions
+						key := newUUID()
+						writer, err := b.Writer(ctx, key)
+						require.NoError(t, err)
+						writer.Write([]byte("hello world"))
+						require.NoError(t, writer.Close())
+						objectAclInput := &s3.GetObjectAclInput{
+							Bucket: aws.String(s3BucketName),
+							Key:    aws.String(key),
+						}
+						objectAclOutput, err := b.(*s3BucketLarge).svc.GetObjectAcl(objectAclInput)
+						require.NoError(t, err)
+						require.Equal(t, 1, len(objectAclOutput.Grants))
+						assert.Equal(t, "FULL_CONTROL", objectAclOutput.Grants[0].Permission)
+
+						// custom permissions
+						openOptions := S3Options{
+							Region:     s3Region,
+							Name:       s3BucketName,
+							Prefix:     s3Prefix + newUUID(),
+							Permission: "public-read",
+						}
+						openBucket, err := NewS3Bucket(openOptions)
+						key = newUUID()
+						writer, err = openBucket.Writer(ctx, key)
+						require.NoError(t, err)
+						writer.Write([]byte("hello world"))
+						require.NoError(t, writer.Close())
+						objectAclInput = &s3.GetObjectAclInput{
+							Bucket: aws.String(s3BucketName),
+							Key:    aws.String(key),
+						}
+						objectAclOutput, err = openBucket.(*s3BucketLarge).svc.GetObjectAcl(objectAclInput)
+						require.NoError(t, err)
+						require.Equal(t, 2, len(objectAclOutput.Grants))
+						assert.Equal(t, "READ", objectAclOutput.Grants[1].Permission)
 					},
 				},
 			},
