@@ -116,6 +116,36 @@ func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
 	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 5000000}, nil
 }
 
+func CloneS3Bucket(bucket Bucket) (Bucket, error) {
+	switch b := bucket.(type) {
+	case *s3BucketSmall:
+		return &s3BucketSmall{
+			s3Bucket: s3Bucket{
+				name:        b.name,
+				prefix:      b.prefix,
+				sess:        b.sess,
+				svc:         b.svc,
+				permission:  b.permission,
+				contentType: b.contentType,
+			},
+		}, nil
+	case *s3BucketLarge:
+		return &s3BucketLarge{
+			s3Bucket: s3Bucket{
+				name:        b.name,
+				prefix:      b.prefix,
+				sess:        b.sess,
+				svc:         b.svc,
+				permission:  b.permission,
+				contentType: b.contentType,
+			},
+			minPartSize: b.minPartSize,
+		}, nil
+	default:
+		return nil, errors.Errorf("%s is not an s3Bucket", b)
+	}
+}
+
 func (s *s3Bucket) String() string { return s.name }
 
 func (s *s3Bucket) Check(ctx context.Context) error {
