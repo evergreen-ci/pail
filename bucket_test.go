@@ -385,7 +385,8 @@ func TestBucket(t *testing.T) {
 						}
 						getObjectOutput, err = rawBucket.svc.GetObject(getObjectInput)
 						require.NoError(t, err)
-						fmt.Println(getObjectOutput.ContentType)
+						require.NotNil(t, getObjectOutput.ContentType)
+						fmt.Println(*getObjectOutput.ContentType)
 						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 					},
 				},
@@ -497,6 +498,7 @@ func TestBucket(t *testing.T) {
 						}
 						getObjectOutput, err = rawBucket.svc.GetObject(getObjectInput)
 						require.NoError(t, err)
+						require.NotNil(t, getObjectOutput.ContentType)
 						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 					},
 				},
