@@ -591,7 +591,7 @@ func TestBucket(t *testing.T) {
 
 				bucket := impl.constructor(t)
 				for k, v := range data {
-					assert.NoError(t, writeDataToFile(ctx, bucket, k, v))
+					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
 				}
 
 				iter, err := bucket.List(ctx, "")
@@ -615,8 +615,8 @@ func TestBucket(t *testing.T) {
 					assert.NoError(t, reader.Close())
 					assert.Equal(t, string(out), data[item.Name()])
 				}
-				assert.Equal(t, 300, count)
 				assert.NoError(t, iter.Err())
+				assert.Equal(t, len(data), count)
 			})
 			t.Run("PullFromBucket", func(t *testing.T) {
 				data := map[string]string{}
