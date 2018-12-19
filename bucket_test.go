@@ -475,7 +475,7 @@ func TestBucket(t *testing.T) {
 						}
 						getObjectOutput, err := rawBucket.svc.GetObject(getObjectInput)
 						require.NoError(t, err)
-						//assert.Equal(t, "binary/octet-stream", *getObjectOutput.ContentType)
+						assert.Equal(t, "binary/octet-stream", *getObjectOutput.ContentType)
 
 						// explicitly set content type
 						htmlOptions := S3Options{
@@ -498,7 +498,7 @@ func TestBucket(t *testing.T) {
 						}
 						getObjectOutput, err = rawBucket.svc.GetObject(getObjectInput)
 						require.NoError(t, err)
-						//assert.Equal(t, "html/text", *getObjectOutput.ContentType)
+						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 					},
 				},
 			},
