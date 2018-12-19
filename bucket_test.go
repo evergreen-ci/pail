@@ -362,7 +362,7 @@ func TestBucket(t *testing.T) {
 						}
 						getObjectOutput, err := rawBucket.svc.GetObject(getObjectInput)
 						require.NoError(t, err)
-						assert.Nil(t, *getObjectOutput.ContentType)
+						assert.Nil(t, getObjectOutput.ContentType)
 
 						// explicitly set content type
 						htmlOptions := S3Options{
@@ -475,7 +475,7 @@ func TestBucket(t *testing.T) {
 						}
 						getObjectOutput, err := rawBucket.svc.GetObject(getObjectInput)
 						require.NoError(t, err)
-						assert.Nil(t, *getObjectOutput.ContentType)
+						assert.Nil(t, getObjectOutput.ContentType)
 
 						// explicitly set content type
 						htmlOptions := S3Options{
