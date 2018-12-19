@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -306,7 +307,8 @@ func TestBucket(t *testing.T) {
 						key := newUUID()
 						writer, err := b.Writer(ctx, key)
 						require.NoError(t, err)
-						writer.Write([]byte("hello world"))
+						_, err = writer.Write([]byte("hello world"))
+						require.NoError(t, err)
 						require.NoError(t, writer.Close())
 						objectAclInput := &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
@@ -315,6 +317,7 @@ func TestBucket(t *testing.T) {
 						objectAclOutput, err := b.(*s3BucketSmall).svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 1, len(objectAclOutput.Grants))
+						fmt.Println(objectAclOutput.Grants[0].Permission)
 						assert.Equal(t, "FULL_CONTROL", objectAclOutput.Grants[0].Permission)
 
 						// custom permissions
@@ -328,7 +331,8 @@ func TestBucket(t *testing.T) {
 						key = newUUID()
 						writer, err = openBucket.Writer(ctx, key)
 						require.NoError(t, err)
-						writer.Write([]byte("hello world"))
+						_, err = writer.Write([]byte("hello world"))
+						require.NoError(t, err)
 						require.NoError(t, writer.Close())
 						objectAclInput = &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
@@ -337,6 +341,7 @@ func TestBucket(t *testing.T) {
 						objectAclOutput, err = openBucket.(*s3BucketSmall).svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectAclOutput.Grants))
+						fmt.Println(objectAclOutput.Grants[1].Permission)
 						assert.Equal(t, "READ", objectAclOutput.Grants[1].Permission)
 					},
 				},
@@ -370,7 +375,8 @@ func TestBucket(t *testing.T) {
 						key := newUUID()
 						writer, err := b.Writer(ctx, key)
 						require.NoError(t, err)
-						writer.Write([]byte("hello world"))
+						_, err = writer.Write([]byte("hello world"))
+						require.NoError(t, err)
 						require.NoError(t, writer.Close())
 						objectAclInput := &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
@@ -392,7 +398,8 @@ func TestBucket(t *testing.T) {
 						key = newUUID()
 						writer, err = openBucket.Writer(ctx, key)
 						require.NoError(t, err)
-						writer.Write([]byte("hello world"))
+						_, err = writer.Write([]byte("hello world"))
+						require.NoError(t, err)
 						require.NoError(t, writer.Close())
 						objectAclInput = &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
