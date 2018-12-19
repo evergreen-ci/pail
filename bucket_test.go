@@ -310,11 +310,12 @@ func TestBucket(t *testing.T) {
 						_, err = writer.Write([]byte("hello world"))
 						require.NoError(t, err)
 						require.NoError(t, writer.Close())
+						rawBucket := b.(*s3BucketSmall)
 						objectAclInput := &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
-							Key:    aws.String(key),
+							Key:    aws.String(rawBucket.normalizeKey(key)),
 						}
-						objectAclOutput, err := b.(*s3BucketSmall).svc.GetObjectAcl(objectAclInput)
+						objectAclOutput, err := rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 1, len(objectAclOutput.Grants))
 						fmt.Println(objectAclOutput.Grants[0].Permission)
@@ -334,11 +335,12 @@ func TestBucket(t *testing.T) {
 						_, err = writer.Write([]byte("hello world"))
 						require.NoError(t, err)
 						require.NoError(t, writer.Close())
+						rawBucket = openBucket.(*s3BucketSmall)
 						objectAclInput = &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
-							Key:    aws.String(key),
+							Key:    aws.String(rawBucket.normalizeKey(key)),
 						}
-						objectAclOutput, err = openBucket.(*s3BucketSmall).svc.GetObjectAcl(objectAclInput)
+						objectAclOutput, err = rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectAclOutput.Grants))
 						fmt.Println(objectAclOutput.Grants[1].Permission)
@@ -378,11 +380,12 @@ func TestBucket(t *testing.T) {
 						_, err = writer.Write([]byte("hello world"))
 						require.NoError(t, err)
 						require.NoError(t, writer.Close())
+						rawBucket := b.(*s3BucketLarge)
 						objectAclInput := &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
-							Key:    aws.String(key),
+							Key:    aws.String(rawBucket.normalizeKey(key)),
 						}
-						objectAclOutput, err := b.(*s3BucketLarge).svc.GetObjectAcl(objectAclInput)
+						objectAclOutput, err := rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 1, len(objectAclOutput.Grants))
 						assert.Equal(t, "FULL_CONTROL", objectAclOutput.Grants[0].Permission)
@@ -401,11 +404,12 @@ func TestBucket(t *testing.T) {
 						_, err = writer.Write([]byte("hello world"))
 						require.NoError(t, err)
 						require.NoError(t, writer.Close())
+						rawBucket = openBucket.(*s3BucketLarge)
 						objectAclInput = &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
-							Key:    aws.String(key),
+							Key:    aws.String(rawBucket.normalizeKey(key)),
 						}
-						objectAclOutput, err = openBucket.(*s3BucketLarge).svc.GetObjectAcl(objectAclInput)
+						objectAclOutput, err = rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectAclOutput.Grants))
 						assert.Equal(t, "READ", objectAclOutput.Grants[1].Permission)
