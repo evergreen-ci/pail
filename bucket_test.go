@@ -318,8 +318,8 @@ func TestBucket(t *testing.T) {
 						objectAclOutput, err := rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 1, len(objectAclOutput.Grants))
-						fmt.Println(objectAclOutput.Grants[0].Permission)
-						assert.Equal(t, "FULL_CONTROL", objectAclOutput.Grants[0].Permission)
+						fmt.Println(*objectAclOutput.Grants[0].Permission)
+						assert.Equal(t, "FULL_CONTROL", *objectAclOutput.Grants[0].Permission)
 
 						// custom permissions
 						openOptions := S3Options{
@@ -343,8 +343,8 @@ func TestBucket(t *testing.T) {
 						objectAclOutput, err = rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectAclOutput.Grants))
-						fmt.Println(objectAclOutput.Grants[1].Permission)
-						assert.Equal(t, "READ", objectAclOutput.Grants[1].Permission)
+						fmt.Println(*objectAclOutput.Grants[1].Permission)
+						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
 					},
 				},
 			},
@@ -388,7 +388,7 @@ func TestBucket(t *testing.T) {
 						objectAclOutput, err := rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 1, len(objectAclOutput.Grants))
-						assert.Equal(t, "FULL_CONTROL", objectAclOutput.Grants[0].Permission)
+						assert.Equal(t, "FULL_CONTROL", *objectAclOutput.Grants[0].Permission)
 
 						// custom permissions
 						openOptions := S3Options{
@@ -397,7 +397,7 @@ func TestBucket(t *testing.T) {
 							Prefix:     s3Prefix + newUUID(),
 							Permission: "public-read",
 						}
-						openBucket, err := NewS3Bucket(openOptions)
+						openBucket, err := NewS3MultiPartBucket(openOptions)
 						key = newUUID()
 						writer, err = openBucket.Writer(ctx, key)
 						require.NoError(t, err)
@@ -412,7 +412,7 @@ func TestBucket(t *testing.T) {
 						objectAclOutput, err = rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectAclOutput.Grants))
-						assert.Equal(t, "READ", objectAclOutput.Grants[1].Permission)
+						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
 					},
 				},
 			},
