@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -319,7 +320,7 @@ func TestBucket(t *testing.T) {
 						require.Equal(t, 1, len(objectAclOutput.Grants))
 						assert.Equal(t, "FULL_CONTROL", *objectAclOutput.Grants[0].Permission)
 
-						// custom permissions
+						// explicitly set permissions
 						openOptions := S3Options{
 							Region:     s3Region,
 							Name:       s3BucketName,
@@ -342,6 +343,51 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectAclOutput.Grants))
 						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
+					},
+				},
+				{
+					id: "TestContentType",
+					test: func(t *testing.T, b Bucket) {
+						// default content type
+						key := newUUID()
+						writer, err := b.Writer(ctx, key)
+						require.NoError(t, err)
+						_, err = writer.Write([]byte("hello world"))
+						require.NoError(t, err)
+						require.NoError(t, writer.Close())
+						rawBucket := b.(*s3BucketSmall)
+						getObjectInput := &s3.GetObjectInput{
+							Bucket: aws.String(s3BucketName),
+							Key:    aws.String(rawBucket.normalizeKey(key)),
+						}
+						getObjectOutput, err := rawBucket.svc.GetObject(getObjectInput)
+						require.NoError(t, err)
+						fmt.Println(*getObjectOutput.ContentType)
+						assert.Equal(t, "binary/octet-stream", *getObjectOutput.ContentType)
+
+						// explicitly set content type
+						htmlOptions := S3Options{
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							ContentType: "html/text",
+						}
+						htmlBucket, err := NewS3Bucket(htmlOptions)
+						key = newUUID()
+						writer, err = htmlBucket.Writer(ctx, key)
+						require.NoError(t, err)
+						_, err = writer.Write([]byte("hello world"))
+						require.NoError(t, err)
+						require.NoError(t, writer.Close())
+						rawBucket = htmlBucket.(*s3BucketSmall)
+						getObjectInput = &s3.GetObjectInput{
+							Bucket: aws.String(s3BucketName),
+							Key:    aws.String(rawBucket.normalizeKey(key)),
+						}
+						getObjectOutput, err = rawBucket.svc.GetObject(getObjectInput)
+						require.NoError(t, err)
+						fmt.Println(*getObjectOutput.ContentType)
+						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 					},
 				},
 			},
@@ -387,7 +433,7 @@ func TestBucket(t *testing.T) {
 						require.Equal(t, 1, len(objectAclOutput.Grants))
 						assert.Equal(t, "FULL_CONTROL", *objectAclOutput.Grants[0].Permission)
 
-						// custom permissions
+						// explicitly set permissions
 						openOptions := S3Options{
 							Region:     s3Region,
 							Name:       s3BucketName,
@@ -410,6 +456,49 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectAclOutput.Grants))
 						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
+					},
+				},
+				{
+					id: "TestContentType",
+					test: func(t *testing.T, b Bucket) {
+						// default content type
+						key := newUUID()
+						writer, err := b.Writer(ctx, key)
+						require.NoError(t, err)
+						_, err = writer.Write([]byte("hello world"))
+						require.NoError(t, err)
+						require.NoError(t, writer.Close())
+						rawBucket := b.(*s3BucketLarge)
+						getObjectInput := &s3.GetObjectInput{
+							Bucket: aws.String(s3BucketName),
+							Key:    aws.String(rawBucket.normalizeKey(key)),
+						}
+						getObjectOutput, err := rawBucket.svc.GetObject(getObjectInput)
+						require.NoError(t, err)
+						assert.Equal(t, "binary/octet-stream", *getObjectOutput.ContentType)
+
+						// explicitly set content type
+						htmlOptions := S3Options{
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							ContentType: "html/text",
+						}
+						htmlBucket, err := NewS3MultiPartBucket(htmlOptions)
+						key = newUUID()
+						writer, err = htmlBucket.Writer(ctx, key)
+						require.NoError(t, err)
+						_, err = writer.Write([]byte("hello world"))
+						require.NoError(t, err)
+						require.NoError(t, writer.Close())
+						rawBucket = htmlBucket.(*s3BucketLarge)
+						getObjectInput = &s3.GetObjectInput{
+							Bucket: aws.String(s3BucketName),
+							Key:    aws.String(rawBucket.normalizeKey(key)),
+						}
+						getObjectOutput, err = rawBucket.svc.GetObject(getObjectInput)
+						require.NoError(t, err)
+						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 					},
 				},
 			},
