@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -318,7 +317,6 @@ func TestBucket(t *testing.T) {
 						objectAclOutput, err := rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 1, len(objectAclOutput.Grants))
-						fmt.Println(*objectAclOutput.Grants[0].Permission)
 						assert.Equal(t, "FULL_CONTROL", *objectAclOutput.Grants[0].Permission)
 
 						// custom permissions
@@ -343,7 +341,6 @@ func TestBucket(t *testing.T) {
 						objectAclOutput, err = rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectAclOutput.Grants))
-						fmt.Println(*objectAclOutput.Grants[1].Permission)
 						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
 					},
 				},
