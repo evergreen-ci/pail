@@ -390,14 +390,6 @@ func TestBucket(t *testing.T) {
 						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 					},
 				},
-				{
-					id: "TestClone",
-					test: func(t *testing.T, b Bucket) {
-						clonedBucket, err := CloneS3Bucket(b)
-						assert.NoError(t, err)
-						assert.Equal(t, b.(*s3BucketSmall), clonedBucket.(*s3BucketSmall))
-					},
-				},
 			},
 		},
 		{
@@ -508,14 +500,6 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.NotNil(t, getObjectOutput.ContentType)
 						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
-					},
-				},
-				{
-					id: "TestClone",
-					test: func(t *testing.T, b Bucket) {
-						clonedBucket, err := CloneS3Bucket(b)
-						assert.NoError(t, err)
-						assert.Equal(t, b.(*s3BucketLarge), clonedBucket.(*s3BucketLarge))
 					},
 				},
 			},
