@@ -606,9 +606,9 @@ func TestBucket(t *testing.T) {
 
 				// dry run bucket also retrieves data
 				dryRunBucket := bucket.Clone(true)
-				reader, err := dryRunBucket.Get(ctx, key)
+				reader, err = dryRunBucket.Get(ctx, key)
 				require.NoError(t, err)
-				data, err := ioutil.ReadAll(reader)
+				data, err = ioutil.ReadAll(reader)
 				require.NoError(t, err)
 				assert.Equal(t, "hello world!", string(data))
 			})
@@ -620,8 +620,8 @@ func TestBucket(t *testing.T) {
 
 				// dry run Put does not save file
 				dryRunBucket := bucket.Clone(true)
-				key := newUUID()
-				assert.NoError(t, bucket.Put(ctx, key, bytes.NewBuffer([]byte(contents))))
+				key = newUUID()
+				assert.NoError(t, dryRunBucket.Put(ctx, key, bytes.NewBuffer([]byte(contents))))
 
 				reader, err := bucket.Get(ctx, key)
 				require.NoError(t, err)
@@ -630,6 +630,7 @@ func TestBucket(t *testing.T) {
 				assert.Equal(t, contents, string(data))
 			})
 			t.Run("PutWithDryRunDoesNotSaveFiles", func(t *testing.T) {
+				const contents = "check data"
 				bucket := impl.constructor(t).Clone(true)
 				key := newUUID()
 				assert.NoError(t, bucket.Put(ctx, key, bytes.NewBuffer([]byte(contents))))
@@ -729,7 +730,7 @@ func TestBucket(t *testing.T) {
 				_, err = os.Stat(path)
 				assert.False(t, os.IsNotExist(err))
 
-				data, err := ioutil.ReadFile(path)
+				data, err = ioutil.ReadFile(path)
 				require.NoError(t, err)
 				assert.Equal(t, contents, string(data))
 			})
@@ -819,7 +820,7 @@ func TestBucket(t *testing.T) {
 
 				// should work with dry run bucket
 				dryRunBucket := bucket.Clone(true)
-				mirror := filepath.Join(tempdir, "pull-one", newUUID())
+				mirror = filepath.Join(tempdir, "pull-one", newUUID())
 				require.NoError(t, os.MkdirAll(mirror, 0700))
 				for i := 0; i < 3; i++ {
 					assert.NoError(t, dryRunBucket.Pull(ctx, mirror, ""))
