@@ -5,5 +5,5 @@ package pail
 type mockWriteCloser struct{}
 
 // these functions do not do anything
-func (m *mockWriteCloser) Write(p []byte) (n int, err error) { return 1, nil }
+func (m *mockWriteCloser) Write(p []byte) (n int, err error) { return len(p), nil }
 func (m *mockWriteCloser) Close() error                      { return nil }
