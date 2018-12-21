@@ -11,14 +11,15 @@ import (
 )
 
 type localFileSystem struct {
-	path string
+	path   string
+	dryRun bool
 }
 
 // NewLocalBucket returns an implementation of the Bucket interface
 // that stores files in the local file system. Returns an error if the
 // directory doesn't exist.
-func NewLocalBucket(path string) (Bucket, error) {
-	b := &localFileSystem{path: path}
+func NewLocalBucket(path string, dryRun bool) (Bucket, error) {
+	b := &localFileSystem{path: path, dryRun: dryRun}
 	if err := b.Check(nil); err != nil {
 		return nil, errors.WithStack(err)
 
@@ -31,13 +32,17 @@ func NewLocalBucket(path string) (Bucket, error) {
 // directory created for this purpose. Returns an error if there were
 // issues creating the temporary directory. This implementation does
 // not provide a mechanism to delete the temporary directory.
-func NewLocalTemporaryBucket() (Bucket, error) {
+func NewLocalTemporaryBucket(dryRun bool) (Bucket, error) {
 	dir, err := ioutil.TempDir("", "pail-local-tmp-bucket")
 	if err != nil {
 		return nil, errors.Wrap(err, "problem creating temporary directory")
 	}
 
-	return &localFileSystem{path: dir}, nil
+	return &localFileSystem{path: dir, dryRun: dryRun}, nil
+}
+
+func (b *localFileSystem) Clone(dryRun bool) Bucket {
+	return &localFileSystem{path: b.path, dryRun: b.dryRun}
 }
 
 func (b *localFileSystem) Check(_ context.Context) error {
@@ -49,6 +54,10 @@ func (b *localFileSystem) Check(_ context.Context) error {
 }
 
 func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser, error) {
+	if b.dryRun {
+		return &mockWriteCloser{}, nil
+	}
+
 	path := filepath.Join(b.path, name)
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, errors.Wrap(err, "problem creating base directories")
@@ -142,6 +151,10 @@ func (b *localFileSystem) Copy(ctx context.Context, options CopyOptions) error {
 }
 
 func (b *localFileSystem) Remove(ctx context.Context, key string) error {
+	if b.dryRun {
+		return nil
+	}
+
 	path := filepath.Join(b.path, key)
 
 	return errors.Wrapf(os.Remove(path), "problem removing path %s", path)

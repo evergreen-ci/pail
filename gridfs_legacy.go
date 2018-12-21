@@ -24,6 +24,7 @@ type GridFSOptions struct {
 	Prefix     string
 	Database   string
 	MongoDBURI string
+	DryRun     bool
 }
 
 // NewLegacyGridFSBucket creates a Bucket implementation backed by
@@ -64,6 +65,16 @@ func NewLegacyGridFSBucketWithSession(s *mgo.Session, opts GridFSOptions) (Bucke
 		opts:    opts,
 		session: s,
 	}, nil
+}
+
+func (b *gridfsLegacyBucket) Clone(dryRun bool) Bucket {
+	opts := b.opts
+	opts.DryRun = dryRun
+
+	return &gridfsLegacyBucket{
+		opts:    opts,
+		session: b.session,
+	}
 }
 
 func (b *gridfsLegacyBucket) Check(_ context.Context) error {
@@ -117,6 +128,9 @@ type legacyGridFSFile struct {
 func (f *legacyGridFSFile) Close() error { f.cancel(); return errors.WithStack(f.GridFile.Close()) }
 
 func (b *gridfsLegacyBucket) Writer(ctx context.Context, name string) (io.WriteCloser, error) {
+	if b.opts.DryRun {
+		return &mockWriteCloser{}, nil
+	}
 	return b.openFile(ctx, name, true)
 }
 
@@ -125,9 +139,15 @@ func (b *gridfsLegacyBucket) Reader(ctx context.Context, name string) (io.ReadCl
 }
 
 func (b *gridfsLegacyBucket) Put(ctx context.Context, name string, input io.Reader) error {
-	file, err := b.openFile(ctx, name, true)
-	if err != nil {
-		return errors.Wrap(err, "problem creating file")
+	var file io.WriteCloser
+	var err error
+	if b.opts.DryRun {
+		file = &mockWriteCloser{}
+	} else {
+		file, err = b.openFile(ctx, name, true)
+		if err != nil {
+			return errors.Wrap(err, "problem creating file")
+		}
 	}
 
 	_, err = io.Copy(file, input)
@@ -271,6 +291,9 @@ func (b *gridfsLegacyBucket) Copy(ctx context.Context, options CopyOptions) erro
 }
 
 func (b *gridfsLegacyBucket) Remove(ctx context.Context, key string) error {
+	if b.opts.DryRun {
+		return nil
+	}
 	return errors.Wrapf(b.gridFS().Remove(key), "problem removing file %s", key)
 }
 
