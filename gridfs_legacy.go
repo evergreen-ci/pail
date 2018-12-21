@@ -67,16 +67,6 @@ func NewLegacyGridFSBucketWithSession(s *mgo.Session, opts GridFSOptions) (Bucke
 	}, nil
 }
 
-func (b *gridfsLegacyBucket) Clone(dryRun bool) Bucket {
-	opts := b.opts
-	opts.DryRun = dryRun
-
-	return &gridfsLegacyBucket{
-		opts:    opts,
-		session: b.session,
-	}
-}
-
 func (b *gridfsLegacyBucket) Check(_ context.Context) error {
 	if b.session == nil {
 		return errors.New("no session defined")

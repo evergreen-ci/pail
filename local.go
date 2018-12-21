@@ -41,10 +41,6 @@ func NewLocalTemporaryBucket(dryRun bool) (Bucket, error) {
 	return &localFileSystem{path: dir, dryRun: dryRun}, nil
 }
 
-func (b *localFileSystem) Clone(dryRun bool) Bucket {
-	return &localFileSystem{path: b.path, dryRun: dryRun}
-}
-
 func (b *localFileSystem) Check(_ context.Context) error {
 	if _, err := os.Stat(b.path); os.IsNotExist(err) {
 		return errors.New("bucket prefix does not exist")

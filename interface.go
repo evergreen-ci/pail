@@ -73,10 +73,6 @@ type Bucket interface {
 	// List provides a way to iterator over the contents of a
 	// bucket (for a given prefix.)
 	List(context.Context, string) (BucketIterator, error)
-
-	// Copy bucket contents into a new bucket, with the option of setting
-	// dryRun to true.
-	Clone(bool) Bucket
 }
 
 type CopyOptions struct {
