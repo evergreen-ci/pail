@@ -42,7 +42,7 @@ func NewLocalTemporaryBucket(dryRun bool) (Bucket, error) {
 }
 
 func (b *localFileSystem) Clone(dryRun bool) Bucket {
-	return &localFileSystem{path: b.path, dryRun: b.dryRun}
+	return &localFileSystem{path: b.path, dryRun: dryRun}
 }
 
 func (b *localFileSystem) Check(_ context.Context) error {
