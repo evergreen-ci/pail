@@ -350,10 +350,6 @@ func (s *s3BucketSmall) Writer(ctx context.Context, key string) (io.WriteCloser,
 }
 
 func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser, error) {
-	if s.dryRun {
-		return nil, nil
-	}
-
 	return &largeWriteCloser{
 		maxSize:     s.minPartSize,
 		name:        s.name,
