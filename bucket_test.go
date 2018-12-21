@@ -618,11 +618,6 @@ func TestBucket(t *testing.T) {
 				key := newUUID()
 				assert.NoError(t, bucket.Put(ctx, key, bytes.NewBuffer([]byte(contents))))
 
-				// dry run Put does not save file
-				dryRunBucket := bucket.Clone(true)
-				key = newUUID()
-				assert.NoError(t, dryRunBucket.Put(ctx, key, bytes.NewBuffer([]byte(contents))))
-
 				reader, err := bucket.Get(ctx, key)
 				require.NoError(t, err)
 				data, err := ioutil.ReadAll(reader)
@@ -725,6 +720,7 @@ func TestBucket(t *testing.T) {
 				// writes file to disk with dry run bucket
 				dryRunBucket := bucket.Clone(true)
 				path = filepath.Join(tempdir, uuid, newUUID())
+				_, err = os.Stat(path)
 				assert.True(t, os.IsNotExist(err))
 				assert.NoError(t, dryRunBucket.Download(ctx, key, path))
 				_, err = os.Stat(path)
