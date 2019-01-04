@@ -3,6 +3,7 @@ package pail
 import (
 	"context"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -71,18 +72,18 @@ func (s *s3Bucket) denormalizeKey(key string) string {
 	return key
 }
 
-func newS3BucketBase(options S3Options) (*s3Bucket, error) {
-	config := &aws.Config{Region: aws.String(options.Region)}
+func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) {
+	config := &aws.Config{Region: aws.String(options.Region), HTTPClient: client}
 	if options.Credentials != nil {
 		_, err := options.Credentials.Get()
 		if err != nil {
-			return &s3Bucket{}, errors.Wrap(err, "invalid credentials!")
+			return nil, errors.Wrap(err, "invalid credentials!")
 		}
 		config.Credentials = options.Credentials
 	}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		return &s3Bucket{}, errors.Wrap(err, "problem connecting to AWS")
+		return nil, errors.Wrap(err, "problem connecting to AWS")
 	}
 	svc := s3.New(sess)
 	return &s3Bucket{
@@ -101,9 +102,21 @@ func newS3BucketBase(options S3Options) (*s3Bucket, error) {
 // like to add objects larger than 5 gigabytes see
 // `NewS3MultiPartBucket`.
 func NewS3Bucket(options S3Options) (Bucket, error) {
-	bucket, err := newS3BucketBase(options)
+	bucket, err := newS3BucketBase(nil, options)
 	if err != nil {
-		return &s3BucketSmall{}, err
+		return nil, err
+	}
+	return &s3BucketSmall{s3Bucket: *bucket}, nil
+}
+
+// NewS3BucketWithHTTPClient returns a Bucket implementation backed by S3 with
+// an existing HTTP client connection. This implementation does not support
+// multipart uploads, if you would like to add objects larger than 5
+// gigabytes see `NewS3MultiPartBucket`.
+func NewS3BucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
+	bucket, err := newS3BucketBase(client, options)
+	if err != nil {
+		return nil, err
 	}
 	return &s3BucketSmall{s3Bucket: *bucket}, nil
 }
@@ -111,9 +124,21 @@ func NewS3Bucket(options S3Options) (Bucket, error) {
 // NewS3MultiPartBucket returns a Bucket implementation backed by S3
 // that supports multipart uploads for large objects.
 func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
-	bucket, err := newS3BucketBase(options)
+	bucket, err := newS3BucketBase(nil, options)
 	if err != nil {
-		return &s3BucketLarge{}, err
+		return nil, err
+	}
+	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
+	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 5000000}, nil
+}
+
+// NewS3MultiPartBucketWithHTTPClient returns a Bucket implementation backed
+// by S3 with an existing HTTP client connection that supports multipart
+// uploads for large objects.
+func NewS3MultiPartBucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
+	bucket, err := newS3BucketBase(client, options)
+	if err != nil {
+		return nil, err
 	}
 	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
 	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 5000000}, nil
