@@ -3,6 +3,7 @@ package pail
 import (
 	"context"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,6 +44,7 @@ type S3Options struct {
 	Permission  string
 	ContentType string
 	DryRun      bool
+	httpClient  *http.Client
 }
 
 // Wrapper for creating AWS credentials.
@@ -72,7 +74,7 @@ func (s *s3Bucket) denormalizeKey(key string) string {
 }
 
 func newS3BucketBase(options S3Options) (*s3Bucket, error) {
-	config := &aws.Config{Region: aws.String(options.Region)}
+	config := &aws.Config{Region: aws.String(options.Region), HTTPClient: options.httpClient}
 	if options.Credentials != nil {
 		_, err := options.Credentials.Get()
 		if err != nil {
@@ -108,6 +110,15 @@ func NewS3Bucket(options S3Options) (Bucket, error) {
 	return &s3BucketSmall{s3Bucket: *bucket}, nil
 }
 
+// NewS3BucketWithHTTPClient returns a Bucket implementation backed by S3 with
+// an existing HTTP client connection. This implementation does not support
+// multipart uploads, if you would like to add objects larger than 5
+// gigabytes see `NewS3MultiPartBucket`.
+func NewS3BucketWithHTTPClient(options S3Options, client *http.Client) (Bucket, error) {
+	options.httpClient = client
+	return NewS3Bucket(options)
+}
+
 // NewS3MultiPartBucket returns a Bucket implementation backed by S3
 // that supports multipart uploads for large objects.
 func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
@@ -117,6 +128,14 @@ func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
 	}
 	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
 	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 5000000}, nil
+}
+
+// NewS3MultiPartBucketWithHTTPClient returns a Bucket implementation backed
+// by S3 with an existing HTTP client connection that supports multipart
+// uploads for large objects.
+func NewS3MultiPartBucketWithHTTPClient(options S3Options, client *http.Client) (Bucket, error) {
+	options.httpClient = client
+	return NewS3MultiPartBucket(options)
 }
 
 func (s *s3Bucket) String() string { return s.name }
