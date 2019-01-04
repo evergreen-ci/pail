@@ -114,7 +114,7 @@ func NewS3Bucket(options S3Options) (Bucket, error) {
 // an existing HTTP client connection. This implementation does not support
 // multipart uploads, if you would like to add objects larger than 5
 // gigabytes see `NewS3MultiPartBucket`.
-func NewS3BucketWithHTTPClient(options S3Options, client *http.Client) (Bucket, error) {
+func NewS3BucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
 	options.httpClient = client
 	return NewS3Bucket(options)
 }
@@ -133,7 +133,7 @@ func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
 // NewS3MultiPartBucketWithHTTPClient returns a Bucket implementation backed
 // by S3 with an existing HTTP client connection that supports multipart
 // uploads for large objects.
-func NewS3MultiPartBucketWithHTTPClient(options S3Options, client *http.Client) (Bucket, error) {
+func NewS3MultiPartBucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
 	options.httpClient = client
 	return NewS3MultiPartBucket(options)
 }
