@@ -77,13 +77,13 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	if options.Credentials != nil {
 		_, err := options.Credentials.Get()
 		if err != nil {
-			return &s3Bucket{}, errors.Wrap(err, "invalid credentials!")
+			return nil, errors.Wrap(err, "invalid credentials!")
 		}
 		config.Credentials = options.Credentials
 	}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		return &s3Bucket{}, errors.Wrap(err, "problem connecting to AWS")
+		return nil, errors.Wrap(err, "problem connecting to AWS")
 	}
 	svc := s3.New(sess)
 	return &s3Bucket{
@@ -104,7 +104,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 func NewS3Bucket(options S3Options) (Bucket, error) {
 	bucket, err := newS3BucketBase(nil, options)
 	if err != nil {
-		return &s3BucketSmall{}, err
+		return nil, err
 	}
 	return &s3BucketSmall{s3Bucket: *bucket}, nil
 }
@@ -116,7 +116,7 @@ func NewS3Bucket(options S3Options) (Bucket, error) {
 func NewS3BucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
 	bucket, err := newS3BucketBase(client, options)
 	if err != nil {
-		return &s3BucketSmall{}, err
+		return nil, err
 	}
 	return &s3BucketSmall{s3Bucket: *bucket}, nil
 }
@@ -126,7 +126,7 @@ func NewS3BucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, 
 func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
 	bucket, err := newS3BucketBase(nil, options)
 	if err != nil {
-		return &s3BucketLarge{}, err
+		return nil, err
 	}
 	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
 	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 5000000}, nil
@@ -138,7 +138,7 @@ func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
 func NewS3MultiPartBucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
 	bucket, err := newS3BucketBase(client, options)
 	if err != nil {
-		return &s3BucketLarge{}, err
+		return nil, err
 	}
 	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
 	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 5000000}, nil
