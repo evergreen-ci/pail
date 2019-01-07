@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -269,9 +268,10 @@ func TestBucket(t *testing.T) {
 			name: "S3Bucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Region: s3Region,
-					Name:   s3BucketName,
-					Prefix: s3Prefix + newUUID(),
+					Region:     s3Region,
+					Name:       s3BucketName,
+					Prefix:     s3Prefix + newUUID(),
+					MaxRetries: 20,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -386,7 +386,6 @@ func TestBucket(t *testing.T) {
 						getObjectOutput, err = rawBucket.svc.GetObject(getObjectInput)
 						require.NoError(t, err)
 						require.NotNil(t, getObjectOutput.ContentType)
-						fmt.Println(*getObjectOutput.ContentType)
 						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 					},
 				},
@@ -396,9 +395,10 @@ func TestBucket(t *testing.T) {
 			name: "S3MultiPartBucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Region: s3Region,
-					Name:   s3BucketName,
-					Prefix: s3Prefix + newUUID(),
+					Region:     s3Region,
+					Name:       s3BucketName,
+					Prefix:     s3Prefix + newUUID(),
+					MaxRetries: 20,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
