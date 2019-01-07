@@ -302,6 +302,79 @@ func TestBucket(t *testing.T) {
 					},
 				},
 				{
+					id: "TestSharedCredentialsOption",
+					test: func(t *testing.T, b Bucket) {
+						require.NoError(t, b.Check(ctx))
+
+						newFile, err := os.Create(filepath.Join(tempdir, "creds"))
+						require.NoError(t, err)
+						defer newFile.Close()
+						_, err = newFile.WriteString("[my_profile]\n")
+						require.NoError(t, err)
+						awsCreds, err := os.Open("~/.aws/credentials")
+						require.NoError(t, err)
+						defer awsCreds.Close()
+						scanner := bufio.NewScanner(awsCreds)
+						completed := 0
+						for scanner.Scan() {
+							text := scanner.Text()
+							trimmedText := strings.TrimSpace(text)
+							if strings.HasPrefix(trimmedText, "aws_access_key_id") {
+								_, err = newFile.WriteString(text)
+								require.NoError(t, err)
+								completed += 1
+							} else if strings.HasPrefix(trimmedText, "aws_secret_access_key") {
+								_, err = newFile.WriteString(text)
+								require.NoError(t, err)
+								completed += 1
+							}
+							if completed == 2 {
+								break
+							}
+						}
+
+						sharedCredsOptions := S3Options{
+							SharedCredentialsFilepath: filepath.Join(tempdir, "creds"),
+							SharedCredentialsProfile:  "my_profile",
+							Region:                    s3Region,
+							Name:                      s3BucketName,
+						}
+						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+						require.NoError(t, err)
+						assert.NoError(t, sharedCredsBucket.Check(ctx))
+					},
+				},
+				{
+					id: "TestSharedCredentialsUsesCorrectDefaultFile",
+					test: func(t *testing.T, b Bucket) {
+						require.NoError(t, b.Check(ctx))
+
+						sharedCredsOptions := S3Options{
+							SharedCredentialsProfile: "default",
+							Region:                   s3Region,
+							Name:                     s3BucketName,
+						}
+						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+						require.NoError(t, err)
+						assert.NoError(t, sharedCredsBucket.Check(ctx))
+					},
+				},
+				{
+					id: "TestSharedCredentialsFailsWhenProfileDNE",
+					test: func(t *testing.T, b Bucket) {
+						require.NoError(t, b.Check(ctx))
+
+						sharedCredsOptions := S3Options{
+							SharedCredentialsProfile: "DNE",
+							Region:                   s3Region,
+							Name:                     s3BucketName,
+						}
+						_, err := NewS3Bucket(sharedCredsOptions)
+						assert.Error(t, err)
+					},
+				},
+
+				{
 					id: "TestPermissions",
 					test: func(t *testing.T, b Bucket) {
 						// default permissions
@@ -389,78 +462,6 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.NotNil(t, getObjectOutput.ContentType)
 						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
-					},
-				},
-				{
-					id: "TestSharedCredentialsOption",
-					test: func(t *testing.T, b Bucket) {
-						require.NoError(t, b.Check(ctx))
-
-						newFile, err := os.Create(filepath.Join(tempdir, "creds"))
-						require.NoError(t, err)
-						defer newFile.Close()
-						_, err = newFile.WriteString("[my_profile]\n")
-						require.NoError(t, err)
-						awsCreds, err := os.Open("~/.aws/credentials")
-						require.NoError(t, err)
-						defer awsCreds.Close()
-						scanner := bufio.NewScanner(awsCreds)
-						completed := 0
-						for scanner.Scan() {
-							text := scanner.Text()
-							trimmedText := strings.TrimSpace(text)
-							if strings.HasPrefix(trimmedText, "aws_access_key_id") {
-								_, err = newFile.WriteString(text)
-								require.NoError(t, err)
-								completed += 1
-							} else if strings.HasPrefix(trimmedText, "aws_secret_access_key") {
-								_, err = newFile.WriteString(text)
-								require.NoError(t, err)
-								completed += 1
-							}
-							if completed == 2 {
-								break
-							}
-						}
-
-						sharedCredsOptions := S3Options{
-							SharedCredentialsFilepath: filepath.Join(tempdir, "creds"),
-							SharedCredentialsProfile:  "my_profile",
-							Region:                    s3Region,
-							Name:                      s3BucketName,
-						}
-						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
-						require.NoError(t, err)
-						assert.NoError(t, sharedCredsBucket.Check(ctx))
-					},
-				},
-				{
-					id: "TestSharedCredentialsUsesCorrectDefaultFile",
-					test: func(t *testing.T, b Bucket) {
-						require.NoError(t, b.Check(ctx))
-
-						sharedCredsOptions := S3Options{
-							SharedCredentialsProfile: "default",
-							Region:                   s3Region,
-							Name:                     s3BucketName,
-						}
-						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
-						require.NoError(t, err)
-						assert.NoError(t, sharedCredsBucket.Check(ctx))
-					},
-				},
-				{
-					id: "TestSharedCredentialsFailsWhenProfileDNE",
-					test: func(t *testing.T, b Bucket) {
-						require.NoError(t, b.Check(ctx))
-
-						sharedCredsOptions := S3Options{
-							SharedCredentialsProfile: "DNE",
-							Region:                   s3Region,
-							Name:                     s3BucketName,
-						}
-						_, err := NewS3Bucket(sharedCredsOptions)
-						assert.Error(t, err)
 					},
 				},
 			},
