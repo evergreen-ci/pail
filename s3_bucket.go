@@ -44,7 +44,7 @@ type S3Options struct {
 	Permission  string
 	ContentType string
 	DryRun      bool
-	NumRetries  int
+	MaxRetries  int
 }
 
 // Wrapper for creating AWS credentials.
@@ -77,7 +77,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	config := &aws.Config{
 		Region:     aws.String(options.Region),
 		HTTPClient: client,
-		MaxRetries: aws.Int(options.NumRetries),
+		MaxRetries: aws.Int(options.MaxRetries),
 	}
 	if options.Credentials != nil {
 		_, err := options.Credentials.Get()

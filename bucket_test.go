@@ -271,7 +271,7 @@ func TestBucket(t *testing.T) {
 					Region:     s3Region,
 					Name:       s3BucketName,
 					Prefix:     s3Prefix + newUUID(),
-					NumRetries: 20,
+					MaxRetries: 20,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -398,7 +398,7 @@ func TestBucket(t *testing.T) {
 					Region:     s3Region,
 					Name:       s3BucketName,
 					Prefix:     s3Prefix + newUUID(),
-					NumRetries: 20,
+					MaxRetries: 20,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
