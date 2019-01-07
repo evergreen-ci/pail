@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -83,12 +84,16 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	}
 	// if options.SharedCredentialsProfile is set, will override any credentials passed in
 	if options.SharedCredentialsProfile != "" {
-		filepath := options.SharedCredentialsFilepath
-		if filepath == "" {
+		fp := options.SharedCredentialsFilepath
+		if fp == "" {
 			// if options.SharedCredentialsFilepath is not set, use default filepath
-			filepath = "~/.aws/credentials"
+			env := "HOME"
+			if runtime.GOOS == "windows" {
+				env = "USERPROFILE"
+			}
+			fp = filepath.Join(os.Getenv(env), ".aws/credentials")
 		}
-		sharedCredentials := credentials.NewSharedCredentials(filepath, options.SharedCredentialsProfile)
+		sharedCredentials := credentials.NewSharedCredentials(fp, options.SharedCredentialsProfile)
 		_, err := sharedCredentials.Get()
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid credentials from profile '%s'", options.SharedCredentialsProfile)

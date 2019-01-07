@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -310,9 +311,11 @@ func TestBucket(t *testing.T) {
 						defer newFile.Close()
 						_, err = newFile.WriteString("[my_profile]\n")
 						require.NoError(t, err)
-						_, err = newFile.WriteString(os.Getenv("AWS_KEY") + "\n")
+						awsKey := fmt.Sprintf("aws_access_key_id = %s\n", os.Getenv("AWS_KEY"))
+						_, err = newFile.WriteString(awsKey)
 						require.NoError(t, err)
-						_, err = newFile.WriteString(os.Getenv("AWS_SECRET") + "\n")
+						awsSecret := fmt.Sprintf("aws_secret_access_key = %s\n", os.Getenv("AWS_SECRET"))
+						_, err = newFile.WriteString(awsSecret)
 						require.NoError(t, err)
 
 						sharedCredsOptions := S3Options{
@@ -337,8 +340,17 @@ func TestBucket(t *testing.T) {
 							Name:                     s3BucketName,
 						}
 						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
-						require.NoError(t, err)
-						assert.NoError(t, sharedCredsBucket.Check(ctx))
+						env := "HOME"
+						if runtime.GOOS == "windows" {
+							env = "USERPROFILE"
+						}
+						fileName := filepath.Join(os.Getenv(env), ".aws/credentials")
+						_, err = os.Stat(fileName)
+						if err == nil {
+							assert.NoError(t, sharedCredsBucket.Check(ctx))
+						} else {
+							assert.True(t, os.IsNotExist(err))
+						}
 					},
 				},
 				{
