@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -387,7 +386,6 @@ func TestBucket(t *testing.T) {
 						getObjectOutput, err = rawBucket.svc.GetObject(getObjectInput)
 						require.NoError(t, err)
 						require.NotNil(t, getObjectOutput.ContentType)
-						fmt.Println(*getObjectOutput.ContentType)
 						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 					},
 				},
