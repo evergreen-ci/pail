@@ -99,7 +99,7 @@ func TestBucket(t *testing.T) {
 	defer ses.Close()
 	defer func() { ses.DB(uuid).DropDatabase() }()
 
-	s3BucketName := "build-test-curator"
+	s3BucketName := "pail-test"
 	s3Prefix := newUUID() + "-"
 	s3Region := "us-east-1"
 	defer func() { require.NoError(t, cleanUpS3Bucket(s3BucketName, s3Prefix, s3Region)) }()
@@ -269,9 +269,10 @@ func TestBucket(t *testing.T) {
 			name: "S3Bucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Region: s3Region,
-					Name:   s3BucketName,
-					Prefix: s3Prefix + newUUID(),
+					Region:     s3Region,
+					Name:       s3BucketName,
+					Prefix:     s3Prefix + newUUID(),
+					NumRetries: 20,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -396,9 +397,10 @@ func TestBucket(t *testing.T) {
 			name: "S3MultiPartBucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Region: s3Region,
-					Name:   s3BucketName,
-					Prefix: s3Prefix + newUUID(),
+					Region:     s3Region,
+					Name:       s3BucketName,
+					Prefix:     s3Prefix + newUUID(),
+					NumRetries: 20,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
