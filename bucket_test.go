@@ -99,7 +99,7 @@ func TestBucket(t *testing.T) {
 	defer ses.Close()
 	defer func() { ses.DB(uuid).DropDatabase() }()
 
-	s3BucketName := "pail-test"
+	s3BucketName := "build-test-curator"
 	s3Prefix := newUUID() + "-"
 	s3Region := "us-east-1"
 	defer func() { require.NoError(t, cleanUpS3Bucket(s3BucketName, s3Prefix, s3Region)) }()
