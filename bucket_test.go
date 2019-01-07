@@ -1,7 +1,6 @@
 package pail
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -311,27 +310,10 @@ func TestBucket(t *testing.T) {
 						defer newFile.Close()
 						_, err = newFile.WriteString("[my_profile]\n")
 						require.NoError(t, err)
-						awsCreds, err := os.Open("~/.aws/credentials")
+						_, err = newFile.WriteString(os.Getenv("AWS_KEY") + "\n")
 						require.NoError(t, err)
-						defer awsCreds.Close()
-						scanner := bufio.NewScanner(awsCreds)
-						completed := 0
-						for scanner.Scan() {
-							text := scanner.Text()
-							trimmedText := strings.TrimSpace(text)
-							if strings.HasPrefix(trimmedText, "aws_access_key_id") {
-								_, err = newFile.WriteString(text)
-								require.NoError(t, err)
-								completed += 1
-							} else if strings.HasPrefix(trimmedText, "aws_secret_access_key") {
-								_, err = newFile.WriteString(text)
-								require.NoError(t, err)
-								completed += 1
-							}
-							if completed == 2 {
-								break
-							}
-						}
+						_, err = newFile.WriteString(os.Getenv("AWS_SECRET") + "\n")
+						require.NoError(t, err)
 
 						sharedCredsOptions := S3Options{
 							SharedCredentialsFilepath: filepath.Join(tempdir, "creds"),
