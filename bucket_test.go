@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -340,11 +341,9 @@ func TestBucket(t *testing.T) {
 							Name:                     s3BucketName,
 						}
 						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
-						env := "HOME"
-						if runtime.GOOS == "windows" {
-							env = "USERPROFILE"
-						}
-						fileName := filepath.Join(os.Getenv(env), ".aws/credentials")
+						homeDir, err := homedir.Dir()
+						require.NoError(t, err)
+						fileName := filepath.Join(homeDir, ".aws", "credentials")
 						_, err = os.Stat(fileName)
 						if err == nil {
 							assert.NoError(t, sharedCredsBucket.Check(ctx))
