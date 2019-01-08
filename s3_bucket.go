@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 )
 
@@ -37,14 +38,16 @@ type s3Bucket struct {
 
 // S3Options support the use and creation of S3 backed buckets.
 type S3Options struct {
-	Credentials *credentials.Credentials
-	Region      string
-	Name        string
-	Prefix      string
-	Permission  string
-	ContentType string
-	DryRun      bool
-	MaxRetries  int
+	Credentials               *credentials.Credentials
+	SharedCredentialsFilepath string
+	SharedCredentialsProfile  string
+	Region                    string
+	Name                      string
+	Prefix                    string
+	Permission                string
+	ContentType               string
+	DryRun                    bool
+	MaxRetries                int
 }
 
 // Wrapper for creating AWS credentials.
@@ -79,7 +82,24 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		HTTPClient: client,
 		MaxRetries: aws.Int(options.MaxRetries),
 	}
-	if options.Credentials != nil {
+	// if options.SharedCredentialsProfile is set, will override any credentials passed in
+	if options.SharedCredentialsProfile != "" {
+		fp := options.SharedCredentialsFilepath
+		if fp == "" {
+			// if options.SharedCredentialsFilepath is not set, use default filepath
+			homeDir, err := homedir.Dir()
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to detect home directory when getting default credentials file")
+			}
+			fp = filepath.Join(homeDir, ".aws", "credentials")
+		}
+		sharedCredentials := credentials.NewSharedCredentials(fp, options.SharedCredentialsProfile)
+		_, err := sharedCredentials.Get()
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid credentials from profile '%s'", options.SharedCredentialsProfile)
+		}
+		config.Credentials = sharedCredentials
+	} else if options.Credentials != nil {
 		_, err := options.Credentials.Get()
 		if err != nil {
 			return nil, errors.Wrap(err, "invalid credentials!")

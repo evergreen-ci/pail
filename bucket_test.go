@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -301,6 +303,71 @@ func TestBucket(t *testing.T) {
 					},
 				},
 				{
+					id: "TestSharedCredentialsOption",
+					test: func(t *testing.T, b Bucket) {
+						require.NoError(t, b.Check(ctx))
+
+						newFile, err := os.Create(filepath.Join(tempdir, "creds"))
+						require.NoError(t, err)
+						defer newFile.Close()
+						_, err = newFile.WriteString("[my_profile]\n")
+						require.NoError(t, err)
+						awsKey := fmt.Sprintf("aws_access_key_id = %s\n", os.Getenv("AWS_KEY"))
+						_, err = newFile.WriteString(awsKey)
+						require.NoError(t, err)
+						awsSecret := fmt.Sprintf("aws_secret_access_key = %s\n", os.Getenv("AWS_SECRET"))
+						_, err = newFile.WriteString(awsSecret)
+						require.NoError(t, err)
+
+						sharedCredsOptions := S3Options{
+							SharedCredentialsFilepath: filepath.Join(tempdir, "creds"),
+							SharedCredentialsProfile:  "my_profile",
+							Region:                    s3Region,
+							Name:                      s3BucketName,
+						}
+						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+						require.NoError(t, err)
+						assert.NoError(t, sharedCredsBucket.Check(ctx))
+					},
+				},
+				{
+					id: "TestSharedCredentialsUsesCorrectDefaultFile",
+					test: func(t *testing.T, b Bucket) {
+						require.NoError(t, b.Check(ctx))
+
+						sharedCredsOptions := S3Options{
+							SharedCredentialsProfile: "default",
+							Region:                   s3Region,
+							Name:                     s3BucketName,
+						}
+						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+						homeDir, err := homedir.Dir()
+						require.NoError(t, err)
+						fileName := filepath.Join(homeDir, ".aws", "credentials")
+						_, err = os.Stat(fileName)
+						if err == nil {
+							assert.NoError(t, sharedCredsBucket.Check(ctx))
+						} else {
+							assert.True(t, os.IsNotExist(err))
+						}
+					},
+				},
+				{
+					id: "TestSharedCredentialsFailsWhenProfileDNE",
+					test: func(t *testing.T, b Bucket) {
+						require.NoError(t, b.Check(ctx))
+
+						sharedCredsOptions := S3Options{
+							SharedCredentialsProfile: "DNE",
+							Region:                   s3Region,
+							Name:                     s3BucketName,
+						}
+						_, err := NewS3Bucket(sharedCredsOptions)
+						assert.Error(t, err)
+					},
+				},
+
+				{
 					id: "TestPermissions",
 					test: func(t *testing.T, b Bucket) {
 						// default permissions
@@ -372,6 +439,7 @@ func TestBucket(t *testing.T) {
 							ContentType: "html/text",
 						}
 						htmlBucket, err := NewS3Bucket(htmlOptions)
+						require.NoError(t, err)
 						key = newUUID()
 						writer, err = htmlBucket.Writer(ctx, key)
 						require.NoError(t, err)
@@ -485,6 +553,7 @@ func TestBucket(t *testing.T) {
 							ContentType: "html/text",
 						}
 						htmlBucket, err := NewS3MultiPartBucket(htmlOptions)
+						require.NoError(t, err)
 						key = newUUID()
 						writer, err = htmlBucket.Writer(ctx, key)
 						require.NoError(t, err)
