@@ -43,6 +43,10 @@ variables:
       - func: setup-credentials
       - func: run-make
         vars: { target: "${task_name}" }
+        params:
+          env:
+            AWS_KEY: ${aws_key}
+            AWS_SECRET: ${aws_secret}
 
 
 #######################################
@@ -155,6 +159,10 @@ tasks:
       - func: run-make
         vars:
           target: "coverage-html"
+        params:
+          env:
+            AWS_KEY: ${aws_key}
+            AWS_SECRET: ${aws_secret}
 
   - <<: *run-build-with-mongodb
     tags: ["test"]
