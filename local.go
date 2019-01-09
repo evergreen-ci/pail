@@ -166,16 +166,11 @@ func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error 
 }
 
 func (b *localFileSystem) RemovePrefix(ctx context.Context, prefix string) error {
-	keys := []string{}
-	iter, err := b.List(ctx, prefix)
-	if err != nil {
-		return errors.Wrapf(err, "failed to find objects with prefix '%s' for deletion", prefix)
-	}
-	for iter.Next(ctx) {
-		key := iter.Item().Name()
-		keys = append(keys, key)
-	}
-	return b.RemoveMany(ctx, keys...)
+	return removePrefixHelper(ctx, prefix, b)
+}
+
+func (b *localFileSystem) RemoveMatching(ctx context.Context, expression string) error {
+	return removeMatchingHelper(ctx, expression, b)
 }
 
 func (b *localFileSystem) Push(ctx context.Context, local, remote string) error {

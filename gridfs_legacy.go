@@ -297,16 +297,11 @@ func (b *gridfsLegacyBucket) RemoveMany(ctx context.Context, keys ...string) err
 }
 
 func (b *gridfsLegacyBucket) RemovePrefix(ctx context.Context, prefix string) error {
-	keys := []string{}
-	iter, err := b.List(ctx, prefix)
-	if err != nil {
-		return errors.Wrapf(err, "failed to find objects with prefix '%s' for deletion", prefix)
-	}
-	for iter.Next(ctx) {
-		key := iter.Item().Name()
-		keys = append(keys, key)
-	}
-	return b.RemoveMany(ctx, keys...)
+	return removePrefixHelper(ctx, prefix, b)
+}
+
+func (b *gridfsLegacyBucket) RemoveMatching(ctx context.Context, expression string) error {
+	return removeMatchingHelper(ctx, expression, b)
 }
 
 func (b *gridfsLegacyBucket) List(ctx context.Context, prefix string) (BucketIterator, error) {
