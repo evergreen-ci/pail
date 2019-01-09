@@ -75,6 +75,10 @@ type Bucket interface {
 	Remove(context.Context, string) error
 	RemoveMany(context.Context, ...string) error
 
+	// Remove all objects with the given prefix. This operation is not
+	// atomic.
+	RemovePrefix(context.Context, string) error
+
 	// List provides a way to iterator over the contents of a
 	// bucket (for a given prefix.)
 	List(context.Context, string) (BucketIterator, error)

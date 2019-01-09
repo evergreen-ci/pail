@@ -621,6 +621,27 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 	return catcher.Resolve()
 }
 
+func removePrefixHelper(ctx context.Context, prefix string, b Bucket) error {
+	keys := []string{}
+	iter, err := b.List(ctx, prefix)
+	if err != nil {
+		return errors.Wrapf(err, "failed to find objects with prefix '%s' for deletion", prefix)
+	}
+	for iter.Next(ctx) {
+		key := iter.Item().Name()
+		keys = append(keys, key)
+	}
+	return b.RemoveMany(ctx, keys...)
+}
+
+func (s *s3BucketSmall) RemovePrefix(ctx context.Context, prefix string) error {
+	return removePrefixHelper(ctx, prefix, s)
+}
+
+func (s *s3BucketLarge) RemovePrefix(ctx context.Context, prefix string) error {
+	return removePrefixHelper(ctx, prefix, s)
+}
+
 func (s *s3Bucket) listHelper(b Bucket, ctx context.Context, prefix string) (BucketIterator, error) {
 	contents, isTruncated, err := getObjectsWrapper(s, ctx, prefix)
 	if err != nil {
