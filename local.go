@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
 
@@ -154,6 +155,14 @@ func (b *localFileSystem) Remove(ctx context.Context, key string) error {
 	path := filepath.Join(b.path, key)
 
 	return errors.Wrapf(os.Remove(path), "problem removing path %s", path)
+}
+
+func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error {
+	catcher := grip.NewBasicCatcher()
+	for _, key := range keys {
+		catcher.Add(b.Remove(ctx, key))
+	}
+	return catcher.Resolve()
 }
 
 func (b *localFileSystem) Push(ctx context.Context, local, remote string) error {

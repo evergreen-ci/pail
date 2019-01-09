@@ -35,6 +35,8 @@ import (
 //  - pass contexts to requests for timeouts.
 
 type Bucket interface {
+	// Check validity of the bucket. This is dependent on the underlying
+	// implementation.
 	Check(context.Context) error
 
 	// Produces a Writer and Reader interface to the file named by
@@ -45,7 +47,7 @@ type Bucket interface {
 	// Put and Get write simple byte streams (in the form of
 	// io.Readers) to/from specfied keys.
 	//
-	// TODOD: consider if these, particularly Get are not
+	// TODO: consider if these, particularly Get are not
 	// substantively different from Writer/Reader methods, or
 	// might just be a wrapper.
 	Put(context.Context, string, io.Reader) error
@@ -67,8 +69,11 @@ type Bucket interface {
 	// have the same type as the calling bucket object.
 	Copy(context.Context, CopyOptions) error
 
-	// Remove the specified object from the bucket.
+	// Remove the specified object(s) from the bucket. Note that
+	// RemoveMany continues on error, returning the accumulated errors
+	// on completion.
 	Remove(context.Context, string) error
+	RemoveMany(context.Context, ...string) error
 
 	// List provides a way to iterator over the contents of a
 	// bucket (for a given prefix.)

@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
 
@@ -34,6 +35,7 @@ type s3Bucket struct {
 	permission  string
 	contentType string
 	dryRun      bool
+	batchSize   int
 }
 
 // S3Options support the use and creation of S3 backed buckets.
@@ -119,6 +121,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		permission:  options.Permission,
 		contentType: options.ContentType,
 		dryRun:      options.DryRun,
+		batchSize:   1000,
 	}, nil
 }
 
@@ -579,6 +582,43 @@ func (s *s3Bucket) Remove(ctx context.Context, key string) error {
 		}
 	}
 	return nil
+}
+
+func (s *s3Bucket) removeMany(ctx context.Context, toDelete *s3.Delete) error {
+	if len(toDelete.Objects) > 0 {
+		input := &s3.DeleteObjectsInput{
+			Bucket: aws.String(s.name),
+			Delete: toDelete,
+		}
+		_, err := s.svc.DeleteObjectsWithContext(ctx, input)
+		if err != nil {
+			return errors.Wrap(err, "problem removing data")
+		}
+	}
+	return nil
+}
+
+func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
+	catcher := grip.NewBasicCatcher()
+	if !s.dryRun {
+		count := 0
+		toDelete := &s3.Delete{}
+		for _, key := range keys {
+			// key limit for s3.DeleteObjectsWithContext, call function and reset
+			if count == s.batchSize {
+				catcher.Add(s.removeMany(ctx, toDelete))
+				count = 0
+				toDelete = &s3.Delete{}
+			}
+			toDelete.Objects = append(
+				toDelete.Objects,
+				&s3.ObjectIdentifier{Key: aws.String(s.normalizeKey(key))},
+			)
+			count++
+		}
+		catcher.Add(s.removeMany(ctx, toDelete))
+	}
+	return catcher.Resolve()
 }
 
 func (s *s3Bucket) listHelper(b Bucket, ctx context.Context, prefix string) (BucketIterator, error) {

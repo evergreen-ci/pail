@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -285,6 +286,14 @@ func (b *gridfsLegacyBucket) Remove(ctx context.Context, key string) error {
 		return nil
 	}
 	return errors.Wrapf(b.gridFS().Remove(key), "problem removing file %s", key)
+}
+
+func (b *gridfsLegacyBucket) RemoveMany(ctx context.Context, keys ...string) error {
+	catcher := grip.NewBasicCatcher()
+	for _, key := range keys {
+		catcher.Add(b.Remove(ctx, key))
+	}
+	return catcher.Resolve()
 }
 
 func (b *gridfsLegacyBucket) List(ctx context.Context, prefix string) (BucketIterator, error) {
