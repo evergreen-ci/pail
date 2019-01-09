@@ -622,19 +622,19 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 }
 
 func (s *s3BucketSmall) RemovePrefix(ctx context.Context, prefix string) error {
-	return removePrefixHelper(ctx, prefix, s)
+	return removePrefix(ctx, prefix, s)
 }
 
 func (s *s3BucketLarge) RemovePrefix(ctx context.Context, prefix string) error {
-	return removePrefixHelper(ctx, prefix, s)
+	return removePrefix(ctx, prefix, s)
 }
 
 func (s *s3BucketSmall) RemoveMatching(ctx context.Context, expression string) error {
-	return removeMatchingHelper(ctx, expression, s)
+	return removeMatching(ctx, expression, s)
 }
 
 func (s *s3BucketLarge) RemoveMatching(ctx context.Context, expression string) error {
-	return removeMatchingHelper(ctx, expression, s)
+	return removeMatching(ctx, expression, s)
 }
 
 func (s *s3Bucket) listHelper(b Bucket, ctx context.Context, prefix string) (BucketIterator, error) {

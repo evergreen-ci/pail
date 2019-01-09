@@ -166,11 +166,11 @@ func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error 
 }
 
 func (b *localFileSystem) RemovePrefix(ctx context.Context, prefix string) error {
-	return removePrefixHelper(ctx, prefix, b)
+	return removePrefix(ctx, prefix, b)
 }
 
 func (b *localFileSystem) RemoveMatching(ctx context.Context, expression string) error {
-	return removeMatchingHelper(ctx, expression, b)
+	return removeMatching(ctx, expression, b)
 }
 
 func (b *localFileSystem) Push(ctx context.Context, local, remote string) error {

@@ -297,11 +297,11 @@ func (b *gridfsLegacyBucket) RemoveMany(ctx context.Context, keys ...string) err
 }
 
 func (b *gridfsLegacyBucket) RemovePrefix(ctx context.Context, prefix string) error {
-	return removePrefixHelper(ctx, prefix, b)
+	return removePrefix(ctx, prefix, b)
 }
 
 func (b *gridfsLegacyBucket) RemoveMatching(ctx context.Context, expression string) error {
-	return removeMatchingHelper(ctx, expression, b)
+	return removeMatching(ctx, expression, b)
 }
 
 func (b *gridfsLegacyBucket) List(ctx context.Context, prefix string) (BucketIterator, error) {

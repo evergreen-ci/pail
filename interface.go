@@ -3,9 +3,6 @@ package pail
 import (
 	"context"
 	"io"
-	"regexp"
-
-	"github.com/pkg/errors"
 )
 
 // Bucket defines an interface for accessing a remote blob store, like
@@ -97,39 +94,6 @@ type CopyOptions struct {
 	DestinationKey    string
 	DestinationBucket Bucket
 	IsDestination     bool
-}
-
-func removePrefixHelper(ctx context.Context, prefix string, b Bucket) error {
-	iter, err := b.List(ctx, prefix)
-	if err != nil {
-		return errors.Wrapf(err, "failed to delete any objects with prefix '%s' for deletion", prefix)
-	}
-
-	keys := []string{}
-	for iter.Next(ctx) {
-		keys = append(keys, iter.Item().Name())
-	}
-	return b.RemoveMany(ctx, keys...)
-}
-
-func removeMatchingHelper(ctx context.Context, expression string, b Bucket) error {
-	regex, err := regexp.Compile(expression)
-	if err != nil {
-		return errors.Wrapf(err, "invalid regular expression '%s'", expression)
-	}
-	iter, err := b.List(ctx, "")
-	if err != nil {
-		return errors.Wrapf(err, "failed to delete any objects matching '%s'", expression)
-	}
-
-	keys := []string{}
-	for iter.Next(ctx) {
-		key := iter.Item().Name()
-		if regex.Match([]byte(key)) {
-			keys = append(keys, key)
-		}
-	}
-	return b.RemoveMany(ctx, keys...)
 }
 
 ////////////////////////////////////////////////////////////////////////
