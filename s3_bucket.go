@@ -584,7 +584,7 @@ func (s *s3Bucket) Remove(ctx context.Context, key string) error {
 	return nil
 }
 
-func (s *s3Bucket) removeMany(ctx context.Context, toDelete *s3.Delete) error {
+func (s *s3Bucket) deleteObjectsWrapper(ctx context.Context, toDelete *s3.Delete) error {
 	if len(toDelete.Objects) > 0 {
 		input := &s3.DeleteObjectsInput{
 			Bucket: aws.String(s.name),
@@ -606,7 +606,7 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 		for _, key := range keys {
 			// key limit for s3.DeleteObjectsWithContext, call function and reset
 			if count == s.batchSize {
-				catcher.Add(s.removeMany(ctx, toDelete))
+				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 				count = 0
 				toDelete = &s3.Delete{}
 			}
@@ -616,7 +616,7 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 			)
 			count++
 		}
-		catcher.Add(s.removeMany(ctx, toDelete))
+		catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 	}
 	return catcher.Resolve()
 }
