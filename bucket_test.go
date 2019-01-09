@@ -661,6 +661,162 @@ func TestBucket(t *testing.T) {
 				assert.Nil(t, iter.Item())
 				assert.NoError(t, iter.Err())
 			})
+			t.Run("RemoveManyFiles", func(t *testing.T) {
+				data := map[string]string{}
+				keys := []string{}
+				deleteData := map[string]string{}
+				deleteKeys := []string{}
+				for i := 0; i < 20; i++ {
+					key := newUUID()
+					data[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					keys = append(keys, key)
+				}
+				for i := 0; i < 20; i++ {
+					key := newUUID()
+					deleteData[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					deleteKeys = append(deleteKeys, key)
+				}
+
+				bucket := impl.constructor(t)
+				for k, v := range data {
+					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+				}
+				for k, v := range deleteData {
+					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+				}
+
+				// smaller s3 batch sizes for testing
+				switch i := bucket.(type) {
+				case *s3BucketSmall:
+					i.batchSize = 20
+				case *s3BucketLarge:
+					i.batchSize = 20
+				}
+
+				// check keys are in bucket
+				iter, err := bucket.List(ctx, "")
+				require.NoError(t, err)
+				for iter.Next(ctx) {
+					assert.NoError(t, iter.Err())
+					require.NotNil(t, iter.Item())
+					_, ok1 := data[iter.Item().Name()]
+					_, ok2 := deleteData[iter.Item().Name()]
+					assert.True(t, ok1 || ok2)
+				}
+
+				assert.NoError(t, bucket.RemoveMany(ctx, deleteKeys...))
+				iter, err = bucket.List(ctx, "")
+				require.NoError(t, err)
+				for iter.Next(ctx) {
+					assert.NoError(t, iter.Err())
+					require.NotNil(t, iter.Item())
+					_, ok := data[iter.Item().Name()]
+					assert.True(t, ok)
+					_, ok = deleteData[iter.Item().Name()]
+					assert.False(t, ok)
+				}
+
+			})
+			t.Run("RemovePrefix", func(t *testing.T) {
+				data := map[string]string{}
+				keys := []string{}
+				deleteData := map[string]string{}
+				deleteKeys := []string{}
+				prefix := newUUID()
+				for i := 0; i < 5; i++ {
+					key := newUUID()
+					data[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					keys = append(keys, key)
+				}
+				for i := 0; i < 5; i++ {
+					key := prefix + newUUID()
+					deleteData[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					deleteKeys = append(deleteKeys, key)
+				}
+
+				bucket := impl.constructor(t)
+				for k, v := range data {
+					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+				}
+				for k, v := range deleteData {
+					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+				}
+
+				// check keys are in bucket
+				iter, err := bucket.List(ctx, "")
+				require.NoError(t, err)
+				for iter.Next(ctx) {
+					assert.NoError(t, iter.Err())
+					require.NotNil(t, iter.Item())
+					_, ok1 := data[iter.Item().Name()]
+					_, ok2 := deleteData[iter.Item().Name()]
+					assert.True(t, ok1 || ok2)
+				}
+
+				assert.NoError(t, bucket.RemoveMany(ctx, deleteKeys...))
+				iter, err = bucket.List(ctx, "")
+				require.NoError(t, err)
+				for iter.Next(ctx) {
+					assert.NoError(t, iter.Err())
+					require.NotNil(t, iter.Item())
+					_, ok := data[iter.Item().Name()]
+					assert.True(t, ok)
+					_, ok = deleteData[iter.Item().Name()]
+					assert.False(t, ok)
+				}
+			})
+			t.Run("RemoveMatching", func(t *testing.T) {
+				data := map[string]string{}
+				keys := []string{}
+				deleteData := map[string]string{}
+				deleteKeys := []string{}
+				postfix := newUUID()
+				for i := 0; i < 5; i++ {
+					key := newUUID()
+					data[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					keys = append(keys, key)
+				}
+				for i := 0; i < 5; i++ {
+					key := newUUID() + postfix
+					deleteData[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					deleteKeys = append(deleteKeys, key)
+				}
+
+				bucket := impl.constructor(t)
+				for k, v := range data {
+					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+				}
+				for k, v := range deleteData {
+					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+				}
+
+				// check keys are in bucket
+				iter, err := bucket.List(ctx, "")
+				require.NoError(t, err)
+				for iter.Next(ctx) {
+					assert.NoError(t, iter.Err())
+					require.NotNil(t, iter.Item())
+					_, ok1 := data[iter.Item().Name()]
+					_, ok2 := deleteData[iter.Item().Name()]
+					assert.True(t, ok1 || ok2)
+				}
+
+				assert.NoError(t, bucket.RemoveMatching(ctx, ".*"+postfix))
+				iter, err = bucket.List(ctx, "")
+				require.NoError(t, err)
+				for iter.Next(ctx) {
+					assert.NoError(t, iter.Err())
+					require.NotNil(t, iter.Item())
+					_, ok := data[iter.Item().Name()]
+					assert.True(t, ok)
+					_, ok = deleteData[iter.Item().Name()]
+					assert.False(t, ok)
+				}
+			})
+			t.Run("RemoveMatchingInvalidExpression", func(t *testing.T) {
+				bucket := impl.constructor(t)
+				assert.Error(t, bucket.RemoveMatching(ctx, "["))
+			})
 			t.Run("ReadWriteRoundTripSimple", func(t *testing.T) {
 				bucket := impl.constructor(t)
 				key := newUUID()
