@@ -72,18 +72,19 @@ type Bucket interface {
 	// have the same type as the calling bucket object.
 	Copy(context.Context, CopyOptions) error
 
-	// Remove the specified object(s) from the bucket. Note that
-	// RemoveMany continues on error, returning the accumulated errors
-	// on completion.
+	// Remove the specified object(s) from the bucket.
+	// RemoveMany continues on error and returns any accumulated errors.
 	Remove(context.Context, string) error
 	RemoveMany(context.Context, ...string) error
 
-	// Remove all objects with the given prefix. This operation is not
-	// atomic.
+	// Remove all objects with the given prefix, continuing on error and
+	// returning any accumulated errors.
+	// Note that this operation is not atomic.
 	RemovePrefix(context.Context, string) error
 
-	// Remove all objects matching the given regular expression. This
-	// is not atomic.
+	// Remove all objects matching the given regular expression,
+	// continuing on error and returning any accumulated errors.
+	// Note that this operation is not atomic.
 	RemoveMatching(context.Context, string) error
 
 	// List provides a way to iterator over the contents of a
