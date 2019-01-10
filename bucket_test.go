@@ -100,7 +100,7 @@ func TestBucket(t *testing.T) {
 	defer ses.Close()
 	defer func() { ses.DB(uuid).DropDatabase() }()
 
-	s3BucketName := "build-test-curator"
+	s3BucketName := "pail-test"
 	s3Prefix := newUUID() + "-"
 	s3Region := "us-east-1"
 	defer func() { require.NoError(t, cleanUpS3Bucket(s3BucketName, s3Prefix, s3Region)) }()
@@ -300,6 +300,22 @@ func TestBucket(t *testing.T) {
 						badBucket, err := NewS3Bucket(badOptions)
 						assert.Nil(t, err)
 						assert.Error(t, badBucket.Check(ctx))
+					},
+				},
+				{
+					id: "TestCheckPassesWhenDoNotHaveAccess",
+					test: func(t *testing.T, b Bucket) {
+						rawBucket := b.(*s3BucketSmall)
+						rawBucket.name = "mciuploads"
+						assert.Nil(t, rawBucket.Check(ctx))
+					},
+				},
+				{
+					id: "TestCheckFailsWhenBucketDNE",
+					test: func(t *testing.T, b Bucket) {
+						rawBucket := b.(*s3BucketSmall)
+						rawBucket.name = newUUID()
+						assert.NotNil(t, rawBucket.Check(ctx))
 					},
 				},
 				{
