@@ -12,15 +12,16 @@ import (
 )
 
 type localFileSystem struct {
-	path   string
-	dryRun bool
+	path         string
+	dryRun       bool
+	deleteOnSync bool
 }
 
 // NewLocalBucket returns an implementation of the Bucket interface
 // that stores files in the local file system. Returns an error if the
 // directory doesn't exist.
-func NewLocalBucket(path string, dryRun bool) (Bucket, error) {
-	b := &localFileSystem{path: path, dryRun: dryRun}
+func NewLocalBucket(path string, dryRun, deleteOnSync bool) (Bucket, error) {
+	b := &localFileSystem{path: path, dryRun: dryRun, deleteOnSync: deleteOnSync}
 	if err := b.Check(nil); err != nil {
 		return nil, errors.WithStack(err)
 
@@ -33,13 +34,13 @@ func NewLocalBucket(path string, dryRun bool) (Bucket, error) {
 // directory created for this purpose. Returns an error if there were
 // issues creating the temporary directory. This implementation does
 // not provide a mechanism to delete the temporary directory.
-func NewLocalTemporaryBucket(dryRun bool) (Bucket, error) {
+func NewLocalTemporaryBucket(dryRun, deleteOnSync bool) (Bucket, error) {
 	dir, err := ioutil.TempDir("", "pail-local-tmp-bucket")
 	if err != nil {
 		return nil, errors.Wrap(err, "problem creating temporary directory")
 	}
 
-	return &localFileSystem{path: dir, dryRun: dryRun}, nil
+	return &localFileSystem{path: dir, dryRun: dryRun, deleteOnSync: deleteOnSync}, nil
 }
 
 func (b *localFileSystem) Check(_ context.Context) error {
@@ -88,6 +89,7 @@ func (b *localFileSystem) Put(ctx context.Context, name string, input io.Reader)
 		_ = f.Close()
 		return errors.Wrap(err, "problem copying data to file")
 	}
+
 	return errors.WithStack(f.Close())
 }
 
@@ -206,6 +208,9 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 		}
 	}
 
+	if b.deleteOnSync && !b.dryRun {
+		return deleteLocalFiles(ctx, local)
+	}
 	return nil
 }
 

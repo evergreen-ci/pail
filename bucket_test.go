@@ -100,7 +100,7 @@ func TestBucket(t *testing.T) {
 	defer ses.Close()
 	defer func() { ses.DB(uuid).DropDatabase() }()
 
-	s3BucketName := "build-test-curator"
+	s3BucketName := "pail-test"
 	s3Prefix := newUUID() + "-"
 	s3Region := "us-east-1"
 	defer func() { require.NoError(t, cleanUpS3Bucket(s3BucketName, s3Prefix, s3Region)) }()
@@ -1096,6 +1096,8 @@ func TestBucket(t *testing.T) {
 					}
 					assert.NoError(t, iter.Err())
 					assert.Equal(t, 200, counter)
+				})
+				t.Run("DeleteOnSync", func(t *testing.T) {
 				})
 			})
 			t.Run("UploadWithBadFileName", func(t *testing.T) {

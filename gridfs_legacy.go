@@ -22,10 +22,11 @@ type gridfsLegacyBucket struct {
 // GridFSOptions support the use and creation of GridFS backed
 // buckets.
 type GridFSOptions struct {
-	Prefix     string
-	Database   string
-	MongoDBURI string
-	DryRun     bool
+	Prefix       string
+	Database     string
+	MongoDBURI   string
+	DryRun       bool
+	DeleteOnSync bool
 }
 
 // NewLegacyGridFSBucket creates a Bucket implementation backed by
@@ -217,6 +218,9 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote string) err
 		}
 	}
 
+	if b.opts.DeleteOnsync && !b.opts.DryRun {
+		return deleteLocalFiles(ctx, local)
+	}
 	return nil
 }
 

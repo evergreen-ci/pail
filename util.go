@@ -73,6 +73,21 @@ func walkLocalTree(ctx context.Context, prefix string) ([]string, error) {
 	return out, nil
 }
 
+func deleteLocalFiles(ctx context.Context, local string) error {
+	files, err := walkLocalTree(ctx, local)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	catcher := grip.NewBasicCatcher()
+	for _, fn := range files {
+		if err = os.Remove(filepath.Join(local, fn)); err != nil {
+			catcher.Add(errors.Wrapf(err, "issue removing '%s' from '%s'", fn, local))
+		}
+	}
+	return catcher.Resolve()
+}
+
 func removePrefix(ctx context.Context, prefix string, b Bucket) error {
 	iter, err := b.List(ctx, prefix)
 	if err != nil {
