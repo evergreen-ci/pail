@@ -209,7 +209,7 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 	}
 
 	if b.deleteOnSync && !b.dryRun {
-		return deleteLocalFiles(ctx, local)
+		return errors.Wrapf(os.RemoveAll(local), "problem removing files in '%s'", local)
 	}
 	return nil
 }

@@ -1085,7 +1085,6 @@ func TestBucket(t *testing.T) {
 				t.Run("DryRunBucketDoesNotPush", func(t *testing.T) {
 					dryRunBucket := clone(bucket, true)
 					assert.NoError(t, dryRunBucket.Push(ctx, prefix, "bar"))
-					assert.NoError(t, dryRunBucket.Push(ctx, prefix, "bar"))
 				})
 				t.Run("BucketContents", func(t *testing.T) {
 					iter, err := bucket.List(ctx, "")
@@ -1098,6 +1097,26 @@ func TestBucket(t *testing.T) {
 					assert.Equal(t, 200, counter)
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
+					switch i := bucket.(type) {
+					case *localFileSystem:
+						i.deleteOnSync = true
+					case *gridfsLegacyBucket:
+						i.opts.DeleteOnSync = true
+					case *s3BucketSmall:
+						i.deleteOnSync = true
+					case *s3BucketLarge:
+						i.deleteOnSync = true
+					}
+
+					dryRunBucket := clone(bucket, true)
+					assert.NoError(t, dryRunBucket.Push(ctx, prefix, "baz"))
+					files, err := walkLocalTree(ctx, prefix)
+					require.NoError(t, err)
+					assert.Equal(t, 100, len(files))
+
+					assert.NoError(t, bucket.Push(ctx, prefix, "baz"))
+					_, err = os.Stat(prefix)
+					assert.True(t, os.IsNotExist(err))
 				})
 			})
 			t.Run("UploadWithBadFileName", func(t *testing.T) {
@@ -1192,35 +1211,36 @@ func clone(b Bucket, dryRun bool) Bucket {
 	case *s3BucketSmall:
 		return &s3BucketSmall{
 			s3Bucket: s3Bucket{
-				name:        i.name,
-				prefix:      i.prefix,
-				sess:        i.sess,
-				svc:         s3.New(i.sess),
-				permission:  i.permission,
-				contentType: i.contentType,
-				dryRun:      dryRun,
+				name:         i.name,
+				prefix:       i.prefix,
+				sess:         i.sess,
+				svc:          s3.New(i.sess),
+				permission:   i.permission,
+				contentType:  i.contentType,
+				dryRun:       dryRun,
+				deleteOnSync: i.deleteOnSync,
 			},
 		}
 	case *s3BucketLarge:
 		return &s3BucketLarge{
 			s3Bucket: s3Bucket{
-				name:        i.name,
-				prefix:      i.prefix,
-				sess:        i.sess,
-				svc:         s3.New(i.sess),
-				permission:  i.permission,
-				contentType: i.contentType,
-				dryRun:      dryRun,
+				name:         i.name,
+				prefix:       i.prefix,
+				sess:         i.sess,
+				svc:          s3.New(i.sess),
+				permission:   i.permission,
+				contentType:  i.contentType,
+				dryRun:       dryRun,
+				deleteOnSync: i.deleteOnSync,
 			},
 			minPartSize: i.minPartSize,
 		}
 	case *localFileSystem:
-		return &localFileSystem{path: i.path, dryRun: dryRun}
+		return &localFileSystem{path: i.path, dryRun: dryRun, deleteOnSync: i.deleteOnSync}
 	case *gridfsLegacyBucket:
-		opts := i.opts
-		opts.DryRun = dryRun
+		i.opts.DryRun = dryRun
 		return &gridfsLegacyBucket{
-			opts:    opts,
+			opts:    i.opts,
 			session: i.session,
 		}
 	default:

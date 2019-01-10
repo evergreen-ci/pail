@@ -218,8 +218,8 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote string) err
 		}
 	}
 
-	if b.opts.DeleteOnsync && !b.opts.DryRun {
-		return deleteLocalFiles(ctx, local)
+	if b.opts.DeleteOnSync && !b.opts.DryRun {
+		return errors.Wrapf(os.RemoveAll(local), "problem removing files in '%s'", local)
 	}
 	return nil
 }

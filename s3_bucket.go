@@ -501,7 +501,7 @@ func (s *s3Bucket) push(ctx context.Context, local, remote string, b Bucket) err
 	}
 
 	if s.deleteOnSync && !s.dryRun {
-		return deleteLocalFiles(ctx, local)
+		return errors.Wrapf(os.RemoveAll(local), "problem removing files in '%s'", local)
 	}
 	return nil
 }
