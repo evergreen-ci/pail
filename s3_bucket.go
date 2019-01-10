@@ -179,7 +179,7 @@ func (s *s3Bucket) Check(ctx context.Context) error {
 		Bucket: aws.String(s.name),
 	}
 
-	_, err := s.svc.HeadBucketWithContext(ctx, input, s3.WithNormalizeBucketLocation)
+	_, err := s.svc.HeadBucketWithContext(ctx, input)
 	// aside from a 404 Not Found error, HEAD bucket returns a 403
 	// Forbidden error. If the latter is the case, that is OK because
 	// we know the bucket exists and the given credentials may have
