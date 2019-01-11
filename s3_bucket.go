@@ -175,16 +175,21 @@ func NewS3MultiPartBucketWithHTTPClient(client *http.Client, options S3Options) 
 func (s *s3Bucket) String() string { return s.name }
 
 func (s *s3Bucket) Check(ctx context.Context) error {
-	input := &s3.GetBucketLocationInput{
+	input := &s3.HeadBucketInput{
 		Bucket: aws.String(s.name),
 	}
 
-	result, err := s.svc.GetBucketLocationWithContext(ctx, input, s3.WithNormalizeBucketLocation)
+	_, err := s.svc.HeadBucketWithContext(ctx, input)
+	// aside from a 404 Not Found error, HEAD bucket returns a 403
+	// Forbidden error. If the latter is the case, that is OK because
+	// we know the bucket exists and the given credentials may have
+	// access to a sub-bucket. See
+	// https://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketHEAD.html
+	// for more information.
 	if err != nil {
-		return errors.Wrap(err, "problem getting bucket location")
-	}
-	if *result.LocationConstraint != *s.svc.Client.Config.Region {
-		return errors.New("bucket does not exist in given region.")
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NotFound" {
+			return errors.Wrap(err, "problem finding bucket")
+		}
 	}
 	return nil
 }

@@ -291,15 +291,40 @@ func TestBucket(t *testing.T) {
 				{
 					id: "TestCredentialsOverrideDefaults",
 					test: func(t *testing.T, b Bucket) {
-						assert.NoError(t, b.Check(ctx))
+						input := &s3.GetBucketLocationInput{
+							Bucket: aws.String(s3BucketName),
+						}
+
+						rawBucket := b.(*s3BucketSmall)
+						_, err := rawBucket.svc.GetBucketLocationWithContext(ctx, input)
+						assert.NoError(t, err)
+
 						badOptions := S3Options{
 							Credentials: CreateAWSCredentials("asdf", "asdf", "asdf"),
 							Region:      s3Region,
 							Name:        s3BucketName,
 						}
 						badBucket, err := NewS3Bucket(badOptions)
-						assert.Nil(t, err)
-						assert.Error(t, badBucket.Check(ctx))
+						require.NoError(t, err)
+						rawBucket = badBucket.(*s3BucketSmall)
+						_, err = rawBucket.svc.GetBucketLocationWithContext(ctx, input)
+						assert.Error(t, err)
+					},
+				},
+				{
+					id: "TestCheckPassesWhenDoNotHaveAccess",
+					test: func(t *testing.T, b Bucket) {
+						rawBucket := b.(*s3BucketSmall)
+						rawBucket.name = "mciuploads"
+						assert.NoError(t, rawBucket.Check(ctx))
+					},
+				},
+				{
+					id: "TestCheckFailsWhenBucketDNE",
+					test: func(t *testing.T, b Bucket) {
+						rawBucket := b.(*s3BucketSmall)
+						rawBucket.name = newUUID()
+						assert.Error(t, rawBucket.Check(ctx))
 					},
 				},
 				{
