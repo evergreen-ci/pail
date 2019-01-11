@@ -1074,14 +1074,36 @@ func TestBucket(t *testing.T) {
 				t.Run("DeleteOnSync", func(t *testing.T) {
 					setDeleteOnSync(bucket, true)
 
+					// dry run bucket does not delete
 					mirror := filepath.Join(tempdir, "pull-one", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
+					setDryRun(bucket, true)
 					assert.NoError(t, bucket.Pull(ctx, mirror, ""))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					assert.Len(t, files, 100)
 
 					iter, err := bucket.List(ctx, "")
+					require.NoError(t, err)
+					count := 0
+					for iter.Next(ctx) {
+						assert.NotNil(t, iter.Item())
+						count += 1
+					}
+					assert.NoError(t, iter.Err())
+					assert.Equal(t, 100, count)
+					setDryRun(bucket, false)
+					require.NoError(t, os.RemoveAll(mirror))
+
+					// with out dry run set
+					mirror = filepath.Join(tempdir, "pull-one", newUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0700))
+					assert.NoError(t, bucket.Pull(ctx, mirror, ""))
+					files, err = walkLocalTree(ctx, mirror)
+					require.NoError(t, err)
+					assert.Len(t, files, 100)
+
+					iter, err = bucket.List(ctx, "")
 					require.NoError(t, err)
 					assert.False(t, iter.Next(ctx))
 					assert.Nil(t, iter.Item())
