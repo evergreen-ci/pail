@@ -162,7 +162,7 @@ func (b *localFileSystem) Remove(ctx context.Context, key string) error {
 func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error {
 	catcher := grip.NewBasicCatcher()
 	for _, key := range keys {
-		catcher.Add(b.Remove(ctx, key))
+		catcher.Add(errors.Wrap(b.Remove(ctx, key), "problem removing paths"))
 	}
 	return catcher.Resolve()
 }
@@ -209,7 +209,7 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 	}
 
 	if b.deleteOnSync && !b.dryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing files in '%s'", local)
+		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
 	}
 	return nil
 }
@@ -220,8 +220,11 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	keys := []string{}
 	for _, fn := range files {
 		path := filepath.Join(local, fn)
+		keys = append(keys, fn)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			if err := b.Download(ctx, fn, path); err != nil {
 				return errors.WithStack(err)
@@ -246,6 +249,9 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 		}
 	}
 
+	if b.deleteOnSync && !b.dryRun {
+		return errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote)
+	}
 	return nil
 }
 

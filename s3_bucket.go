@@ -501,7 +501,7 @@ func (s *s3Bucket) push(ctx context.Context, local, remote string, b Bucket) err
 	}
 
 	if s.deleteOnSync && !s.dryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing files in '%s'", local)
+		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
 	}
 	return nil
 }
@@ -514,12 +514,13 @@ func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 	return s.push(ctx, local, s.normalizeKey(remote), s)
 }
 
-func pullHelper(b Bucket, ctx context.Context, local, remote string) error {
+func (s *s3Bucket) pull(ctx context.Context, local, remote string, b Bucket) error {
 	iter, err := b.List(ctx, remote)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
+	keys := []string{}
 	for iter.Next(ctx) {
 		if iter.Err() != nil {
 			return errors.Wrap(err, "problem iterating bucket")
@@ -542,16 +543,22 @@ func pullHelper(b Bucket, ctx context.Context, local, remote string) error {
 				return errors.WithStack(err)
 			}
 		}
+
+		keys = append(keys, iter.Item().Name())
+	}
+
+	if s.deleteOnSync && !s.dryRun {
+		return errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote)
 	}
 	return nil
 }
 
 func (s *s3BucketSmall) Pull(ctx context.Context, local, remote string) error {
-	return pullHelper(s, ctx, local, remote)
+	return s.pull(ctx, local, remote, s)
 }
 
 func (s *s3BucketLarge) Pull(ctx context.Context, local, remote string) error {
-	return pullHelper(s, ctx, local, remote)
+	return s.pull(ctx, local, remote, s)
 }
 
 func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
@@ -613,7 +620,7 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 		for _, key := range keys {
 			// key limit for s3.DeleteObjectsWithContext, call function and reset
 			if count == s.batchSize {
-				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
+				catcher.Add(errors.Wrap(s.deleteObjectsWrapper(ctx, toDelete), "problem removing data"))
 				count = 0
 				toDelete = &s3.Delete{}
 			}
@@ -623,7 +630,7 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 			)
 			count++
 		}
-		catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
+		catcher.Add(errors.Wrap(s.deleteObjectsWrapper(ctx, toDelete), "problem removing data"))
 	}
 	return catcher.Resolve()
 }

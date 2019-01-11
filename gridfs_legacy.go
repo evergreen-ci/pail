@@ -219,7 +219,7 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote string) err
 	}
 
 	if b.opts.DeleteOnSync && !b.opts.DryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing files in '%s'", local)
+		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
 	}
 	return nil
 }
@@ -238,8 +238,10 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote string) err
 	gridfs := b.gridFS()
 	var f *mgo.GridFile
 	var checksum string
+	keys := []string{}
 	for gridfs.OpenNext(iterimpl.iter, &f) {
 		name := filepath.Join(local, f.Name()[len(remote)+1:])
+		keys = append(keys, f.Name())
 		checksum, err = md5sum(name)
 		if os.IsNotExist(errors.Cause(err)) {
 			if err = b.Download(ctx, f.Name(), name); err != nil {
@@ -263,6 +265,9 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote string) err
 		return errors.Wrap(err, "problem iterating bucket")
 	}
 
+	if b.opts.DeleteOnSync && !b.opts.DryRun {
+		return errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote)
+	}
 	return nil
 }
 
@@ -295,7 +300,7 @@ func (b *gridfsLegacyBucket) Remove(ctx context.Context, key string) error {
 func (b *gridfsLegacyBucket) RemoveMany(ctx context.Context, keys ...string) error {
 	catcher := grip.NewBasicCatcher()
 	for _, key := range keys {
-		catcher.Add(b.Remove(ctx, key))
+		catcher.Add(errors.Wrap(b.Remove(ctx, key), "problem removing files"))
 	}
 	return catcher.Resolve()
 }

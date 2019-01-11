@@ -627,9 +627,9 @@ func TestBucket(t *testing.T) {
 				bucket := impl.constructor(t)
 				assert.NoError(t, writeDataToFile(ctx, bucket, newUUID(), "hello world!"))
 
-				// dry run
-				dryRunBucket := clone(bucket, true)
-				assert.NoError(t, writeDataToFile(ctx, dryRunBucket, newUUID(), "hello world!"))
+				// dry run does not write
+				setDryRun(bucket, true)
+				assert.NoError(t, writeDataToFile(ctx, bucket, newUUID(), "hello world!"))
 
 				// just check that only one key exists in the iterator
 				iter, err := bucket.List(ctx, "")
@@ -644,8 +644,9 @@ func TestBucket(t *testing.T) {
 				assert.NoError(t, writeDataToFile(ctx, bucket, key, "hello world!"))
 
 				// dry run does not remove anything
-				dryRunBucket := clone(bucket, true)
-				assert.NoError(t, dryRunBucket.Remove(ctx, key))
+				setDryRun(bucket, true)
+				assert.NoError(t, bucket.Remove(ctx, key))
+				setDryRun(bucket, false)
 
 				// just check that it exists in the iterator
 				iter, err := bucket.List(ctx, "")
@@ -839,8 +840,8 @@ func TestBucket(t *testing.T) {
 				assert.Equal(t, "hello world!", string(data))
 
 				// dry run bucket also retrieves data
-				dryRunBucket := clone(bucket, true)
-				reader, err = dryRunBucket.Get(ctx, key)
+				setDryRun(bucket, true)
+				reader, err = bucket.Get(ctx, key)
 				require.NoError(t, err)
 				data, err = ioutil.ReadAll(reader)
 				require.NoError(t, err)
@@ -860,7 +861,8 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("PutWithDryRunDoesNotSaveFiles", func(t *testing.T) {
 				const contents = "check data"
-				bucket := clone(impl.constructor(t), true)
+				bucket := impl.constructor(t)
+				setDryRun(bucket, true)
 				key := newUUID()
 				assert.NoError(t, bucket.Put(ctx, key, bytes.NewBuffer([]byte(contents))))
 
@@ -886,7 +888,8 @@ func TestBucket(t *testing.T) {
 			t.Run("CopyDoesNotDuplicateDataToDryRunBucket", func(t *testing.T) {
 				const contents = "this one"
 				bucket := impl.constructor(t)
-				dryRunBucket := clone(bucket, true)
+				dryRunBucket := impl.constructor(t)
+				setDryRun(dryRunBucket, true)
 				keyOne := newUUID()
 				keyTwo := newUUID()
 				assert.NoError(t, writeDataToFile(ctx, bucket, keyOne, contents))
@@ -902,10 +905,11 @@ func TestBucket(t *testing.T) {
 			t.Run("CopyDuplicatesDataFromDryRunBucket", func(t *testing.T) {
 				const contents = "this one"
 				bucket := impl.constructor(t)
-				dryRunBucket := clone(bucket, true)
+				dryRunBucket := impl.constructor(t)
 				keyOne := newUUID()
 				keyTwo := newUUID()
-				assert.NoError(t, writeDataToFile(ctx, bucket, keyOne, contents))
+				assert.NoError(t, writeDataToFile(ctx, dryRunBucket, keyOne, contents))
+				setDryRun(dryRunBucket, true)
 				options := CopyOptions{
 					SourceKey:         keyOne,
 					DestinationKey:    keyTwo,
@@ -916,7 +920,6 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, contents, data)
 			})
-
 			t.Run("CopyDuplicatesToDifferentBucket", func(t *testing.T) {
 				const contents = "this one"
 				srcBucket := impl.constructor(t)
@@ -952,11 +955,11 @@ func TestBucket(t *testing.T) {
 				assert.Equal(t, contents, string(data))
 
 				// writes file to disk with dry run bucket
-				dryRunBucket := clone(bucket, true)
+				setDryRun(bucket, true)
 				path = filepath.Join(tempdir, uuid, newUUID())
 				_, err = os.Stat(path)
 				assert.True(t, os.IsNotExist(err))
-				assert.NoError(t, dryRunBucket.Download(ctx, key, path))
+				assert.NoError(t, bucket.Download(ctx, key, path))
 				_, err = os.Stat(path)
 				assert.False(t, os.IsNotExist(err))
 
@@ -1032,39 +1035,60 @@ func TestBucket(t *testing.T) {
 					assert.NoError(t, writeDataToFile(ctx, bucket, k, v))
 				}
 
-				mirror := filepath.Join(tempdir, "pull-one", newUUID())
-				require.NoError(t, os.MkdirAll(mirror, 0700))
-				for i := 0; i < 3; i++ {
+				t.Run("BasicPull", func(t *testing.T) {
+					mirror := filepath.Join(tempdir, "pull-one", newUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0700))
+					for i := 0; i < 3; i++ {
+						assert.NoError(t, bucket.Pull(ctx, mirror, ""))
+						files, err := walkLocalTree(ctx, mirror)
+						require.NoError(t, err)
+						assert.Len(t, files, 100)
+
+						if impl.name != "LegacyGridFS" {
+							for _, fn := range files {
+								_, ok := data[filepath.Base(fn)]
+								assert.True(t, ok)
+							}
+						}
+					}
+				})
+				t.Run("DryRunBucketPulls", func(t *testing.T) {
+					setDryRun(bucket, true)
+					mirror := filepath.Join(tempdir, "pull-one", newUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0700))
+					for i := 0; i < 3; i++ {
+						assert.NoError(t, bucket.Pull(ctx, mirror, ""))
+						files, err := walkLocalTree(ctx, mirror)
+						require.NoError(t, err)
+						assert.Len(t, files, 100)
+
+						if impl.name != "LegacyGridFS" {
+							for _, fn := range files {
+								_, ok := data[filepath.Base(fn)]
+								assert.True(t, ok)
+							}
+						}
+					}
+					setDryRun(bucket, false)
+				})
+				t.Run("DeleteOnSync", func(t *testing.T) {
+					setDeleteOnSync(bucket, true)
+
+					mirror := filepath.Join(tempdir, "pull-one", newUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0700))
 					assert.NoError(t, bucket.Pull(ctx, mirror, ""))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					assert.Len(t, files, 100)
 
-					if impl.name != "LegacyGridFS" {
-						for _, fn := range files {
-							_, ok := data[filepath.Base(fn)]
-							assert.True(t, ok)
-						}
-					}
-				}
-
-				// should work with dry run bucket
-				dryRunBucket := clone(bucket, true)
-				mirror = filepath.Join(tempdir, "pull-one", newUUID())
-				require.NoError(t, os.MkdirAll(mirror, 0700))
-				for i := 0; i < 3; i++ {
-					assert.NoError(t, dryRunBucket.Pull(ctx, mirror, ""))
-					files, err := walkLocalTree(ctx, mirror)
+					iter, err := bucket.List(ctx, "")
 					require.NoError(t, err)
-					assert.Len(t, files, 100)
+					assert.False(t, iter.Next(ctx))
+					assert.Nil(t, iter.Item())
+					assert.NoError(t, iter.Err())
 
-					if impl.name != "LegacyGridFS" {
-						for _, fn := range files {
-							_, ok := data[filepath.Base(fn)]
-							assert.True(t, ok)
-						}
-					}
-				}
+					setDeleteOnSync(bucket, false)
+				})
 			})
 			t.Run("PushToBucket", func(t *testing.T) {
 				prefix := filepath.Join(tempdir, newUUID())
@@ -1083,8 +1107,9 @@ func TestBucket(t *testing.T) {
 					assert.NoError(t, bucket.Push(ctx, prefix, "foo"))
 				})
 				t.Run("DryRunBucketDoesNotPush", func(t *testing.T) {
-					dryRunBucket := clone(bucket, true)
-					assert.NoError(t, dryRunBucket.Push(ctx, prefix, "bar"))
+					setDryRun(bucket, true)
+					assert.NoError(t, bucket.Push(ctx, prefix, "bar"))
+					setDryRun(bucket, false)
 				})
 				t.Run("BucketContents", func(t *testing.T) {
 					iter, err := bucket.List(ctx, "")
@@ -1097,26 +1122,21 @@ func TestBucket(t *testing.T) {
 					assert.Equal(t, 200, counter)
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
-					switch i := bucket.(type) {
-					case *localFileSystem:
-						i.deleteOnSync = true
-					case *gridfsLegacyBucket:
-						i.opts.DeleteOnSync = true
-					case *s3BucketSmall:
-						i.deleteOnSync = true
-					case *s3BucketLarge:
-						i.deleteOnSync = true
-					}
+					setDeleteOnSync(bucket, true)
 
-					dryRunBucket := clone(bucket, true)
-					assert.NoError(t, dryRunBucket.Push(ctx, prefix, "baz"))
+					// dry run bucket does not delete
+					setDryRun(bucket, true)
+					assert.NoError(t, bucket.Push(ctx, prefix, "baz"))
 					files, err := walkLocalTree(ctx, prefix)
 					require.NoError(t, err)
 					assert.Equal(t, 100, len(files))
+					setDryRun(bucket, false)
 
 					assert.NoError(t, bucket.Push(ctx, prefix, "baz"))
 					_, err = os.Stat(prefix)
 					assert.True(t, os.IsNotExist(err))
+
+					setDeleteOnSync(bucket, false)
 				})
 			})
 			t.Run("UploadWithBadFileName", func(t *testing.T) {
@@ -1206,44 +1226,28 @@ type brokenWriter struct{}
 func (*brokenWriter) Write(_ []byte) (int, error) { return -1, errors.New("always") }
 func (*brokenWriter) Read(_ []byte) (int, error)  { return -1, errors.New("always") }
 
-func clone(b Bucket, dryRun bool) Bucket {
+func setDryRun(b Bucket, set bool) {
 	switch i := b.(type) {
-	case *s3BucketSmall:
-		return &s3BucketSmall{
-			s3Bucket: s3Bucket{
-				name:         i.name,
-				prefix:       i.prefix,
-				sess:         i.sess,
-				svc:          s3.New(i.sess),
-				permission:   i.permission,
-				contentType:  i.contentType,
-				dryRun:       dryRun,
-				deleteOnSync: i.deleteOnSync,
-			},
-		}
-	case *s3BucketLarge:
-		return &s3BucketLarge{
-			s3Bucket: s3Bucket{
-				name:         i.name,
-				prefix:       i.prefix,
-				sess:         i.sess,
-				svc:          s3.New(i.sess),
-				permission:   i.permission,
-				contentType:  i.contentType,
-				dryRun:       dryRun,
-				deleteOnSync: i.deleteOnSync,
-			},
-			minPartSize: i.minPartSize,
-		}
 	case *localFileSystem:
-		return &localFileSystem{path: i.path, dryRun: dryRun, deleteOnSync: i.deleteOnSync}
+		i.dryRun = set
 	case *gridfsLegacyBucket:
-		i.opts.DryRun = dryRun
-		return &gridfsLegacyBucket{
-			opts:    i.opts,
-			session: i.session,
-		}
-	default:
-		return nil
+		i.opts.DryRun = set
+	case *s3BucketSmall:
+		i.dryRun = set
+	case *s3BucketLarge:
+		i.dryRun = set
+	}
+}
+
+func setDeleteOnSync(b Bucket, set bool) {
+	switch i := b.(type) {
+	case *localFileSystem:
+		i.deleteOnSync = set
+	case *gridfsLegacyBucket:
+		i.opts.DeleteOnSync = set
+	case *s3BucketSmall:
+		i.deleteOnSync = set
+	case *s3BucketLarge:
+		i.deleteOnSync = set
 	}
 }
