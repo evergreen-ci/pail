@@ -620,7 +620,7 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 		for _, key := range keys {
 			// key limit for s3.DeleteObjectsWithContext, call function and reset
 			if count == s.batchSize {
-				catcher.Add(errors.Wrap(s.deleteObjectsWrapper(ctx, toDelete), "problem removing data"))
+				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 				count = 0
 				toDelete = &s3.Delete{}
 			}
