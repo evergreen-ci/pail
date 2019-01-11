@@ -300,7 +300,7 @@ func (b *gridfsLegacyBucket) Remove(ctx context.Context, key string) error {
 func (b *gridfsLegacyBucket) RemoveMany(ctx context.Context, keys ...string) error {
 	catcher := grip.NewBasicCatcher()
 	for _, key := range keys {
-		catcher.Add(errors.Wrap(b.Remove(ctx, key), "problem removing files"))
+		catcher.Add(b.Remove(ctx, key))
 	}
 	return catcher.Resolve()
 }

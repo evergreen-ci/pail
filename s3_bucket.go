@@ -630,7 +630,7 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 			)
 			count++
 		}
-		catcher.Add(errors.Wrap(s.deleteObjectsWrapper(ctx, toDelete), "problem removing data"))
+		catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 	}
 	return catcher.Resolve()
 }
