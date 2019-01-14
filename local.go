@@ -17,11 +17,21 @@ type localFileSystem struct {
 	deleteOnSync bool
 }
 
+type LocalOptions struct {
+	Path         string
+	DryRun       bool
+	DeleteOnSync bool
+}
+
 // NewLocalBucket returns an implementation of the Bucket interface
 // that stores files in the local file system. Returns an error if the
 // directory doesn't exist.
-func NewLocalBucket(path string, dryRun, deleteOnSync bool) (Bucket, error) {
-	b := &localFileSystem{path: path, dryRun: dryRun, deleteOnSync: deleteOnSync}
+func NewLocalBucket(opts LocalOptions) (Bucket, error) {
+	b := &localFileSystem{
+		path:         opts.Path,
+		dryRun:       opts.DryRun,
+		deleteOnSync: opts.DeleteOnSync,
+	}
 	if err := b.Check(nil); err != nil {
 		return nil, errors.WithStack(err)
 
@@ -34,13 +44,13 @@ func NewLocalBucket(path string, dryRun, deleteOnSync bool) (Bucket, error) {
 // directory created for this purpose. Returns an error if there were
 // issues creating the temporary directory. This implementation does
 // not provide a mechanism to delete the temporary directory.
-func NewLocalTemporaryBucket(dryRun, deleteOnSync bool) (Bucket, error) {
+func NewLocalTemporaryBucket(opts LocalOptions) (Bucket, error) {
 	dir, err := ioutil.TempDir("", "pail-local-tmp-bucket")
 	if err != nil {
 		return nil, errors.Wrap(err, "problem creating temporary directory")
 	}
 
-	return &localFileSystem{path: dir, dryRun: dryRun, deleteOnSync: deleteOnSync}, nil
+	return &localFileSystem{path: dir, dryRun: opts.DryRun, deleteOnSync: opts.DeleteOnSync}, nil
 }
 
 func (b *localFileSystem) Check(_ context.Context) error {
