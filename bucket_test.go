@@ -396,8 +396,8 @@ func TestBucket(t *testing.T) {
 					id: "TestPermissions",
 					test: func(t *testing.T, b Bucket) {
 						// default permissions
-						key := newUUID()
-						writer, err := b.Writer(ctx, key)
+						key1 := newUUID()
+						writer, err := b.Writer(ctx, key1)
 						require.NoError(t, err)
 						_, err = writer.Write([]byte("hello world"))
 						require.NoError(t, err)
@@ -405,7 +405,7 @@ func TestBucket(t *testing.T) {
 						rawBucket := b.(*s3BucketSmall)
 						objectAclInput := &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
-							Key:    aws.String(rawBucket.normalizeKey(key)),
+							Key:    aws.String(rawBucket.normalizeKey(key1)),
 						}
 						objectAclOutput, err := rawBucket.svc.GetObjectAcl(objectAclInput)
 						require.NoError(t, err)
@@ -420,8 +420,8 @@ func TestBucket(t *testing.T) {
 							Permission: "public-read",
 						}
 						openBucket, err := NewS3Bucket(openOptions)
-						key = newUUID()
-						writer, err = openBucket.Writer(ctx, key)
+						key2 := newUUID()
+						writer, err = openBucket.Writer(ctx, key2)
 						require.NoError(t, err)
 						_, err = writer.Write([]byte("hello world"))
 						require.NoError(t, err)
@@ -429,9 +429,25 @@ func TestBucket(t *testing.T) {
 						rawBucket = openBucket.(*s3BucketSmall)
 						objectAclInput = &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
-							Key:    aws.String(rawBucket.normalizeKey(key)),
+							Key:    aws.String(rawBucket.normalizeKey(key2)),
 						}
 						objectAclOutput, err = rawBucket.svc.GetObjectAcl(objectAclInput)
+						require.NoError(t, err)
+						require.Equal(t, 2, len(objectAclOutput.Grants))
+						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
+
+						// copy with permissions
+						destKey := newUUID()
+						copyOpts := CopyOptions{
+							SourceKey:         key1,
+							DestinationKey:    destKey,
+							DestinationBucket: openBucket,
+						}
+						require.NoError(t, b.Copy(ctx, copyOpts))
+						objectAclInput = &s3.GetObjectAclInput{
+							Bucket: aws.String(s3BucketName),
+							Key:    aws.String(rawBucket.normalizeKey(destKey)),
+						}
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectAclOutput.Grants))
 						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
