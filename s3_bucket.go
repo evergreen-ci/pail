@@ -577,6 +577,7 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 		Bucket:     aws.String(s.name),
 		CopySource: aws.String(options.SourceKey),
 		Key:        aws.String(s.normalizeKey(options.DestinationKey)),
+		ACL:        aws.String(s.permission),
 	}
 
 	if !s.dryRun {
