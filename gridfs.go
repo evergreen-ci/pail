@@ -116,13 +116,13 @@ func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, 
 }
 
 func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) error {
-	if b.opts.DryRun {
-		return nil
-	}
-
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return errors.Wrap(err, "problem resolving bucket")
+	}
+
+	if b.opts.DryRun {
+		return nil
 	}
 
 	if _, err = grid.UploadFromStream(name, input); err != nil {
@@ -238,49 +238,7 @@ func (b *gridfsBucket) Copy(ctx context.Context, opts CopyOptions) error {
 }
 
 func (b *gridfsBucket) Remove(ctx context.Context, key string) error {
-	grid, err := b.bucket(ctx)
-	if err != nil {
-		return errors.Wrap(err, "problem resolving bucket")
-	}
-
-	cursor, err := grid.Find(bson.M{"filename": key})
-	if err == mongo.ErrNoDocuments {
-		return nil
-	} else if err != nil {
-		return errors.Wrap(err, "problem finding file")
-	}
-
-	document := struct {
-		ID interface{} `bson:"_id"`
-	}{}
-
-	for cursor.Next(ctx) {
-		err = cursor.Decode(&document)
-		if err == mongo.ErrNoDocuments {
-			continue
-		}
-
-		if err != nil {
-			_ = cursor.Close(ctx)
-			return errors.Wrap(err, "problem decoding gridfs metadata")
-		}
-
-		if b.opts.DryRun {
-			continue
-		}
-
-		if err = grid.Delete(document.ID); err != nil {
-			return errors.Wrap(err, "problem deleting gridfs file")
-		}
-	}
-	if err = cursor.Err(); err != nil {
-		return errors.Wrap(err, "problem iterating gridfs metadata")
-	}
-	if err = cursor.Close(ctx); err != nil {
-		return errors.Wrap(err, "problem closing ")
-	}
-
-	return nil
+	return errors.WithStack(b.RemoveMany(ctx, key))
 }
 
 func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
