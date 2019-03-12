@@ -84,13 +84,13 @@ func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 }
 
 func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser, error) {
-	if b.opts.DryRun {
-		return &mockWriteCloser{}, nil
-	}
-
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem resolving bucket")
+	}
+
+	if b.opts.DryRun {
+		return &mockWriteCloser{}, nil
 	}
 
 	writer, err := grid.OpenUploadStream(name)
@@ -107,12 +107,12 @@ func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, 
 		return nil, errors.Wrap(err, "problem resolving bucket")
 	}
 
-	writer, err := grid.OpenDownloadStreamByName(name)
+	reader, err := grid.OpenDownloadStreamByName(name)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem opening stream")
 	}
 
-	return writer, nil
+	return reader, nil
 }
 
 func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) error {

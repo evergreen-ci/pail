@@ -73,20 +73,6 @@ func walkLocalTree(ctx context.Context, prefix string) ([]string, error) {
 	return out, nil
 }
 
-func walkLocalTreeMap(ctx context.Context, prefix string) (map[string]struct{}, error) {
-	list, err := walkLocalTree(ctx, prefix)
-	if err != nil {
-		return nil, err
-	}
-
-	out := map[string]struct{}{}
-	for _, fn := range list {
-		out[fn] = struct{}{}
-	}
-
-	return out, nil
-}
-
 func removePrefix(ctx context.Context, prefix string, b Bucket) error {
 	iter, err := b.List(ctx, prefix)
 	if err != nil {
