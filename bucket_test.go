@@ -388,6 +388,7 @@ func TestBucket(t *testing.T) {
 							Name:                     s3BucketName,
 						}
 						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+						require.NoError(t, err)
 						homeDir, err := homedir.Dir()
 						require.NoError(t, err)
 						fileName := filepath.Join(homeDir, ".aws", "credentials")
@@ -425,14 +426,14 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.NoError(t, writer.Close())
 						rawBucket := b.(*s3BucketSmall)
-						objectAclInput := &s3.GetObjectAclInput{
+						objectACLInput := &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
 							Key:    aws.String(rawBucket.normalizeKey(key1)),
 						}
-						objectAclOutput, err := rawBucket.svc.GetObjectAcl(objectAclInput)
+						objectACLOutput, err := rawBucket.svc.GetObjectAcl(objectACLInput)
 						require.NoError(t, err)
-						require.Equal(t, 1, len(objectAclOutput.Grants))
-						assert.Equal(t, "FULL_CONTROL", *objectAclOutput.Grants[0].Permission)
+						require.Equal(t, 1, len(objectACLOutput.Grants))
+						assert.Equal(t, "FULL_CONTROL", *objectACLOutput.Grants[0].Permission)
 
 						// explicitly set permissions
 						openOptions := S3Options{
@@ -442,6 +443,7 @@ func TestBucket(t *testing.T) {
 							Permission: "public-read",
 						}
 						openBucket, err := NewS3Bucket(openOptions)
+						require.NoError(t, err)
 						key2 := newUUID()
 						writer, err = openBucket.Writer(ctx, key2)
 						require.NoError(t, err)
@@ -449,14 +451,14 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.NoError(t, writer.Close())
 						rawBucket = openBucket.(*s3BucketSmall)
-						objectAclInput = &s3.GetObjectAclInput{
+						objectACLInput = &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
 							Key:    aws.String(rawBucket.normalizeKey(key2)),
 						}
-						objectAclOutput, err = rawBucket.svc.GetObjectAcl(objectAclInput)
+						objectACLOutput, err = rawBucket.svc.GetObjectAcl(objectACLInput)
 						require.NoError(t, err)
-						require.Equal(t, 2, len(objectAclOutput.Grants))
-						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
+						require.Equal(t, 2, len(objectACLOutput.Grants))
+						assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
 
 						// copy with permissions
 						destKey := newUUID()
@@ -466,13 +468,9 @@ func TestBucket(t *testing.T) {
 							DestinationBucket: openBucket,
 						}
 						require.NoError(t, b.Copy(ctx, copyOpts))
-						objectAclInput = &s3.GetObjectAclInput{
-							Bucket: aws.String(s3BucketName),
-							Key:    aws.String(rawBucket.normalizeKey(destKey)),
-						}
 						require.NoError(t, err)
-						require.Equal(t, 2, len(objectAclOutput.Grants))
-						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
+						require.Equal(t, 2, len(objectACLOutput.Grants))
+						assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
 					},
 				},
 				{
@@ -555,14 +553,14 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.NoError(t, writer.Close())
 						rawBucket := b.(*s3BucketLarge)
-						objectAclInput := &s3.GetObjectAclInput{
+						objectACLInput := &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
 							Key:    aws.String(rawBucket.normalizeKey(key)),
 						}
-						objectAclOutput, err := rawBucket.svc.GetObjectAcl(objectAclInput)
+						objectACLOutput, err := rawBucket.svc.GetObjectAcl(objectACLInput)
 						require.NoError(t, err)
-						require.Equal(t, 1, len(objectAclOutput.Grants))
-						assert.Equal(t, "FULL_CONTROL", *objectAclOutput.Grants[0].Permission)
+						require.Equal(t, 1, len(objectACLOutput.Grants))
+						assert.Equal(t, "FULL_CONTROL", *objectACLOutput.Grants[0].Permission)
 
 						// explicitly set permissions
 						openOptions := S3Options{
@@ -572,6 +570,7 @@ func TestBucket(t *testing.T) {
 							Permission: "public-read",
 						}
 						openBucket, err := NewS3MultiPartBucket(openOptions)
+						require.NoError(t, err)
 						key = newUUID()
 						writer, err = openBucket.Writer(ctx, key)
 						require.NoError(t, err)
@@ -579,14 +578,14 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.NoError(t, writer.Close())
 						rawBucket = openBucket.(*s3BucketLarge)
-						objectAclInput = &s3.GetObjectAclInput{
+						objectACLInput = &s3.GetObjectAclInput{
 							Bucket: aws.String(s3BucketName),
 							Key:    aws.String(rawBucket.normalizeKey(key)),
 						}
-						objectAclOutput, err = rawBucket.svc.GetObjectAcl(objectAclInput)
+						objectACLOutput, err = rawBucket.svc.GetObjectAcl(objectACLInput)
 						require.NoError(t, err)
-						require.Equal(t, 2, len(objectAclOutput.Grants))
-						assert.Equal(t, "READ", *objectAclOutput.Grants[1].Permission)
+						require.Equal(t, 2, len(objectACLOutput.Grants))
+						assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
 					},
 				},
 				{
@@ -735,11 +734,13 @@ func TestBucket(t *testing.T) {
 					data[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					keys = append(keys, key)
 				}
+				assert.Len(t, keys, 20)
 				for i := 0; i < 20; i++ {
 					key := newUUID()
 					deleteData[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					deleteKeys = append(deleteKeys, key)
 				}
+				assert.Len(t, deleteKeys, 20)
 
 				bucket := impl.constructor(t)
 				for k, v := range data {
@@ -792,11 +793,13 @@ func TestBucket(t *testing.T) {
 					data[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					keys = append(keys, key)
 				}
+				assert.Len(t, keys, 5)
 				for i := 0; i < 5; i++ {
 					key := prefix + newUUID()
 					deleteData[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					deleteKeys = append(deleteKeys, key)
 				}
+				assert.Len(t, deleteKeys, 5)
 
 				bucket := impl.constructor(t)
 				for k, v := range data {
@@ -840,11 +843,13 @@ func TestBucket(t *testing.T) {
 					data[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					keys = append(keys, key)
 				}
+				assert.Len(t, keys, 5)
 				for i := 0; i < 5; i++ {
 					key := newUUID() + postfix
 					deleteData[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					deleteKeys = append(deleteKeys, key)
 				}
+				assert.Len(t, deleteKeys, 5)
 
 				bucket := impl.constructor(t)
 				for k, v := range data {
@@ -1151,7 +1156,7 @@ func TestBucket(t *testing.T) {
 					count := 0
 					for iter.Next(ctx) {
 						require.NotNil(t, iter.Item())
-						count += 1
+						count++
 					}
 					assert.NoError(t, iter.Err())
 					assert.Equal(t, 100, count)

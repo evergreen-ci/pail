@@ -31,6 +31,10 @@ type gridfsBucket struct {
 	client *mongo.Client
 }
 
+// NewGridFSBucketWithClient constructs a Bucket implementation using
+// GridFS and the new MongoDB driver. If client is nil, then this
+// method falls back to the behavior of NewGridFS bucket. Use the
+// Check method to verify that this bucket ise operationsal.
 func NewGridFSBucketWithClient(ctx context.Context, client *mongo.Client, opts GridFSOptions) (Bucket, error) {
 	if client == nil {
 		return NewGridFSBucket(ctx, opts)
@@ -39,6 +43,9 @@ func NewGridFSBucketWithClient(ctx context.Context, client *mongo.Client, opts G
 	return &gridfsBucket{opts: opts, client: client}, nil
 }
 
+// NewGridFSBucket creates a Bucket instance backed by the new MongoDB
+// driver, creating a new client and connecting to the URI.
+// Use the Check method to verify that this bucket ise operationsal.
 func NewGridFSBucket(ctx context.Context, opts GridFSOptions) (Bucket, error) {
 	client, err := mongo.NewClient(options.Client().ApplyURI(opts.MongoDBURI))
 	if err != nil {
