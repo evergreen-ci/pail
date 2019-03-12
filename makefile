@@ -22,7 +22,6 @@ lintArgs := --tests --deadline=13m --vendor
 #   gotype produces false positives because it reads .a files which
 #   are rarely up to date.
 lintArgs += --disable="gotype" --disable="gosec" --disable="gocyclo" --enable="golint"
-lintArgs += --enable="megacheck" --enable="unused" --enable="gosimple"
 lintArgs += --skip="build"
 #   enable and configure additional linters
 lintArgs += --line-length=100 --dupl-threshold=150
@@ -128,6 +127,10 @@ $(buildDir)/cover.html:$(buildDir)/cover.out
 vendor-clean:
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*" | xargs rm -rf
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/pmezard
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/stretchr
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/davecgh
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn
 phony += vendor-clean
 
 # mongodb utility targets
