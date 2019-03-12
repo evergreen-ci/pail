@@ -65,6 +65,10 @@ func (b *gridfsBucket) Check(ctx context.Context) error {
 }
 
 func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, errors.Wrap(err, "cannot fetch bucket with canceled context")
+	}
+
 	gfs, err := gridfs.NewBucket(b.client.Database(b.opts.Database), options.GridFSBucket().SetName(b.opts.Prefix))
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -80,6 +84,10 @@ func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 }
 
 func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser, error) {
+	if b.opts.DryRun {
+		return &mockWriteCloser{}, nil
+	}
+
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem resolving bucket")
@@ -108,6 +116,10 @@ func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, 
 }
 
 func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) error {
+	if b.opts.DryRun {
+		return nil
+	}
+
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return errors.Wrap(err, "problem resolving bucket")
@@ -165,6 +177,7 @@ func (b *gridfsBucket) Push(ctx context.Context, local, remote string) error {
 
 	for _, path := range localPaths {
 		target := filepath.Join(remote, path)
+		_ = b.Remove(ctx, target)
 		if err = b.Upload(ctx, target, filepath.Join(local, path)); err != nil {
 			return errors.Wrapf(err, "problem uploading '%s' to '%s'", path, target)
 		}
@@ -250,6 +263,10 @@ func (b *gridfsBucket) Remove(ctx context.Context, key string) error {
 		if err != nil {
 			_ = cursor.Close(ctx)
 			return errors.Wrap(err, "problem decoding gridfs metadata")
+		}
+
+		if b.opts.DryRun {
+			continue
 		}
 
 		if err = grid.Delete(document.ID); err != nil {

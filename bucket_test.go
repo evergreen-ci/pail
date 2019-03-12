@@ -21,6 +21,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	mgo "gopkg.in/mgo.v2"
 )
 
@@ -95,7 +97,8 @@ func TestBucket(t *testing.T) {
 	defer func() { require.NoError(t, os.RemoveAll(tempdir)) }()
 	require.NoError(t, err, os.MkdirAll(filepath.Join(tempdir, uuid), 0700))
 
-	ses, err := mgo.DialWithTimeout("mongodb://localhost:27017", time.Second)
+	mdburl := "mongodb://localhost:27017"
+	ses, err := mgo.DialWithTimeout(mdburl, time.Second)
 	require.NoError(t, err)
 	defer ses.Close()
 	defer func() { ses.DB(uuid).DropDatabase() }()
@@ -104,6 +107,12 @@ func TestBucket(t *testing.T) {
 	s3Prefix := newUUID() + "-"
 	s3Region := "us-east-1"
 	defer func() { require.NoError(t, cleanUpS3Bucket(s3BucketName, s3Prefix, s3Region)) }()
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(mdburl))
+	require.NoError(t, err)
+	connctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	require.NoError(t, client.Connect(connctx))
 
 	type bucketTestCase struct {
 		id   string
@@ -234,8 +243,21 @@ func TestBucket(t *testing.T) {
 			},
 		},
 		{
+			name: "GridFS",
+			constructor: func(t *testing.T) Bucket {
+				require.NoError(t, client.Database(uuid).Drop(ctx))
+				b, err := NewGridFSBucketWithClient(ctx, client, GridFSOptions{
+					Prefix:   newUUID(),
+					Database: uuid,
+				})
+				require.NoError(t, err)
+				return b
+			},
+		},
+		{
 			name: "LegacyGridFS",
 			constructor: func(t *testing.T) Bucket {
+				require.NoError(t, client.Database(uuid).Drop(ctx))
 				b, err := NewLegacyGridFSBucketWithSession(ses.Clone(), GridFSOptions{
 					Prefix:   newUUID(),
 					Database: uuid,
@@ -1073,7 +1095,7 @@ func TestBucket(t *testing.T) {
 
 				bucket := impl.constructor(t)
 				for k, v := range data {
-					assert.NoError(t, writeDataToFile(ctx, bucket, k, v))
+					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
 				}
 
 				t.Run("BasicPull", func(t *testing.T) {
@@ -1085,10 +1107,10 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						assert.Len(t, files, 100)
 
-						if impl.name != "LegacyGridFS" {
+						if !strings.Contains(impl.name, "GridFS") {
 							for _, fn := range files {
 								_, ok := data[filepath.Base(fn)]
-								assert.True(t, ok)
+								require.True(t, ok)
 							}
 						}
 					}
@@ -1103,10 +1125,10 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						assert.Len(t, files, 100)
 
-						if impl.name != "LegacyGridFS" {
+						if !strings.Contains(impl.name, "GridFS") {
 							for _, fn := range files {
 								_, ok := data[filepath.Base(fn)]
-								assert.True(t, ok)
+								require.True(t, ok)
 							}
 						}
 					}
@@ -1119,16 +1141,16 @@ func TestBucket(t *testing.T) {
 					mirror := filepath.Join(tempdir, "pull-one", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					setDryRun(bucket, true)
-					assert.NoError(t, bucket.Pull(ctx, mirror, ""))
+					require.NoError(t, bucket.Pull(ctx, mirror, ""))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
-					assert.Len(t, files, 100)
+					require.Len(t, files, 100)
 
 					iter, err := bucket.List(ctx, "")
 					require.NoError(t, err)
 					count := 0
 					for iter.Next(ctx) {
-						assert.NotNil(t, iter.Item())
+						require.NotNil(t, iter.Item())
 						count += 1
 					}
 					assert.NoError(t, iter.Err())
@@ -1299,6 +1321,8 @@ func setDryRun(b Bucket, set bool) {
 		i.dryRun = set
 	case *s3BucketLarge:
 		i.dryRun = set
+	case *gridfsBucket:
+		i.opts.DryRun = set
 	}
 }
 
@@ -1312,5 +1336,7 @@ func setDeleteOnSync(b Bucket, set bool) {
 		i.deleteOnSync = set
 	case *s3BucketLarge:
 		i.deleteOnSync = set
+	case *gridfsBucket:
+		i.opts.DeleteOnSync = set
 	}
 }
