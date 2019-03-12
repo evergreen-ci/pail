@@ -308,6 +308,10 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 			return errors.Wrap(err, "problem decoding gridfs metadata")
 		}
 
+		if b.opts.DryRun {
+			continue
+		}
+
 		if err = grid.Delete(document.ID); err != nil {
 			return errors.Wrap(err, "problem deleting gridfs file")
 		}
