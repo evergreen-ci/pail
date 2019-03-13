@@ -42,6 +42,9 @@ lintArgs += --exclude="error return value not checked .defer.*"
 # start dependency installation tools
 #   implementation details for being able to lazily install dependencies
 gopath := $(shell $(gobin) env GOPATH)
+ifeq ($(OS),Windows_NT)
+gopath := $(shell cygpath -m $(gopath))
+endif
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 $(gopath)/src/%:
 	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
