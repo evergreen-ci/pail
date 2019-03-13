@@ -41,7 +41,7 @@ lintArgs += --exclude="error return value not checked .defer.*"
 
 # start dependency installation tools
 #   implementation details for being able to lazily install dependencies
-gopath := $(shell $(gobin) env GOPATH)
+gopath := $(GOPATH)
 ifeq ($(OS),Windows_NT)
 gopath := $(shell cygpath -m $(gopath))
 endif
@@ -76,16 +76,16 @@ endif
 $(buildDir)/:
 	mkdir -p $@
 $(buildDir)/output.%.test:$(buildDir)/ .FORCE
-	$(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$*,) | tee $@
+	GOPATH=$(gopath) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$*,) | tee $@
 	@! grep -s -q -e "^FAIL" $@ && ! grep -s -q "^WARNING: DATA RACE" $@
 $(buildDir)/output.test:$(buildDir)/ .FORCE
-	$(gobin) test $(testArgs) ./... | tee $@
+	GOPATH=$(gopath) $(gobin) test $(testArgs) ./... | tee $@
 	@! grep -s -q -e "^FAIL" $@ && ! grep -s -q "^WARNING: DATA RACE" $@
 $(buildDir)/output.%.coverage:$(buildDir)/ .FORCE
-	$(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$*,) -covermode=count -coverprofile $@ | tee $(buildDir)/output.$*.test
+	GOPATH=$(gopath) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$*,) -covermode=count -coverprofile $@ | tee $(buildDir)/output.$*.test
 	@-[ -f $@ ] && $(gobin) tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage
-	$(gobin) tool cover -html=$< -o $@
+	GOPATH=$(gopath) $(gobin) tool cover -html=$< -o $@
 #  targets to generate gotest output from the linter.
 $(buildDir)/output.%.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
 	@./$< --output=$@ --lintArgs='$(lintArgs)' --packages='$*'
@@ -97,14 +97,14 @@ $(buildDir)/output.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
 
 # userfacing targets for basic build and development operations
 compile:
-	$(gobin) build ./
+	GOPATH=$(gopath) $(gobin) build ./
 test:$(buildDir)/test.out
 $(buildDir)/test.out:.FORCE
 	@mkdir -p $(buildDir)
-	$(gobin) test $(testArgs) ./ | tee $@
+	GOPATH=$(gopath) $(gobin) test $(testArgs) ./ | tee $@
 	@grep -s -q -e "^PASS" $@
 coverage:$(buildDir)/cover.out
-	@$(gobin) tool cover -func=$< | sed -E 's%github.com/.*/ftdc/%%' | column -t
+	GOPATH=$(gopath) @$(gobin) tool cover -func=$< | sed -E 's%github.com/.*/ftdc/%%' | column -t
 coverage-html:$(buildDir)/cover.html
 
 benchmark:
@@ -115,8 +115,6 @@ phony += lint lint-deps build build-race race test coverage coverage-html
 .PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
 .PRECIOUS:$(buildDir)/output.lint
 # end front-ends
-
-
 
 
 $(buildDir):$(srcFiles) compile
