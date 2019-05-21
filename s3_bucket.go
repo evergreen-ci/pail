@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -91,7 +92,13 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		fp := options.SharedCredentialsFilepath
 		if fp == "" {
 			// if options.SharedCredentialsFilepath is not set, use default filepath
-			homeDir, err := homedir.Dir()
+			var homeDir string
+			var err error
+			if runtime.GOOS() == "windows" {
+				homeDir = os.Getenv("USERPROFILE")
+			} else {
+				homeDir, err = homedir.Dir()
+			}
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to detect home directory when getting default credentials file")
 			}
