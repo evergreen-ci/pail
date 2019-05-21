@@ -94,7 +94,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 			// if options.SharedCredentialsFilepath is not set, use default filepath
 			var homeDir string
 			var err error
-			if runtime.GOOS() == "windows" {
+			if runtime.GOOS == "windows" {
 				homeDir = os.Getenv("USERPROFILE")
 			} else {
 				homeDir, err = homedir.Dir()
