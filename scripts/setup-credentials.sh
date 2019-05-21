@@ -20,3 +20,7 @@ cat <<EOF > $AWS_DIR/credentials
 aws_access_key_id = "$AWS_KEY"
 aws_secret_access_key = "$AWS_SECRET"
 EOF
+
+if [ "Windows_NT" == "$OS" ]; then
+    cp -R $AWS_DIR $HOME/.aws
+fi
