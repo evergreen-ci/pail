@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -o errexit
+set -o errexit
 
 echo "building aws creds file!"
 
@@ -17,6 +17,6 @@ region = us-east-1
 EOF
 cat <<EOF > $AWS_DIR/credentials
 [default]
-aws_access_key_id = ${aws_key}
-aws_secret_access_key = ${aws_secret}
+aws_access_key_id = "$AWS_KEY"
+aws_secret_access_key = "$AWS_SECRET"
 EOF
