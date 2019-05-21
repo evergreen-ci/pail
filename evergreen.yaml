@@ -70,6 +70,7 @@ functions:
         DISABLE_COVERAGE: ${disable_coverage}
         GOROOT: ${goroot}
         GOPATH: ${workdir}/gopath
+        USERPROFILE: C:\\Users\\$USER
         AWS_KEY: ${aws_key}
         AWS_SECRET: ${aws_secret}
   set-up-mongodb:
