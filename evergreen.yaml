@@ -105,7 +105,7 @@ post:
         - "gopath/src/github.com/evergreen-ci/pail/build/output.*"
         - "gopath/src/github.com/evergreen-ci/pail/build/test.out"
         - "gopath/src/github.com/evergreen-ci/pail/build/race.out"
-        - "gopath/src/github.com/evergreen-ci/pail/build/cover*
+        - "gopath/src/github.com/evergreen-ci/pail/build/cover*"
   - command: subprocess.exec
     type: setup
     params:
