@@ -103,8 +103,9 @@ post:
     params:
       files:
         - "gopath/src/github.com/evergreen-ci/pail/build/output.*"
-        - "gopath/src/github.com/evergreen-ci/pail/build/test.*.out"
-        - "gopath/src/github.com/evergreen-ci/pail/build/race.*.out"
+        - "gopath/src/github.com/evergreen-ci/pail/build/test.out"
+        - "gopath/src/github.com/evergreen-ci/pail/build/race.out"
+        - "gopath/src/github.com/evergreen-ci/pail/build/cover*
   - command: subprocess.exec
     type: setup
     params:
@@ -114,7 +115,7 @@ post:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/pail/build/output.*.coverage.html"]
+      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/pail/build/cover.html"]
       remote_file: pail/${task_id}/
       bucket: mciuploads
       content_type: text/html
@@ -125,7 +126,7 @@ post:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/pail/build/output.*.coverage"]
+      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/pail/build/cover.out"]
       remote_file: pail/${task_id}/
       bucket: mciuploads
       content_type: text/plain
