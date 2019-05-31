@@ -1221,8 +1221,19 @@ func TestBucket(t *testing.T) {
 					assert.Equal(t, 100, counter)
 				})
 				t.Run("DryRunBucketDoesNotPush", func(t *testing.T) {
+					remotePrefix := "bar"
 					setDryRun(bucket, true)
-					assert.NoError(t, bucket.Push(ctx, prefix, "bar"))
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+
+					iter, err := bucket.List(ctx, remotePrefix)
+					require.NoError(t, err)
+					counter := 0
+					for iter.Next(ctx) {
+						counter++
+					}
+					assert.NoError(t, iter.Err())
+					assert.Equal(t, 0, counter)
+
 					setDryRun(bucket, false)
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
