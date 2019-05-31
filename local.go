@@ -196,7 +196,7 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 		target := filepath.Join(b.path, remote, fn)
 		file := filepath.Join(local, fn)
 		if _, err := os.Stat(target); os.IsNotExist(err) {
-			if err := b.Upload(ctx, target, file); err != nil {
+			if err := b.Upload(ctx, filepath.Join(remote, fn), file); err != nil {
 				return errors.WithStack(err)
 			}
 
