@@ -119,10 +119,7 @@ func (b *localFileSystem) Upload(ctx context.Context, name, path string) error {
 }
 
 func (b *localFileSystem) Download(ctx context.Context, name, path string) error {
-	reader, err := b.Reader(ctx, name)
-	if err != nil {
-		return errors.WithStack(err)
-	}
+	catcher := grip.NewBasicCatcher()
 
 	if err = os.MkdirAll(filepath.Dir(path), 0600); err != nil {
 		return errors.Wrapf(err, "problem creating enclosing directory for '%s'", path)
@@ -132,13 +129,23 @@ func (b *localFileSystem) Download(ctx context.Context, name, path string) error
 	if err != nil {
 		return errors.Wrapf(err, "problem creating file '%s'", path)
 	}
+
+	reader, err := b.Reader(ctx, name)
+	if err != nil {
+		_ = f.Close()
+		return errors.WithStack(err)
+	}
+
 	_, err = io.Copy(f, reader)
 	if err != nil {
 		_ = f.Close()
+		_ = reader.Close()
 		return errors.Wrap(err, "problem copying data")
 	}
 
-	return errors.WithStack(f.Close())
+	catcher.Add(reader.Close())
+	catcher.Add(f.Close())
+	return errors.WithStack(catcher.Resolve())
 }
 
 func (b *localFileSystem) Copy(ctx context.Context, options CopyOptions) error {
