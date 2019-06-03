@@ -64,19 +64,12 @@ func (s *s3Bucket) normalizeKey(key string) string {
 	if key == "" {
 		return s.prefix
 	}
-	if s.prefix != "" {
-		return consistentJoin(s.prefix, key)
-	}
-	return key
+	return consistentJoin(s.prefix, key)
 }
 
 func (s *s3Bucket) denormalizeKey(key string) string {
-	if s.prefix != "" {
-		denormalizedKey, err := filepath.Rel(s.prefix, key)
-		if err != nil {
-			return key
-		}
-		return denormalizedKey
+	if s.prefix != "" && len(key) > len(s.prefix)+1 {
+		key = key[len(s.prefix)+1:]
 	}
 	return key
 }
