@@ -283,6 +283,7 @@ func (b *localFileSystem) List(ctx context.Context, prefix string) (BucketIterat
 		files:  files,
 		idx:    -1,
 		bucket: b,
+		prefix: prefix,
 	}, nil
 }
 
@@ -292,6 +293,7 @@ type localFileSystemIterator struct {
 	idx    int
 	item   *bucketItemImpl
 	bucket *localFileSystem
+	prefix string
 }
 
 func (iter *localFileSystemIterator) Err() error       { return iter.err }
@@ -304,7 +306,7 @@ func (iter *localFileSystemIterator) Next(_ context.Context) bool {
 
 	iter.item = &bucketItemImpl{
 		bucket: iter.bucket.path,
-		key:    iter.files[iter.idx],
+		key:    filepath.Join(iter.prefix, iter.files[iter.idx]),
 		b:      iter.bucket,
 	}
 	return true

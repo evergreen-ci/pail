@@ -359,7 +359,7 @@ func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator,
 		return nil, errors.Wrap(err, "problem finding file")
 	}
 
-	return &gridfsIterator{bucket: b, iter: cursor, prefix: prefix}, nil
+	return &gridfsIterator{bucket: b, iter: cursor}, nil
 }
 
 type gridfsIterator struct {
@@ -367,7 +367,6 @@ type gridfsIterator struct {
 	bucket *gridfsBucket
 	iter   *mongo.Cursor
 	item   *bucketItemImpl
-	prefix string
 }
 
 func (iter *gridfsIterator) Err() error       { return iter.err }
@@ -389,18 +388,10 @@ func (iter *gridfsIterator) Next(ctx context.Context) bool {
 		return false
 	}
 
-	name := document.Filename
-	if iter.prefix != "" {
-		relName, err := filepath.Rel(iter.prefix, name)
-		if err == nil {
-			name = relName
-		}
-	}
-
 	iter.item = &bucketItemImpl{
 		bucket: iter.bucket.opts.Prefix,
 		b:      iter.bucket,
-		key:    name,
+		key:    document.Filename,
 	}
 	return true
 }

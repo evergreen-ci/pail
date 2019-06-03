@@ -319,7 +319,6 @@ func (b *gridfsLegacyBucket) List(ctx context.Context, prefix string) (BucketIte
 		ctx:    ctx,
 		iter:   b.gridFS().Find(bson.M{"filename": bson.RegEx{Pattern: fmt.Sprintf("^%s.*", prefix)}}).Iter(),
 		bucket: b,
-		prefix: prefix,
 	}, nil
 }
 
@@ -329,7 +328,6 @@ type legacyGridFSIterator struct {
 	item   *bucketItemImpl
 	bucket *gridfsLegacyBucket
 	iter   *mgo.Iter
-	prefix string
 }
 
 func (iter *legacyGridFSIterator) Err() error       { return iter.err }
@@ -351,17 +349,9 @@ func (iter *legacyGridFSIterator) Next(ctx context.Context) bool {
 		return false
 	}
 
-	name := f.Name()
-	if iter.prefix != "" {
-		relName, err := filepath.Rel(iter.prefix, name)
-		if err == nil {
-			name = relName
-		}
-	}
-
 	iter.item = &bucketItemImpl{
 		bucket: iter.bucket.opts.Prefix,
-		key:    name,
+		key:    f.Name(),
 		b:      iter.bucket,
 	}
 

@@ -496,7 +496,7 @@ func (s *s3Bucket) push(ctx context.Context, local, remote string, b Bucket) err
 		}
 		input := &s3.HeadObjectInput{
 			Bucket:  aws.String(s.name),
-			Key:     aws.String(target),
+			Key:     aws.String(s.normalizeKey(target)),
 			IfMatch: aws.String(localmd5),
 		}
 		_, err = s.svc.HeadObjectWithContext(ctx, input)
@@ -519,11 +519,11 @@ func (s *s3Bucket) push(ctx context.Context, local, remote string, b Bucket) err
 }
 
 func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
-	return s.push(ctx, local, s.normalizeKey(remote), s)
+	return s.push(ctx, local, remote, s)
 }
 
 func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
-	return s.push(ctx, local, s.normalizeKey(remote), s)
+	return s.push(ctx, local, remote, s)
 }
 
 func (s *s3Bucket) pull(ctx context.Context, local, remote string, b Bucket) error {
@@ -738,4 +738,5 @@ func (iter *s3BucketIterator) Next(ctx context.Context) bool {
 		b:      iter.b,
 	}
 	return true
+
 }
