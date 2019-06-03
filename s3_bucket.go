@@ -577,6 +577,9 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 	if !options.IsDestination {
 		options.IsDestination = true
 		options.SourceKey = filepath.Join(s.name, s.normalizeKey(options.SourceKey))
+		if runtime.GOOS == "windows" {
+			options.SourceKey = strings.Replace(options.SourceKey, "\\", "/", -1)
+		}
 		return options.DestinationBucket.Copy(ctx, options)
 	}
 
