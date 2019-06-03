@@ -731,5 +731,4 @@ func (iter *s3BucketIterator) Next(ctx context.Context) bool {
 		b:      iter.b,
 	}
 	return true
-
 }
