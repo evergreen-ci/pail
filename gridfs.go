@@ -183,7 +183,7 @@ func (b *gridfsBucket) Push(ctx context.Context, local, remote string) error {
 	}
 
 	for _, path := range localPaths {
-		target := filepath.Join(remote, path)
+		target := consistentJoin(remote, path)
 		_ = b.Remove(ctx, target)
 		if err = b.Upload(ctx, target, filepath.Join(local, path)); err != nil {
 			return errors.Wrapf(err, "problem uploading '%s' to '%s'", path, target)
