@@ -6,11 +6,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"time"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -346,12 +346,7 @@ func (b *gridfsBucket) RemoveMatching(ctx context.Context, expr string) error {
 func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator, error) {
 	filter := bson.M{}
 	if prefix != "" {
-		pat, err := regexp.Compile(fmt.Sprintf("^%s.*", prefix))
-		if err != nil {
-			return nil, errors.Wrap(err, "problem with filename matching")
-		}
-
-		filter = bson.M{"filename": pat}
+		filter = bson.M{"filename": primitive.Regex{Pattern: fmt.Sprintf("^%s.*", prefix)}}
 	}
 
 	grid, err := b.bucket(ctx)
@@ -364,7 +359,7 @@ func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator,
 		return nil, errors.Wrap(err, "problem finding file")
 	}
 
-	return &gridfsIterator{bucket: b, iter: cursor}, nil
+	return &gridfsIterator{bucket: b, iter: cursor, prefix: prefix}, nil
 }
 
 type gridfsIterator struct {
@@ -372,6 +367,7 @@ type gridfsIterator struct {
 	bucket *gridfsBucket
 	iter   *mongo.Cursor
 	item   *bucketItemImpl
+	prefix string
 }
 
 func (iter *gridfsIterator) Err() error       { return iter.err }
@@ -393,10 +389,18 @@ func (iter *gridfsIterator) Next(ctx context.Context) bool {
 		return false
 	}
 
+	name := document.Filename
+	if iter.prefix != "" {
+		relName, err := filepath.Rel(iter.prefix, name)
+		if err == nil {
+			name = relName
+		}
+	}
+
 	iter.item = &bucketItemImpl{
 		bucket: iter.bucket.opts.Prefix,
 		b:      iter.bucket,
-		key:    document.Filename,
+		key:    name,
 	}
 	return true
 }
