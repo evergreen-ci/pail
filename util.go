@@ -105,3 +105,7 @@ func removeMatching(ctx context.Context, expression string, b Bucket) error {
 	}
 	return errors.Wrapf(b.RemoveMany(ctx, keys...), "failed to delete some objects matching '%s'", expression)
 }
+
+func consistentJoin(prefix, key string) string {
+	return prefix + "/" + key
+}

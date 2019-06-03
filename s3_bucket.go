@@ -65,7 +65,7 @@ func (s *s3Bucket) normalizeKey(key string) string {
 		return s.prefix
 	}
 	if s.prefix != "" {
-		return filepath.Join(s.prefix, key)
+		return consistentJoin(s.prefix, key)
 	}
 	return key
 }
@@ -488,7 +488,7 @@ func (s *s3Bucket) push(ctx context.Context, local, remote string, b Bucket) err
 	}
 
 	for _, fn := range files {
-		target := filepath.Join(remote, fn)
+		target := consistentJoin(remote, fn)
 		file := filepath.Join(local, fn)
 		localmd5, err := md5sum(file)
 		if err != nil {
@@ -576,10 +576,7 @@ func (s *s3BucketLarge) Pull(ctx context.Context, local, remote string) error {
 func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 	if !options.IsDestination {
 		options.IsDestination = true
-		options.SourceKey = filepath.Join(s.name, s.normalizeKey(options.SourceKey))
-		if runtime.GOOS == "windows" {
-			options.SourceKey = strings.Replace(options.SourceKey, "\\", "/", -1)
-		}
+		options.SourceKey = consistentJoin(s.name, s.normalizeKey(options.SourceKey))
 		return options.DestinationBucket.Copy(ctx, options)
 	}
 
