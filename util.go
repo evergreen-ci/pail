@@ -107,5 +107,8 @@ func removeMatching(ctx context.Context, expression string, b Bucket) error {
 }
 
 func consistentJoin(prefix, key string) string {
-	return prefix + "/" + key
+	if prefix != "" {
+		return prefix + "/" + key
+	}
+	return key
 }
