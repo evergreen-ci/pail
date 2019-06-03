@@ -121,7 +121,7 @@ func (b *localFileSystem) Upload(ctx context.Context, name, path string) error {
 func (b *localFileSystem) Download(ctx context.Context, name, path string) error {
 	catcher := grip.NewBasicCatcher()
 
-	if err = os.MkdirAll(filepath.Dir(path), 0600); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0600); err != nil {
 		return errors.Wrapf(err, "problem creating enclosing directory for '%s'", path)
 	}
 
