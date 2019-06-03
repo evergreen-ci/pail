@@ -1214,7 +1214,9 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, err)
 					counter := 0
 					for iter.Next(ctx) {
-						assert.True(t, filenames[iter.Item().Name()])
+						fn, err := filepath.Rel(remotePrefix, iter.Item().Name())
+						require.NoError(t, err)
+						assert.True(t, filenames[fn])
 						counter++
 					}
 					assert.NoError(t, iter.Err())
