@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -63,19 +64,12 @@ func (s *s3Bucket) normalizeKey(key string) string {
 	if key == "" {
 		return s.prefix
 	}
-	if s.prefix != "" {
-		return filepath.Join(s.prefix, key)
-	}
-	return key
+	return consistentJoin(s.prefix, key)
 }
 
 func (s *s3Bucket) denormalizeKey(key string) string {
-	if s.prefix != "" {
-		denormalizedKey, err := filepath.Rel(s.prefix, key)
-		if err != nil {
-			return key
-		}
-		return denormalizedKey
+	if s.prefix != "" && len(key) > len(s.prefix)+1 {
+		key = key[len(s.prefix)+1:]
 	}
 	return key
 }
@@ -91,7 +85,13 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		fp := options.SharedCredentialsFilepath
 		if fp == "" {
 			// if options.SharedCredentialsFilepath is not set, use default filepath
-			homeDir, err := homedir.Dir()
+			var homeDir string
+			var err error
+			if runtime.GOOS == "windows" {
+				homeDir = os.Getenv("USERPROFILE")
+			} else {
+				homeDir, err = homedir.Dir()
+			}
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to detect home directory when getting default credentials file")
 			}
@@ -481,7 +481,7 @@ func (s *s3Bucket) push(ctx context.Context, local, remote string, b Bucket) err
 	}
 
 	for _, fn := range files {
-		target := filepath.Join(remote, fn)
+		target := consistentJoin(remote, fn)
 		file := filepath.Join(local, fn)
 		localmd5, err := md5sum(file)
 		if err != nil {
@@ -489,7 +489,7 @@ func (s *s3Bucket) push(ctx context.Context, local, remote string, b Bucket) err
 		}
 		input := &s3.HeadObjectInput{
 			Bucket:  aws.String(s.name),
-			Key:     aws.String(target),
+			Key:     aws.String(s.normalizeKey(target)),
 			IfMatch: aws.String(localmd5),
 		}
 		_, err = s.svc.HeadObjectWithContext(ctx, input)
@@ -512,11 +512,11 @@ func (s *s3Bucket) push(ctx context.Context, local, remote string, b Bucket) err
 }
 
 func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
-	return s.push(ctx, local, s.normalizeKey(remote), s)
+	return s.push(ctx, local, remote, s)
 }
 
 func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
-	return s.push(ctx, local, s.normalizeKey(remote), s)
+	return s.push(ctx, local, remote, s)
 }
 
 func (s *s3Bucket) pull(ctx context.Context, local, remote string, b Bucket) error {
@@ -569,7 +569,7 @@ func (s *s3BucketLarge) Pull(ctx context.Context, local, remote string) error {
 func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 	if !options.IsDestination {
 		options.IsDestination = true
-		options.SourceKey = filepath.Join(s.name, s.normalizeKey(options.SourceKey))
+		options.SourceKey = consistentJoin(s.name, s.normalizeKey(options.SourceKey))
 		return options.DestinationBucket.Copy(ctx, options)
 	}
 

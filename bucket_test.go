@@ -1182,34 +1182,61 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("PushToBucket", func(t *testing.T) {
 				prefix := filepath.Join(tempdir, newUUID())
+				filenames := map[string]bool{}
 				for i := 0; i < 100; i++ {
+					fn := newUUID()
+					filenames[fn] = true
 					require.NoError(t, writeDataToDisk(prefix,
-						newUUID(), strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")))
+						fn, strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")))
 				}
 
 				bucket := impl.constructor(t)
 				t.Run("NoPrefix", func(t *testing.T) {
 					assert.NoError(t, bucket.Push(ctx, prefix, ""))
 					assert.NoError(t, bucket.Push(ctx, prefix, ""))
+
+					iter, err := bucket.List(ctx, "")
+					require.NoError(t, err)
+					counter := 0
+					for iter.Next(ctx) {
+						assert.True(t, filenames[iter.Item().Name()])
+						counter++
+					}
+					assert.NoError(t, iter.Err())
+					assert.Equal(t, 100, counter)
 				})
 				t.Run("ShortPrefix", func(t *testing.T) {
-					assert.NoError(t, bucket.Push(ctx, prefix, "foo"))
-					assert.NoError(t, bucket.Push(ctx, prefix, "foo"))
+					remotePrefix := "foo"
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+
+					iter, err := bucket.List(ctx, remotePrefix)
+					require.NoError(t, err)
+					counter := 0
+					for iter.Next(ctx) {
+						fn, err := filepath.Rel(remotePrefix, iter.Item().Name())
+						require.NoError(t, err)
+						assert.True(t, filenames[fn])
+						counter++
+					}
+					assert.NoError(t, iter.Err())
+					assert.Equal(t, 100, counter)
 				})
 				t.Run("DryRunBucketDoesNotPush", func(t *testing.T) {
+					remotePrefix := "bar"
 					setDryRun(bucket, true)
-					assert.NoError(t, bucket.Push(ctx, prefix, "bar"))
-					setDryRun(bucket, false)
-				})
-				t.Run("BucketContents", func(t *testing.T) {
-					iter, err := bucket.List(ctx, "")
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+
+					iter, err := bucket.List(ctx, remotePrefix)
 					require.NoError(t, err)
 					counter := 0
 					for iter.Next(ctx) {
 						counter++
 					}
 					assert.NoError(t, iter.Err())
-					assert.Equal(t, 200, counter)
+					assert.Equal(t, 0, counter)
+
+					setDryRun(bucket, false)
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
 					setDeleteOnSync(bucket, true)
