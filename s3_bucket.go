@@ -18,6 +18,32 @@ import (
 	"github.com/pkg/errors"
 )
 
+// S3 Permissions is a type that describes the object canned ACL from S3.
+type S3Permissions string
+
+const (
+	S3PermissionsPrivate                S3Permissions = s3.ObjectCannedACLPrivate
+	S3PermissionsPublicRead             S3Permissions = s3.ObjectCannedACLPublicRead
+	S3PermissionsPublicReadWrite        S3Permissions = s3.ObjectCannedACLPublicReadWrite
+	S3PermissionsAuthenticatedRead      S3Permissions = s3.ObjectCannedACLAuthenticatedRead
+	S3PermissionsAWSExecRead            S3Permissions = s3.ObjectCannedACLAwsExecRead
+	S3PermissionsBucketOwnerRead        S3Permissions = s3.ObjectCannedACLBucketOwnerRead
+	S3PermissionsBucketOwnerFullControl S3Permissions = s3.ObjectCannedACLBucketOwnerFullControl
+)
+
+func (p S3Permissions) Validate() error {
+	switch p {
+	case S3PermissionsPublicRead, S3PermissionsPublicReadWrite:
+		return nil
+	case S3PermissionsPrivate, S3PermissionsAuthenticatedRead, S3PermissionsAWSExecRead:
+		return nil
+	case S3PermissionsBucketOwnerRead, S3PermissionsBucketOwnerFullControl:
+		return nil
+	default:
+		return errors.New("invalid S3 permissions type specified")
+	}
+}
+
 type s3BucketSmall struct {
 	s3Bucket
 }
@@ -35,7 +61,7 @@ type s3Bucket struct {
 	svc          *s3.S3
 	name         string
 	prefix       string
-	permission   string
+	permissions  S3Permissions
 	contentType  string
 }
 
@@ -50,7 +76,7 @@ type S3Options struct {
 	Region                    string
 	Name                      string
 	Prefix                    string
-	Permission                string
+	Permissions               S3Permissions
 	ContentType               string
 }
 
@@ -81,6 +107,12 @@ func (s *s3Bucket) denormalizeKey(key string) string {
 }
 
 func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) {
+	if options.Permissions != "" {
+		if err := options.Permissions.Validate(); err != nil {
+			return nil, errors.WithStack(err)
+		}
+	}
+
 	config := &aws.Config{
 		Region:     aws.String(options.Region),
 		HTTPClient: client,
@@ -120,7 +152,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		prefix:       options.Prefix,
 		sess:         sess,
 		svc:          svc,
-		permission:   options.Permission,
+		permissions:  options.Permissions,
 		contentType:  options.ContentType,
 		dryRun:       options.DryRun,
 		batchSize:    1000,
@@ -205,7 +237,7 @@ type smallWriteCloser struct {
 	name        string
 	ctx         context.Context
 	key         string
-	permission  string
+	permissions S3Permissions
 	contentType string
 }
 
@@ -221,7 +253,7 @@ type largeWriteCloser struct {
 	completedParts []*s3.CompletedPart
 	name           string
 	key            string
-	permission     string
+	permissions    S3Permissions
 	contentType    string
 	uploadID       string
 }
@@ -231,7 +263,7 @@ func (w *largeWriteCloser) create() error {
 		input := &s3.CreateMultipartUploadInput{
 			Bucket:      aws.String(w.name),
 			Key:         aws.String(w.key),
-			ACL:         aws.String(w.permission),
+			ACL:         aws.String(string(w.permissions)),
 			ContentType: aws.String(w.contentType),
 		}
 
@@ -347,7 +379,7 @@ func (w *smallWriteCloser) Close() error {
 		Body:        aws.ReadSeekCloser(strings.NewReader(string(w.buffer))), // nolint:staticcheck
 		Bucket:      aws.String(w.name),
 		Key:         aws.String(w.key),
-		ACL:         aws.String(w.permission),
+		ACL:         aws.String(string(w.permissions)),
 		ContentType: aws.String(w.contentType),
 	}
 
@@ -376,7 +408,7 @@ func (s *s3BucketSmall) Writer(ctx context.Context, key string) (io.WriteCloser,
 		svc:         s.svc,
 		ctx:         ctx,
 		key:         s.normalizeKey(key),
-		permission:  s.permission,
+		permissions: s.permissions,
 		contentType: s.contentType,
 		dryRun:      s.dryRun,
 	}, nil
@@ -389,7 +421,7 @@ func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser,
 		svc:         s.svc,
 		ctx:         ctx,
 		key:         s.normalizeKey(key),
-		permission:  s.permission,
+		permissions: s.permissions,
 		contentType: s.contentType,
 		dryRun:      s.dryRun,
 	}, nil
@@ -577,7 +609,7 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 		Bucket:     aws.String(s.name),
 		CopySource: aws.String(options.SourceKey),
 		Key:        aws.String(s.normalizeKey(options.DestinationKey)),
-		ACL:        aws.String(s.permission),
+		ACL:        aws.String(string(s.permissions)),
 	}
 
 	if !s.dryRun {
