@@ -18,9 +18,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// S3 Permissions is a type that describes the object canned ACL from S3.
+// S3Permissions is a type that describes the object canned ACL from S3.
 type S3Permissions string
 
+// Valid S3 permissions.
 const (
 	S3PermissionsPrivate                S3Permissions = s3.ObjectCannedACLPrivate
 	S3PermissionsPublicRead             S3Permissions = s3.ObjectCannedACLPublicRead
@@ -31,6 +32,7 @@ const (
 	S3PermissionsBucketOwnerFullControl S3Permissions = s3.ObjectCannedACLBucketOwnerFullControl
 )
 
+// Validate s3 permission.
 func (p S3Permissions) Validate() error {
 	switch p {
 	case S3PermissionsPublicRead, S3PermissionsPublicReadWrite:
