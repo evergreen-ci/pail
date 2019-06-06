@@ -437,10 +437,10 @@ func TestBucket(t *testing.T) {
 
 						// explicitly set permissions
 						openOptions := S3Options{
-							Region:     s3Region,
-							Name:       s3BucketName,
-							Prefix:     s3Prefix + newUUID(),
-							Permission: "public-read",
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							Permissions: S3PermissionsPublicRead,
 						}
 						openBucket, err := NewS3Bucket(openOptions)
 						require.NoError(t, err)
@@ -471,6 +471,17 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectACLOutput.Grants))
 						assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
+
+						// invalid permissions
+						invalidOptions := S3Options{
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							Permissions: "INVALID",
+						}
+						bucket, err := NewS3Bucket(invalidOptions)
+						assert.Error(t, err)
+						assert.Nil(t, bucket)
 					},
 				},
 				{
@@ -564,10 +575,10 @@ func TestBucket(t *testing.T) {
 
 						// explicitly set permissions
 						openOptions := S3Options{
-							Region:     s3Region,
-							Name:       s3BucketName,
-							Prefix:     s3Prefix + newUUID(),
-							Permission: "public-read",
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							Permissions: S3PermissionsPublicRead,
 						}
 						openBucket, err := NewS3MultiPartBucket(openOptions)
 						require.NoError(t, err)
@@ -586,6 +597,17 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectACLOutput.Grants))
 						assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
+
+						// invalid permissions
+						invalidOptions := S3Options{
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							Permissions: "INVALID",
+						}
+						bucket, err := NewS3Bucket(invalidOptions)
+						assert.Error(t, err)
+						assert.Nil(t, bucket)
 					},
 				},
 				{
