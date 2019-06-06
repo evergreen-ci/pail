@@ -32,7 +32,7 @@ const (
 	S3PermissionsBucketOwnerFullControl S3Permissions = s3.ObjectCannedACLBucketOwnerFullControl
 )
 
-// Validate s3 permission.
+// Validate s3 permissions.
 func (p S3Permissions) Validate() error {
 	switch p {
 	case S3PermissionsPublicRead, S3PermissionsPublicReadWrite:
