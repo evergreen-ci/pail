@@ -33,13 +33,6 @@ func (b *localFileSystem) normalizeKey(key string) string {
 	return filepath.Join(b.prefix, key)
 }
 
-func (b *localFileSystem) denormalizeKey(key string) string {
-	if b.prefix != "" && len(key) > len(b.prefix)+1 {
-		key = key[len(b.prefix)+1:]
-	}
-	return key
-}
-
 // NewLocalBucket returns an implementation of the Bucket interface
 // that stores files in the local file system. Returns an error if the
 // directory doesn't exist.
