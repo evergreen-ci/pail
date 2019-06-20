@@ -2,6 +2,7 @@ package pail
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -417,7 +418,6 @@ func TestBucket(t *testing.T) {
 						assert.Error(t, err)
 					},
 				},
-
 				{
 					id: "TestPermissions",
 					test: func(t *testing.T, b Bucket) {
@@ -530,6 +530,60 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.NotNil(t, getObjectOutput.ContentType)
 						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
+					},
+				},
+				{
+					id: "TestCompressingWriter",
+					test: func(t *testing.T, b Bucket) {
+						rawBucket := b.(*s3BucketSmall)
+						s3Options := S3Options{
+							Region:     s3Region,
+							Name:       s3BucketName,
+							Prefix:     rawBucket.prefix,
+							MaxRetries: 20,
+							Compress:   true,
+						}
+						cb, err := NewS3Bucket(s3Options)
+						require.NoError(t, err)
+
+						data := []byte{}
+						for i := 0; i < 300; i++ {
+							data = append(data, []byte(newUUID())...)
+						}
+
+						uncompressedKey := newUUID()
+						w, err := b.Writer(ctx, uncompressedKey)
+						require.NoError(t, err)
+						n, err := w.Write(data)
+						require.NoError(t, err)
+						require.NoError(t, w.Close())
+						assert.Equal(t, len(data), n)
+
+						compressedKey := newUUID()
+						cw, err := cb.Writer(ctx, compressedKey)
+						require.NoError(t, err)
+						n, err = cw.Write(data)
+						require.NoError(t, err)
+						require.NoError(t, cw.Close())
+						assert.Equal(t, len(data), n)
+						compressedData := cw.(*compressingWriteCloser).s3Writer.(*smallWriteCloser).buffer
+
+						reader, err := gzip.NewReader(bytes.NewReader(compressedData))
+						require.NoError(t, err)
+						decompressedData, err := ioutil.ReadAll(reader)
+						require.NoError(t, err)
+						assert.Equal(t, data, decompressedData)
+
+						cr, err := cb.Get(ctx, compressedKey)
+						require.NoError(t, err)
+						s3CompressedData, err := ioutil.ReadAll(cr)
+						require.NoError(t, err)
+						assert.Equal(t, data, s3CompressedData)
+						r, err := cb.Get(ctx, uncompressedKey)
+						require.NoError(t, err)
+						s3UncompressedData, err := ioutil.ReadAll(r)
+						require.NoError(t, err)
+						assert.Equal(t, data, s3UncompressedData)
 					},
 				},
 			},
@@ -676,6 +730,55 @@ func TestBucket(t *testing.T) {
 						fi, err := os.Stat(path)
 						require.NoError(t, err)
 						assert.Equal(t, size, fi.Size())
+					},
+				},
+				{
+					id: "TestCompressingWriter",
+					test: func(t *testing.T, b Bucket) {
+						rawBucket := b.(*s3BucketLarge)
+						s3Options := S3Options{
+							Region:     s3Region,
+							Name:       s3BucketName,
+							Prefix:     rawBucket.prefix,
+							MaxRetries: 20,
+							Compress:   true,
+						}
+						cb, err := NewS3MultiPartBucket(s3Options)
+						require.NoError(t, err)
+
+						data := []byte{}
+						for i := 0; i < 300; i++ {
+							data = append(data, []byte(newUUID())...)
+						}
+
+						uncompressedKey := newUUID()
+						w, err := b.Writer(ctx, uncompressedKey)
+						require.NoError(t, err)
+						n, err := w.Write(data)
+						require.NoError(t, err)
+						require.NoError(t, w.Close())
+						assert.Equal(t, len(data), n)
+
+						compressedKey := newUUID()
+						cw, err := cb.Writer(ctx, compressedKey)
+						require.NoError(t, err)
+						n, err = cw.Write(data)
+						require.NoError(t, err)
+						require.NoError(t, cw.Close())
+						assert.Equal(t, len(data), n)
+						_, ok := cw.(*compressingWriteCloser).s3Writer.(*largeWriteCloser)
+						assert.True(t, ok)
+
+						cr, err := cb.Get(ctx, compressedKey)
+						require.NoError(t, err)
+						s3CompressedData, err := ioutil.ReadAll(cr)
+						require.NoError(t, err)
+						assert.Equal(t, data, s3CompressedData)
+						r, err := cb.Get(ctx, uncompressedKey)
+						require.NoError(t, err)
+						s3UncompressedData, err := ioutil.ReadAll(r)
+						require.NoError(t, err)
+						assert.Equal(t, data, s3UncompressedData)
 					},
 				},
 			},
