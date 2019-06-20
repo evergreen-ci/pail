@@ -1,6 +1,7 @@
 package pail
 
 import (
+	"compress/gzip"
 	"context"
 	"io"
 	"net/http"
@@ -18,6 +19,8 @@ import (
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
+
+const compressionEncoding = "gzip"
 
 // S3Permissions is a type that describes the object canned ACL from S3.
 type S3Permissions string
@@ -59,6 +62,7 @@ type s3BucketLarge struct {
 type s3Bucket struct {
 	dryRun       bool
 	deleteOnSync bool
+	compress     bool
 	batchSize    int
 	sess         *session.Session
 	svc          *s3.S3
@@ -72,6 +76,7 @@ type s3Bucket struct {
 type S3Options struct {
 	DryRun                    bool
 	DeleteOnSync              bool
+	Compress                  bool
 	MaxRetries                int
 	Credentials               *credentials.Credentials
 	SharedCredentialsFilepath string
@@ -152,6 +157,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	return &s3Bucket{
 		name:         options.Name,
 		prefix:       options.Prefix,
+		compress:     options.Compress,
 		sess:         sess,
 		svc:          svc,
 		permissions:  options.Permissions,
@@ -234,6 +240,7 @@ func (s *s3Bucket) Check(ctx context.Context) error {
 type smallWriteCloser struct {
 	isClosed    bool
 	dryRun      bool
+	compress    bool
 	svc         *s3.S3
 	buffer      []byte
 	name        string
@@ -246,6 +253,7 @@ type smallWriteCloser struct {
 type largeWriteCloser struct {
 	isCreated      bool
 	isClosed       bool
+	compress       bool
 	dryRun         bool
 	partNumber     int64
 	maxSize        int
@@ -267,6 +275,9 @@ func (w *largeWriteCloser) create() error {
 			Key:         aws.String(w.key),
 			ACL:         aws.String(string(w.permissions)),
 			ContentType: aws.String(w.contentType),
+		}
+		if w.compress {
+			input.ContentEncoding = aws.String(compressionEncoding)
 		}
 
 		result, err := w.svc.CreateMultipartUploadWithContext(w.ctx, input)
@@ -384,10 +395,31 @@ func (w *smallWriteCloser) Close() error {
 		ACL:         aws.String(string(w.permissions)),
 		ContentType: aws.String(w.contentType),
 	}
+	if w.compress {
+		input.ContentEncoding = aws.String(compressionEncoding)
+	}
 
 	_, err := w.svc.PutObjectWithContext(w.ctx, input)
 	return errors.Wrap(err, "problem copying data to file")
 
+}
+
+type compressingWriteCloser struct {
+	gzipWriter io.WriteCloser
+	s3Writer   io.WriteCloser
+}
+
+func (w *compressingWriteCloser) Write(p []byte) (int, error) {
+	return w.gzipWriter.Write(p)
+}
+
+func (w *compressingWriteCloser) Close() error {
+	catcher := grip.NewBasicCatcher()
+
+	catcher.Add(w.gzipWriter.Close())
+	catcher.Add(w.s3Writer.Close())
+
+	return catcher.Resolve()
 }
 
 func (w *largeWriteCloser) Close() error {
@@ -405,7 +437,7 @@ func (w *largeWriteCloser) Close() error {
 }
 
 func (s *s3BucketSmall) Writer(ctx context.Context, key string) (io.WriteCloser, error) {
-	return &smallWriteCloser{
+	writer := &smallWriteCloser{
 		name:        s.name,
 		svc:         s.svc,
 		ctx:         ctx,
@@ -413,11 +445,19 @@ func (s *s3BucketSmall) Writer(ctx context.Context, key string) (io.WriteCloser,
 		permissions: s.permissions,
 		contentType: s.contentType,
 		dryRun:      s.dryRun,
-	}, nil
+		compress:    s.compress,
+	}
+	if s.compress {
+		return &compressingWriteCloser{
+			gzipWriter: gzip.NewWriter(writer),
+			s3Writer:   writer,
+		}, nil
+	}
+	return writer, nil
 }
 
 func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser, error) {
-	return &largeWriteCloser{
+	writer := &largeWriteCloser{
 		maxSize:     s.minPartSize,
 		name:        s.name,
 		svc:         s.svc,
@@ -426,7 +466,15 @@ func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser,
 		permissions: s.permissions,
 		contentType: s.contentType,
 		dryRun:      s.dryRun,
-	}, nil
+		compress:    s.compress,
+	}
+	if s.compress {
+		return &compressingWriteCloser{
+			gzipWriter: gzip.NewWriter(writer),
+			s3Writer:   writer,
+		}, nil
+	}
+	return writer, nil
 }
 
 func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error) {
