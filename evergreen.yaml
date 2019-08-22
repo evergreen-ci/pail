@@ -21,8 +21,8 @@ variables:
         type: system
         params:
           optional: true
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
+          aws_key: ${aws_s3_key}
+          aws_secret: ${aws_s3_secret}
           local_file: gopath/src/github.com/evergreen-ci/pail/build/${task_name}.tar.gz
           remote_file: pail/${build_id}-${build_variant}/pail-${task_name}-${revision}.tar.gz
           bucket: mciuploads
@@ -113,8 +113,8 @@ post:
   - command: s3.put
     type: system
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
+      aws_key: ${aws_s3_key}
+      aws_secret: ${aws_s3_secret}
       local_files_include_filter: ["gopath/src/github.com/evergreen-ci/pail/build/cover.html"]
       remote_file: pail/${task_id}/
       bucket: mciuploads
@@ -124,8 +124,8 @@ post:
   - command: s3.put
     type: system
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
+      aws_key: ${aws_s3_key}
+      aws_secret: ${aws_s3_secret}
       local_files_include_filter: ["gopath/src/github.com/evergreen-ci/pail/build/cover.out"]
       remote_file: pail/${task_id}/
       bucket: mciuploads
