@@ -1187,7 +1187,7 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("RoundTripManyFiles", func(t *testing.T) {
 				data := map[string]string{}
-				for i := 0; i < 1050; i++ {
+				for i := 0; i < 300; i++ {
 					data[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 				}
 
