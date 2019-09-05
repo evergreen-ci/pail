@@ -73,6 +73,7 @@ functions:
         USERPROFILE: C:\\Users\\Administrator
         AWS_KEY: ${aws_key}
         AWS_SECRET: ${aws_secret}
+        RACE_DETECTOR: ${race_detector}
   set-up-mongodb:
     - command: subprocess.exec
       type: setup
@@ -175,6 +176,7 @@ buildvariants:
     display_name: Race Detector (Arch Linux)
     expansions:
       mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
+      race_detector: yes
     run_on:
       - archlinux-test
     tasks:
