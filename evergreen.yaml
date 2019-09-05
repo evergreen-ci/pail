@@ -181,6 +181,14 @@ buildvariants:
       - archlinux-test
     tasks:
       - name: ".race"
+
+  - name: coverage
+    display_name: Coverage (Arch Linux)
+    expansions:
+      mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
+    run_on:
+      - archlinux-test
+    tasks:
       - name: ".report"
 
   - name: ubuntu1604
