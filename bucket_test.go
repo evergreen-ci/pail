@@ -390,6 +390,9 @@ func TestBucket(t *testing.T) {
 
 						prev := "not_default"
 						require.NoError(t, os.Setenv("AWS_PROFILE", prev))
+						defer func() {
+							require.NoError(t, os.Setenv("AWS_PROFILE", "default"))
+						}()
 
 						sharedCredsOptions := S3Options{
 							SharedCredentialsProfile: "default",
