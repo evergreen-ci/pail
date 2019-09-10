@@ -371,6 +371,8 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 
 						sharedCredsOptions := S3Options{
+							// should override this
+							Credentials:               CreateAWSCredentials("asdf", "asdf", "asdf"),
 							SharedCredentialsFilepath: filepath.Join(tempdir, "creds"),
 							SharedCredentialsProfile:  "my_profile",
 							Region:                    s3Region,
@@ -382,9 +384,12 @@ func TestBucket(t *testing.T) {
 					},
 				},
 				{
-					id: "TestSharedCredentialsUsesCorrectDefaultFile",
+					id: "TestSharedCredentialsProfileSetBack",
 					test: func(t *testing.T, b Bucket) {
 						require.NoError(t, b.Check(ctx))
+
+						prev := "not_default"
+						require.NoError(t, os.Setenv("AWS_PROFILE", prev))
 
 						sharedCredsOptions := S3Options{
 							SharedCredentialsProfile: "default",
@@ -402,6 +407,8 @@ func TestBucket(t *testing.T) {
 						} else {
 							assert.True(t, os.IsNotExist(err))
 						}
+
+						assert.Equal(t, prev, os.Getenv("AWS_PROFILE"))
 					},
 				},
 				{
