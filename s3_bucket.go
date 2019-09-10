@@ -3,6 +3,7 @@ package pail
 import (
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -143,6 +144,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	}
 
 	if options.SharedCredentialsProfile != "" {
+		fmt.Println("HERE")
 		prev := os.Getenv("AWS_PROFILE")
 		if err := os.Setenv("AWS_PROFILE", options.SharedCredentialsProfile); err != nil {
 			return nil, errors.Wrap(err, "problem setting AWS_PROFILE env var")
@@ -171,6 +173,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		config.Credentials = options.Credentials
 	}
 
+	fmt.Println(os.Getenv("AWS_PROFILE"))
 	sess, err := session.NewSession(config)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem connecting to AWS")

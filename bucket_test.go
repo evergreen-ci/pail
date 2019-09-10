@@ -406,7 +406,8 @@ func TestBucket(t *testing.T) {
 						fileName := filepath.Join(homeDir, ".aws", "credentials")
 						_, err = os.Stat(fileName)
 						if err == nil {
-							assert.NoError(t, sharedCredsBucket.Check(ctx))
+							_, err = sharedCredsBucket.List(ctx, "")
+							assert.NoError(t, err)
 						} else {
 							assert.True(t, os.IsNotExist(err))
 						}
@@ -424,7 +425,9 @@ func TestBucket(t *testing.T) {
 							Region:                   s3Region,
 							Name:                     s3BucketName,
 						}
-						_, err := NewS3Bucket(sharedCredsOptions)
+						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+						assert.NoError(t, err)
+						_, err = sharedCredsBucket.List(ctx, "")
 						assert.Error(t, err)
 					},
 				},
