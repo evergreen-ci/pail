@@ -3,7 +3,6 @@ package pail
 import (
 	"compress/gzip"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -16,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mongodb/grip"
-	"github.com/mongodb/grip/level"
 	"github.com/pkg/errors"
 )
 
@@ -144,17 +142,13 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	}
 
 	if options.SharedCredentialsProfile != "" {
-		fmt.Println("HERE")
 		prev := os.Getenv("AWS_PROFILE")
 		if err := os.Setenv("AWS_PROFILE", options.SharedCredentialsProfile); err != nil {
 			return nil, errors.Wrap(err, "problem setting AWS_PROFILE env var")
 		}
 		defer func() {
 			if err := os.Setenv("AWS_PROFILE", prev); err != nil {
-				grip.Log(
-					level.Error,
-					errors.Wrap(err, "problem setting back AWS_PROFILE env var"),
-				)
+				grip.Error(errors.Wrap(err, "problem setting back AWS_PROFILE env var"))
 			}
 		}()
 	}
@@ -173,7 +167,6 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		config.Credentials = options.Credentials
 	}
 
-	fmt.Println(os.Getenv("AWS_PROFILE"))
 	sess, err := session.NewSession(config)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem connecting to AWS")
