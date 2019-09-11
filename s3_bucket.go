@@ -75,7 +75,7 @@ type s3Bucket struct {
 // S3Options support the use and creation of S3 backed buckets.
 type S3Options struct {
 	// DryRun enables running in a mode that will not execute any
-	// operations that modify the bucket or local filesystem.
+	// operations that modify the bucket.
 	DryRun bool
 	// DeleteOnSync will delete, either locally or remotely, all objects
 	// that were part of the sync operation (Push/Pull) from the source.
