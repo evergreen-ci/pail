@@ -814,7 +814,7 @@ func TestBucket(t *testing.T) {
 						assert.NoError(t, bucket.Pull(ctx, mirror, ""))
 						files, err := walkLocalTree(ctx, mirror)
 						require.NoError(t, err)
-						assert.Len(t, files, 100)
+						require.Len(t, files, 100)
 
 						if !strings.Contains(impl.name, "GridFS") {
 							for _, fn := range files {
@@ -832,7 +832,7 @@ func TestBucket(t *testing.T) {
 						assert.NoError(t, bucket.Pull(ctx, mirror, ""))
 						files, err := walkLocalTree(ctx, mirror)
 						require.NoError(t, err)
-						assert.Len(t, files, 100)
+						require.Len(t, files, 100)
 
 						if !strings.Contains(impl.name, "GridFS") {
 							for _, fn := range files {

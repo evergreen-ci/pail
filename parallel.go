@@ -93,7 +93,7 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 		go func() {
 			defer wg.Done()
 			for item := range items {
-				if err := b.Download(ctx, local, remote); err != nil {
+				if err := b.Download(ctx, item.Name(), remote); err != nil {
 					catcher.Add(err)
 				}
 				select {
@@ -108,12 +108,17 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 	}
 
 	go func() {
+		wg.Wait()
+		close(toDelete)
+	}()
+
+	go func() {
 		defer close(deleteSignal)
 		keys := []string{}
 		for key := range toDelete {
 			keys = append(keys, key)
 		}
-		wg.Wait()
+
 		if b.deleteOnSync {
 			if b.dryRun {
 				grip.Debug(message.Fields{
@@ -132,4 +137,5 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 	}
 	return catcher.Resolve()
 }
-func (b *parallelBucketImpl) RemoveMany(ctx context.Context, keys ...string) error { return nil }
+
+// func (b *parallelBucketImpl) RemoveMany(ctx context.Context, keys ...string) error { return nil }
