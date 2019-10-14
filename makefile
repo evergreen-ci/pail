@@ -72,6 +72,12 @@ endif
 ifneq (,$(RACE_DETECTOR))
 testArgs += -race
 endif
+ifneq (,$(TEST_TIMEOUT))
+testArgs += -timeout=$(TEST_TIMEOUT)
+else
+testArgs += -timeout=30m
+endif
+
 # test execution and output handlers
 $(buildDir)/:
 	mkdir -p $@
