@@ -411,7 +411,7 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 	return result.Body, nil
 }
 
-func putHelper(ctx context.Context, b fundamentalBucket, key string, r io.Reader) error {
+func putHelper(ctx context.Context, b Bucket, key string, r io.Reader) error {
 	f, err := b.Writer(ctx, key)
 	if err != nil {
 		return errors.WithStack(err)
@@ -436,26 +436,17 @@ func (s *s3Bucket) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	return s.Reader(ctx, key)
 }
 
-type fundamentalBucket interface {
-	Put(context.Context, string, io.Reader) error
-	Get(context.Context, string) (io.ReadCloser, error)
-
-	Writer(context.Context, string) (io.WriteCloser, error)
-	Reader(context.Context, string) (io.ReadCloser, error)
-	Remove(context.Context, string) error
-}
-
-func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, bucketName string, svc *s3.S3, target, file string) (bool, error) {
+func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, target, file string) (bool, error) {
 	localmd5, err := md5sum(file)
 	if err != nil {
 		return false, errors.Wrapf(err, "problem checksumming '%s'", file)
 	}
 	input := &s3.HeadObjectInput{
-		Bucket:  aws.String(bucketName),
+		Bucket:  aws.String(s.name),
 		Key:     aws.String(target),
 		IfMatch: aws.String(localmd5),
 	}
-	_, err = svc.HeadObjectWithContext(ctx, input)
+	_, err = s.svc.HeadObjectWithContext(ctx, input)
 	if aerr, ok := err.(awserr.Error); ok {
 		if aerr.Code() == "PreconditionFailed" || aerr.Code() == "NotFound" {
 			return true, nil
@@ -478,7 +469,7 @@ func doUpload(ctx context.Context, b Bucket, key, path string) error {
 
 func (s *s3BucketLarge) Upload(ctx context.Context, key, path string) error {
 	if s.singleFileChecksums {
-		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, s.name, s.svc, key, path)
+		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, key, path)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -492,7 +483,7 @@ func (s *s3BucketLarge) Upload(ctx context.Context, key, path string) error {
 
 func (s *s3BucketSmall) Upload(ctx context.Context, key, path string) error {
 	if s.singleFileChecksums {
-		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, s.name, s.svc, key, path)
+		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, key, path)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -569,7 +560,7 @@ func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 	for _, fn := range files {
 		target := filepath.Join(remote, fn)
 		file := filepath.Join(local, fn)
-		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, s.name, s.svc, target, file)
+		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, target, file)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -596,7 +587,7 @@ func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
 	for _, fn := range files {
 		target := filepath.Join(remote, fn)
 		file := filepath.Join(local, fn)
-		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, s.name, s.svc, target, file)
+		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, target, file)
 		if err != nil {
 			return errors.WithStack(err)
 		}
