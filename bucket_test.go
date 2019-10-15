@@ -264,6 +264,7 @@ func TestBucket(t *testing.T) {
 		{
 			name: "ParallelLocal",
 			constructor: func(t *testing.T) Bucket {
+				t.Skip()
 				path := filepath.Join(tempdir, uuid, newUUID())
 				require.NoError(t, os.MkdirAll(path, 0777))
 				bucket := &localFileSystem{path: path}
@@ -989,6 +990,7 @@ func setDryRun(b Bucket, set bool) {
 		i.opts.DryRun = set
 	case *parallelBucketImpl:
 		i.dryRun = set
+		setDryRun(i.Bucket, set)
 	}
 }
 
@@ -1006,5 +1008,6 @@ func setDeleteOnSync(b Bucket, set bool) {
 		i.opts.DeleteOnSync = set
 	case *parallelBucketImpl:
 		i.deleteOnSync = set
+		setDeleteOnSync(i.Bucket, set)
 	}
 }

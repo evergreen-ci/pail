@@ -2,6 +2,8 @@ package pail
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/mongodb/grip"
@@ -41,7 +43,6 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 	for i := range files {
 		in <- files[i]
 	}
-	close(in)
 	wg := &sync.WaitGroup{}
 	catcher := grip.NewBasicCatcher()
 	for i := 0; i < b.size; i++ {
@@ -49,10 +50,14 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 		go func() {
 			defer wg.Done()
 			for fn := range in {
-				catcher.Add(b.Bucket.Upload(ctx, remote, fn))
-				return
+				catcher.Add(b.Bucket.Upload(ctx, filepath.Join(remote, fn), filepath.Join(local, fn)))
 			}
 		}()
+	}
+	wg.Wait()
+
+	if b.deleteOnSync && !b.dryRun {
+		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
 	}
 
 	return catcher.Resolve()
