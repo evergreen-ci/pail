@@ -58,40 +58,21 @@ type s3BucketLarge struct {
 }
 
 type s3Bucket struct {
-<<<<<<< HEAD
 	dryRun              bool
 	deleteOnSync        bool
 	singleFileChecksums bool
+	compress            bool
 	batchSize           int
 	sess                *session.Session
 	svc                 *s3.S3
 	name                string
 	prefix              string
-	permission          string
+	permissions         S3Permissions
 	contentType         string
-=======
-	dryRun       bool
-	deleteOnSync bool
-	compress     bool
-	batchSize    int
-	sess         *session.Session
-	svc          *s3.S3
-	name         string
-	prefix       string
-	permissions  S3Permissions
-	contentType  string
->>>>>>> origin/master
 }
 
 // S3Options support the use and creation of S3 backed buckets.
 type S3Options struct {
-<<<<<<< HEAD
-	DryRun                    bool
-	DeleteOnSync              bool
-	UseSingleFileChecksums    bool
-	MaxRetries                int
-	Credentials               *credentials.Credentials
-=======
 	// DryRun enables running in a mode that will not execute any
 	// operations that modify the bucket.
 	DryRun bool
@@ -100,6 +81,12 @@ type S3Options struct {
 	DeleteOnSync bool
 	// Compress enables gzipping of uploaded objects.
 	Compress bool
+	// UseSingleFileChecksums forces the bucket to checksum files
+	// before running uploads and download operation (rather than
+	// doing these operations independently.) Useful for large
+	// files, particularly in coordination with the parallel sync
+	// bucket implementations.
+	UseSingleFileChecksums bool
 	// MaxRetries sets the number of retry attemps for s3 operations.
 	MaxRetries int
 	// Credentials allows the passing in of explicit AWS credentials. These
@@ -107,7 +94,6 @@ type S3Options struct {
 	Credentials *credentials.Credentials
 	// SharedCredentialsFilepath, when not empty, will override the default
 	// credentials chain and the Credentials value (see above). (Optional)
->>>>>>> origin/master
 	SharedCredentialsFilepath string
 	// SharedCredentialsProfile, when not empty, will temporarily set the
 	// AWS_PROFILE environment variable to its value. (Optional)
@@ -194,29 +180,17 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	}
 	svc := s3.New(sess)
 	return &s3Bucket{
-<<<<<<< HEAD
 		name:                options.Name,
 		prefix:              options.Prefix,
+		compress:            options.Compress,
+		singleFileChecksums: options.UseSingleFileChecksums,
 		sess:                sess,
 		svc:                 svc,
-		singleFileChecksums: options.UseSingleFileChecksums,
-		permission:          options.Permission,
+		permissions:         options.Permissions,
 		contentType:         options.ContentType,
 		dryRun:              options.DryRun,
 		batchSize:           1000,
 		deleteOnSync:        options.DeleteOnSync,
-=======
-		name:         options.Name,
-		prefix:       options.Prefix,
-		compress:     options.Compress,
-		sess:         sess,
-		svc:          svc,
-		permissions:  options.Permissions,
-		contentType:  options.ContentType,
-		dryRun:       options.DryRun,
-		batchSize:    1000,
-		deleteOnSync: options.DeleteOnSync,
->>>>>>> origin/master
 	}, nil
 }
 
@@ -693,7 +667,6 @@ func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 		file := filepath.Join(local, fn)
 		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, target, file)
 		if err != nil {
-<<<<<<< HEAD
 			return errors.WithStack(err)
 		}
 		if !shouldUpload {
@@ -701,25 +674,6 @@ func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 		}
 		if err = doUpload(ctx, s, target, file); err != nil {
 			return errors.WithStack(err)
-=======
-			return errors.Wrapf(err, "problem checksumming '%s'", file)
-		}
-		input := &s3.HeadObjectInput{
-			Bucket:  aws.String(s.name),
-			Key:     aws.String(s.normalizeKey(target)),
-			IfMatch: aws.String(localmd5),
-		}
-		_, err = s.svc.HeadObjectWithContext(ctx, input)
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == "PreconditionFailed" || aerr.Code() == "NotFound" {
-				if err = b.Upload(ctx, target, file); err != nil {
-					return errors.Wrapf(err, "problem uploading '%s' to '%s'",
-						file, target)
-				}
-			}
-		} else if err != nil {
-			return errors.Wrapf(err, "problem finding '%s'", target)
->>>>>>> origin/master
 		}
 	}
 
@@ -729,7 +683,6 @@ func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 	return nil
 }
 func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
-<<<<<<< HEAD
 	remote = s.normalizeKey(remote)
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
@@ -778,13 +731,6 @@ func s3DownloadWithChecksum(ctx context.Context, item BucketItem, local, remote 
 	}
 
 	return nil
-=======
-	return s.push(ctx, local, remote, s)
-}
-
-func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
-	return s.push(ctx, local, remote, s)
->>>>>>> origin/master
 }
 
 func (s *s3Bucket) pull(ctx context.Context, local, remote string, b Bucket) error {
