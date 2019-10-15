@@ -11,8 +11,10 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -154,10 +156,10 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set permissions
 				openOptions := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     s3Prefix + newUUID(),
-					Permission: "public-read",
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + newUUID(),
+					Permissions: S3PermissionsPublicRead,
 				}
 				openBucket, err := NewS3Bucket(openOptions)
 				require.NoError(t, err)
@@ -430,10 +432,10 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set permissions
 				openOptions := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     s3Prefix + newUUID(),
-					Permission: "public-read",
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + newUUID(),
+					Permissions: S3PermissionsPublicRead,
 				}
 				openBucket, err := NewS3MultiPartBucket(openOptions)
 				require.NoError(t, err)
@@ -566,7 +568,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				require.NoError(t, err)
 				require.NoError(t, cw.Close())
 				assert.Equal(t, len(data), n)
-				compressedData := cw.(*compressingWriteCloser).s3Writer.(*largeWriterCloser).buffer
+				compressedData := cw.(*compressingWriteCloser).s3Writer.(*largeWriteCloser).buffer
 
 				reader, err := gzip.NewReader(bytes.NewReader(compressedData))
 				require.NoError(t, err)
@@ -587,4 +589,57 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			},
 		},
 	}
+}
+
+func cleanUpS3Bucket(name, prefix, region string) error {
+	svc, err := createS3Client(region)
+	if err != nil {
+		return errors.Wrap(err, "clean up failed")
+	}
+	deleteObjectsInput := &s3.DeleteObjectsInput{
+		Bucket: aws.String(name),
+		Delete: &s3.Delete{},
+	}
+	listInput := &s3.ListObjectsInput{
+		Bucket: aws.String(name),
+		Prefix: aws.String(prefix),
+	}
+	var result *s3.ListObjectsOutput
+
+	for {
+		result, err = svc.ListObjects(listInput)
+		if err != nil {
+			return errors.Wrap(err, "clean up failed")
+		}
+
+		for _, object := range result.Contents {
+			deleteObjectsInput.Delete.Objects = append(deleteObjectsInput.Delete.Objects, &s3.ObjectIdentifier{
+				Key: object.Key,
+			})
+		}
+
+		if deleteObjectsInput.Delete.Objects != nil {
+			_, err = svc.DeleteObjects(deleteObjectsInput)
+			if err != nil {
+				return errors.Wrap(err, "failed to delete S3 bucket")
+			}
+			deleteObjectsInput.Delete = &s3.Delete{}
+		}
+
+		if *result.IsTruncated {
+			listInput.Marker = result.Contents[len(result.Contents)-1].Key
+		} else {
+			break
+		}
+	}
+
+	return nil
+}
+func createS3Client(region string) (*s3.S3, error) {
+	sess, err := session.NewSession(&aws.Config{Region: aws.String(region)})
+	if err != nil {
+		return nil, errors.Wrap(err, "problem connecting to AWS")
+	}
+	svc := s3.New(sess)
+	return svc, nil
 }

@@ -43,6 +43,7 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 	for i := range files {
 		in <- files[i]
 	}
+	close(in)
 	wg := &sync.WaitGroup{}
 	catcher := grip.NewBasicCatcher()
 	for i := 0; i < b.size; i++ {
