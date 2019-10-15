@@ -13,9 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,60 +25,6 @@ func newUUID() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
-}
-
-func createS3Client(region string) (*s3.S3, error) {
-	sess, err := session.NewSession(&aws.Config{Region: aws.String(region)})
-	if err != nil {
-		return nil, errors.Wrap(err, "problem connecting to AWS")
-	}
-	svc := s3.New(sess)
-	return svc, nil
-}
-
-func cleanUpS3Bucket(name, prefix, region string) error {
-	svc, err := createS3Client(region)
-	if err != nil {
-		return errors.Wrap(err, "clean up failed")
-	}
-	deleteObjectsInput := &s3.DeleteObjectsInput{
-		Bucket: aws.String(name),
-		Delete: &s3.Delete{},
-	}
-	listInput := &s3.ListObjectsInput{
-		Bucket: aws.String(name),
-		Prefix: aws.String(prefix),
-	}
-	var result *s3.ListObjectsOutput
-
-	for {
-		result, err = svc.ListObjects(listInput)
-		if err != nil {
-			return errors.Wrap(err, "clean up failed")
-		}
-
-		for _, object := range result.Contents {
-			deleteObjectsInput.Delete.Objects = append(deleteObjectsInput.Delete.Objects, &s3.ObjectIdentifier{
-				Key: object.Key,
-			})
-		}
-
-		if deleteObjectsInput.Delete.Objects != nil {
-			_, err = svc.DeleteObjects(deleteObjectsInput)
-			if err != nil {
-				return errors.Wrap(err, "failed to delete S3 bucket")
-			}
-			deleteObjectsInput.Delete = &s3.Delete{}
-		}
-
-		if *result.IsTruncated {
-			listInput.Marker = result.Contents[len(result.Contents)-1].Key
-		} else {
-			break
-		}
-	}
-
-	return nil
 }
 
 type bucketTestCase struct {
@@ -122,16 +65,6 @@ func TestBucket(t *testing.T) {
 		constructor func(*testing.T) Bucket
 		tests       []bucketTestCase
 	}{
-		{
-			name: "ParallelLocal",
-			constructor: func(t *testing.T) Bucket {
-				path := filepath.Join(tempdir, uuid, newUUID())
-				require.NoError(t, os.MkdirAll(path, 0777))
-				bucket := &localFileSystem{path: path}
-
-				return NewParallelSyncBucket(ParallelBucketOptions{}, bucket)
-			},
-		},
 		{
 			name: "Local",
 			constructor: func(t *testing.T) Bucket {
@@ -327,6 +260,32 @@ func TestBucket(t *testing.T) {
 			},
 
 			tests: getS3SmallBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
+		},
+		{
+			name: "ParallelLocal",
+			constructor: func(t *testing.T) Bucket {
+				path := filepath.Join(tempdir, uuid, newUUID())
+				require.NoError(t, os.MkdirAll(path, 0777))
+				bucket := &localFileSystem{path: path}
+
+				return NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, bucket)
+			},
+		},
+		{
+			name: "ParallelS3Bucket",
+			constructor: func(t *testing.T) Bucket {
+				s3Options := S3Options{
+					Region:                 s3Region,
+					Name:                   s3BucketName,
+					Prefix:                 s3Prefix + newUUID(),
+					MaxRetries:             20,
+					UseSingleFileChecksums: true,
+				}
+				b, err := NewS3Bucket(s3Options)
+				require.NoError(t, err)
+				return NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, b)
+			},
+			// tests: getS3SmallBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
 		},
 		{
 			name: "S3MultiPartBucket",

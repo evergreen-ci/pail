@@ -615,11 +615,11 @@ func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
 }
 
 func s3DownloadWithChecksum(ctx context.Context, item BucketItem, local, remote string, b Bucket) error {
-	name, err := filepath.Rel(remote, item.Name())
-	if err != nil {
-		return errors.Wrap(err, "problem getting relative filepath")
-	}
-	localName := filepath.Join(local, name)
+	// name, err := filepath.Rel(remote, item.Name())
+	// if err != nil {
+	// 	return errors.Wrap(err, "problem getting relative filepath")
+	// }
+	localName := filepath.Join(local, item.Name())
 	localmd5, err := md5sum(localName)
 	if os.IsNotExist(errors.Cause(err)) {
 		if err = doDownload(ctx, b, item.Name(), localName); err != nil {

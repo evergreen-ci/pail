@@ -50,6 +50,7 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 			defer wg.Done()
 			for fn := range in {
 				catcher.Add(b.Bucket.Upload(ctx, remote, fn))
+				return
 			}
 		}()
 	}
@@ -95,6 +96,7 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 			for item := range items {
 				if err := b.Download(ctx, item.Name(), remote); err != nil {
 					catcher.Add(err)
+					return
 				}
 				select {
 				case <-ctx.Done():
