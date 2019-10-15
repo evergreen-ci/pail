@@ -1,74 +1,21 @@
 package pail
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func createS3Client(region string) (*s3.S3, error) {
-	sess, err := session.NewSession(&aws.Config{Region: aws.String(region)})
-	if err != nil {
-		return nil, errors.Wrap(err, "problem connecting to AWS")
-	}
-	svc := s3.New(sess)
-	return svc, nil
-}
-
-func cleanUpS3Bucket(name, prefix, region string) error {
-	svc, err := createS3Client(region)
-	if err != nil {
-		return errors.Wrap(err, "clean up failed")
-	}
-	deleteObjectsInput := &s3.DeleteObjectsInput{
-		Bucket: aws.String(name),
-		Delete: &s3.Delete{},
-	}
-	listInput := &s3.ListObjectsInput{
-		Bucket: aws.String(name),
-		Prefix: aws.String(prefix),
-	}
-	var result *s3.ListObjectsOutput
-
-	for {
-		result, err = svc.ListObjects(listInput)
-		if err != nil {
-			return errors.Wrap(err, "clean up failed")
-		}
-
-		for _, object := range result.Contents {
-			deleteObjectsInput.Delete.Objects = append(deleteObjectsInput.Delete.Objects, &s3.ObjectIdentifier{
-				Key: object.Key,
-			})
-		}
-
-		if deleteObjectsInput.Delete.Objects != nil {
-			_, err = svc.DeleteObjects(deleteObjectsInput)
-			if err != nil {
-				return errors.Wrap(err, "failed to delete S3 bucket")
-			}
-			deleteObjectsInput.Delete = &s3.Delete{}
-		}
-
-		if *result.IsTruncated {
-			listInput.Marker = result.Contents[len(result.Contents)-1].Key
-		} else {
-			break
-		}
-	}
-
-	return nil
-}
 
 func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
 	return []bucketTestCase{
@@ -288,6 +235,61 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 			},
 		},
+
+		{
+			id: "TestCompressingWriter",
+			test: func(t *testing.T, b Bucket) {
+				rawBucket := b.(*s3BucketSmall)
+				s3Options := S3Options{
+					Region:     s3Region,
+					Name:       s3BucketName,
+					Prefix:     rawBucket.prefix,
+					MaxRetries: 20,
+					Compress:   true,
+				}
+				cb, err := NewS3Bucket(s3Options)
+				require.NoError(t, err)
+
+				data := []byte{}
+				for i := 0; i < 300; i++ {
+					data = append(data, []byte(newUUID())...)
+				}
+
+				uncompressedKey := newUUID()
+				w, err := b.Writer(ctx, uncompressedKey)
+				require.NoError(t, err)
+				n, err := w.Write(data)
+				require.NoError(t, err)
+				require.NoError(t, w.Close())
+				assert.Equal(t, len(data), n)
+
+				compressedKey := newUUID()
+				cw, err := cb.Writer(ctx, compressedKey)
+				require.NoError(t, err)
+				n, err = cw.Write(data)
+				require.NoError(t, err)
+				require.NoError(t, cw.Close())
+				assert.Equal(t, len(data), n)
+				compressedData := cw.(*compressingWriteCloser).s3Writer.(*smallWriteCloser).buffer
+
+				reader, err := gzip.NewReader(bytes.NewReader(compressedData))
+				require.NoError(t, err)
+				decompressedData, err := ioutil.ReadAll(reader)
+				require.NoError(t, err)
+				assert.Equal(t, data, decompressedData)
+
+				cr, err := cb.Get(ctx, compressedKey)
+				require.NoError(t, err)
+				s3CompressedData, err := ioutil.ReadAll(cr)
+				require.NoError(t, err)
+				assert.Equal(t, data, s3CompressedData)
+				r, err := cb.Get(ctx, uncompressedKey)
+				require.NoError(t, err)
+				s3UncompressedData, err := ioutil.ReadAll(r)
+				require.NoError(t, err)
+				assert.Equal(t, data, s3UncompressedData)
+			},
+		},
 	}
 }
 
@@ -465,6 +467,27 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			},
 		},
 		{
+			id: "TestLargeFileRoundTrip",
+			test: func(t *testing.T, b Bucket) {
+				size := int64(10000000)
+				key := newUUID()
+				bigBuff := make([]byte, size)
+				path := filepath.Join(tempdir, "bigfile.test0")
+
+				// upload large empty file
+				require.NoError(t, ioutil.WriteFile(path, bigBuff, 0666))
+				require.NoError(t, b.Upload(ctx, key, path))
+
+				// check size of empty file
+				path = filepath.Join(tempdir, "bigfile.test1")
+				require.NoError(t, b.Download(ctx, key, path))
+				fi, err := os.Stat(path)
+				require.NoError(t, err)
+				assert.Equal(t, size, fi.Size())
+			},
+		},
+
+		{
 			id: "TestContentType",
 			test: func(t *testing.T, b Bucket) {
 				// default content type
@@ -507,6 +530,60 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				require.NoError(t, err)
 				require.NotNil(t, getObjectOutput.ContentType)
 				assert.Equal(t, "html/text", *getObjectOutput.ContentType)
+			},
+		},
+		{
+			id: "TestCompressingWriter",
+			test: func(t *testing.T, b Bucket) {
+				rawBucket := b.(*s3BucketLarge)
+				s3Options := S3Options{
+					Region:     s3Region,
+					Name:       s3BucketName,
+					Prefix:     rawBucket.prefix,
+					MaxRetries: 20,
+					Compress:   true,
+				}
+				cb, err := NewS3Bucket(s3Options)
+				require.NoError(t, err)
+
+				data := []byte{}
+				for i := 0; i < 300; i++ {
+					data = append(data, []byte(newUUID())...)
+				}
+
+				uncompressedKey := newUUID()
+				w, err := b.Writer(ctx, uncompressedKey)
+				require.NoError(t, err)
+				n, err := w.Write(data)
+				require.NoError(t, err)
+				require.NoError(t, w.Close())
+				assert.Equal(t, len(data), n)
+
+				compressedKey := newUUID()
+				cw, err := cb.Writer(ctx, compressedKey)
+				require.NoError(t, err)
+				n, err = cw.Write(data)
+				require.NoError(t, err)
+				require.NoError(t, cw.Close())
+				assert.Equal(t, len(data), n)
+				compressedData := cw.(*compressingWriteCloser).s3Writer.(*largeWriterCloser).buffer
+
+				reader, err := gzip.NewReader(bytes.NewReader(compressedData))
+				require.NoError(t, err)
+				decompressedData, err := ioutil.ReadAll(reader)
+				require.NoError(t, err)
+				assert.Equal(t, data, decompressedData)
+
+				cr, err := cb.Get(ctx, compressedKey)
+				require.NoError(t, err)
+				s3CompressedData, err := ioutil.ReadAll(cr)
+				require.NoError(t, err)
+				assert.Equal(t, data, s3CompressedData)
+				r, err := cb.Get(ctx, uncompressedKey)
+				require.NoError(t, err)
+				s3UncompressedData, err := ioutil.ReadAll(r)
+				require.NoError(t, err)
+				assert.Equal(t, data, s3UncompressedData)
 			},
 		},
 	}

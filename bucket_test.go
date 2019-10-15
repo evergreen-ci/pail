@@ -68,9 +68,9 @@ func TestBucket(t *testing.T) {
 		{
 			name: "Local",
 			constructor: func(t *testing.T) Bucket {
-				path := filepath.Join(tempdir, uuid, newUUID())
+				path := filepath.Join(tempdir, uuid)
 				require.NoError(t, os.MkdirAll(path, 0777))
-				return &localFileSystem{path: path}
+				return &localFileSystem{path: path, prefix: newUUID()}
 			},
 			tests: []bucketTestCase{
 				{
@@ -168,6 +168,7 @@ func TestBucket(t *testing.T) {
 						cancel()
 						bucket := b.(*localFileSystem)
 						bucket.path = ""
+						bucket.prefix = ""
 						err := b.Pull(tctx, "", filepath.Dir(file))
 						assert.Error(t, err)
 					},
@@ -188,6 +189,7 @@ func TestBucket(t *testing.T) {
 			constructor: func(t *testing.T) Bucket {
 				require.NoError(t, client.Database(uuid).Drop(ctx))
 				b, err := NewGridFSBucketWithClient(ctx, client, GridFSOptions{
+					Name:     newUUID(),
 					Prefix:   newUUID(),
 					Database: uuid,
 				})
@@ -200,6 +202,7 @@ func TestBucket(t *testing.T) {
 			constructor: func(t *testing.T) Bucket {
 				require.NoError(t, client.Database(uuid).Drop(ctx))
 				b, err := NewLegacyGridFSBucketWithSession(ses.Clone(), GridFSOptions{
+					Name:     newUUID(),
 					Prefix:   newUUID(),
 					Database: uuid,
 				})
@@ -258,7 +261,6 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				return b
 			},
-
 			tests: getS3SmallBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
 		},
 		{
@@ -286,7 +288,6 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				return NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, b)
 			},
-			// tests: getS3SmallBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
 		},
 		{
 			name: "S3MultiPartBucket",
@@ -843,37 +844,89 @@ func TestBucket(t *testing.T) {
 
 					setDeleteOnSync(bucket, false)
 				})
+				t.Run("LargePull", func(t *testing.T) {
+					prefix := newUUID()
+					largeData := map[string]string{}
+					for i := 0; i < 1050; i++ {
+						largeData[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					}
+					for k, v := range largeData {
+						require.NoError(t, writeDataToFile(ctx, bucket, prefix+"/"+k, v))
+					}
+
+					mirror := filepath.Join(tempdir, "pull-one", newUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0700))
+
+					assert.NoError(t, bucket.Pull(ctx, mirror, prefix))
+					files, err := walkLocalTree(ctx, mirror)
+					require.NoError(t, err)
+					assert.Len(t, files, len(largeData))
+
+					if !strings.Contains(impl.name, "GridFS") {
+						for _, fn := range files {
+							_, ok := largeData[fn]
+							require.True(t, ok)
+						}
+					}
+				})
 			})
 			t.Run("PushToBucket", func(t *testing.T) {
 				prefix := filepath.Join(tempdir, newUUID())
+				filenames := map[string]bool{}
 				for i := 0; i < 100; i++ {
+					fn := newUUID()
+					filenames[fn] = true
 					require.NoError(t, writeDataToDisk(prefix,
-						newUUID(), strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")))
+						fn, strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")))
 				}
 
 				bucket := impl.constructor(t)
 				t.Run("NoPrefix", func(t *testing.T) {
 					assert.NoError(t, bucket.Push(ctx, prefix, ""))
 					assert.NoError(t, bucket.Push(ctx, prefix, ""))
+
+					iter, err := bucket.List(ctx, "")
+					require.NoError(t, err)
+					counter := 0
+					for iter.Next(ctx) {
+						assert.True(t, filenames[iter.Item().Name()])
+						counter++
+					}
+					assert.NoError(t, iter.Err())
+					assert.Equal(t, 100, counter)
 				})
 				t.Run("ShortPrefix", func(t *testing.T) {
-					assert.NoError(t, bucket.Push(ctx, prefix, "foo"))
-					assert.NoError(t, bucket.Push(ctx, prefix, "foo"))
+					remotePrefix := "foo"
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+
+					iter, err := bucket.List(ctx, remotePrefix)
+					require.NoError(t, err)
+					counter := 0
+					for iter.Next(ctx) {
+						fn, err := filepath.Rel(remotePrefix, iter.Item().Name())
+						require.NoError(t, err)
+						assert.True(t, filenames[fn])
+						counter++
+					}
+					assert.NoError(t, iter.Err())
+					assert.Equal(t, 100, counter)
 				})
 				t.Run("DryRunBucketDoesNotPush", func(t *testing.T) {
+					remotePrefix := "bar"
 					setDryRun(bucket, true)
-					assert.NoError(t, bucket.Push(ctx, prefix, "bar"))
-					setDryRun(bucket, false)
-				})
-				t.Run("BucketContents", func(t *testing.T) {
-					iter, err := bucket.List(ctx, "")
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+
+					iter, err := bucket.List(ctx, remotePrefix)
 					require.NoError(t, err)
 					counter := 0
 					for iter.Next(ctx) {
 						counter++
 					}
 					assert.NoError(t, iter.Err())
-					assert.Equal(t, 200, counter)
+					assert.Equal(t, 0, counter)
+
+					setDryRun(bucket, false)
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
 					setDeleteOnSync(bucket, true)
