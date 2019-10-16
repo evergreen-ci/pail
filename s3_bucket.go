@@ -81,11 +81,10 @@ type S3Options struct {
 	DeleteOnSync bool
 	// Compress enables gzipping of uploaded objects.
 	Compress bool
-	// UseSingleFileChecksums forces the bucket to checksum files
-	// before running uploads and download operation (rather than
-	// doing these operations independently.) Useful for large
-	// files, particularly in coordination with the parallel sync
-	// bucket implementations.
+	// UseSingleFileChecksums forces the bucket to checksum files before
+	// running uploads and download operation (rather than doing these
+	// operations independently.) Useful for large files, particularly in
+	// coordination with the parallel sync bucket implementations.
 	UseSingleFileChecksums bool
 	// MaxRetries sets the number of retry attemps for s3 operations.
 	MaxRetries int
@@ -556,7 +555,7 @@ func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, target, file 
 			return true, nil
 		}
 	} else if err != nil {
-		return false, errors.Wrapf(err, "problem finding '%s'", target)
+		return false, errors.Wrapf(err, "problem with checksum for '%s'", target)
 	}
 	return false, nil
 }

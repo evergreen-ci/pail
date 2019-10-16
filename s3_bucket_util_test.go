@@ -571,13 +571,8 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				require.NoError(t, err)
 				require.NoError(t, cw.Close())
 				assert.Equal(t, len(data), n)
-				compressedData := cw.(*compressingWriteCloser).s3Writer.(*largeWriteCloser).buffer
-
-				reader, err := gzip.NewReader(bytes.NewReader(compressedData))
-				require.NoError(t, err)
-				decompressedData, err := ioutil.ReadAll(reader)
-				require.NoError(t, err)
-				assert.Equal(t, data, decompressedData)
+				_, ok := cw.(*compressingWriteCloser).s3Writer.(*largeWriteCloser)
+				assert.True(t, ok)
 
 				cr, err := cb.Get(ctx, compressedKey)
 				require.NoError(t, err)
