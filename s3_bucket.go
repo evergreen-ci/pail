@@ -616,6 +616,24 @@ func doDownload(ctx context.Context, b Bucket, key, path string) error {
 
 }
 
+func s3DownloadWithChecksum(ctx context.Context, b Bucket, item BucketItem, local string) error {
+	localmd5, err := md5sum(local)
+	if os.IsNotExist(errors.Cause(err)) {
+		if err = doDownload(ctx, b, item.Name(), local); err != nil {
+			return errors.WithStack(err)
+		}
+	} else if err != nil {
+		return errors.WithStack(err)
+	}
+	if localmd5 != item.Hash() {
+		if err = doDownload(ctx, b, item.Name(), local); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	return nil
+}
+
 func (s *s3Bucket) downloadHelper(ctx context.Context, b Bucket, key, path string) error {
 	if s.singleFileChecksums {
 		iter, err := s.listHelper(ctx, b, s.normalizeKey(key))
@@ -671,24 +689,6 @@ func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
 }
 func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 	return s.pushHelper(ctx, s, local, remote)
-}
-
-func s3DownloadWithChecksum(ctx context.Context, b Bucket, item BucketItem, local string) error {
-	localmd5, err := md5sum(local)
-	if os.IsNotExist(errors.Cause(err)) {
-		if err = doDownload(ctx, b, item.Name(), local); err != nil {
-			return errors.WithStack(err)
-		}
-	} else if err != nil {
-		return errors.WithStack(err)
-	}
-	if localmd5 != item.Hash() {
-		if err = doDownload(ctx, b, item.Name(), local); err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	return nil
 }
 
 func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucket) error {
