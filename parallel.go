@@ -161,5 +161,3 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 
 	return catcher.Resolve()
 }
-
-// func (b *parallelBucketImpl) RemoveMany(ctx context.Context, keys ...string) error { return nil }

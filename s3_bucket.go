@@ -571,7 +571,7 @@ func doUpload(ctx context.Context, b Bucket, key, path string) error {
 	return errors.WithStack(b.Put(ctx, key, f))
 }
 
-func (s *s3BucketLarge) Upload(ctx context.Context, key, path string) error {
+func (s *s3Bucket) uploadHelper(ctx context.Context, b Bucket, key, path string) error {
 	if s.singleFileChecksums {
 		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, key, path)
 		if err != nil {
@@ -582,21 +582,15 @@ func (s *s3BucketLarge) Upload(ctx context.Context, key, path string) error {
 		}
 	}
 
-	return errors.WithStack(doUpload(ctx, s, key, path))
+	return errors.WithStack(doUpload(ctx, b, key, path))
+}
+
+func (s *s3BucketLarge) Upload(ctx context.Context, key, path string) error {
+	return s.uploadHelper(ctx, s, key, path)
 }
 
 func (s *s3BucketSmall) Upload(ctx context.Context, key, path string) error {
-	if s.singleFileChecksums {
-		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, key, path)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if !shouldUpload {
-			return nil
-		}
-	}
-
-	return errors.WithStack(doUpload(ctx, s, key, path))
+	return s.uploadHelper(ctx, s, key, path)
 }
 
 func doDownload(ctx context.Context, b Bucket, key, path string) error {
@@ -623,39 +617,30 @@ func doDownload(ctx context.Context, b Bucket, key, path string) error {
 
 }
 
-func (s *s3BucketLarge) Download(ctx context.Context, key, path string) error {
+func (s *s3Bucket) downloadHelper(ctx context.Context, b Bucket, key, path string) error {
 	if s.singleFileChecksums {
-		iter, err := s.listHelper(ctx, s, s.normalizeKey(key))
+		iter, err := s.listHelper(ctx, b, s.normalizeKey(key))
 		if err != nil {
 			return errors.WithStack(err)
 		}
 		if !iter.Next(ctx) {
 			return errors.New("no results found")
 		}
-		return s3DownloadWithChecksum(ctx, iter.Item(), path, s)
+		return s3DownloadWithChecksum(ctx, b, iter.Item(), path)
 	}
 
-	return doDownload(ctx, s, key, path)
+	return doDownload(ctx, b, key, path)
 }
 
 func (s *s3BucketSmall) Download(ctx context.Context, key, path string) error {
-	if s.singleFileChecksums {
-		iter, err := s.listHelper(ctx, s, s.normalizeKey(key))
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if !iter.Next(ctx) {
-			return errors.New("no results found")
-		}
-
-		return s3DownloadWithChecksum(ctx, iter.Item(), path, s)
-	}
-
-	return doDownload(ctx, s, key, path)
+	return s.downloadHelper(ctx, s, key, path)
 }
 
-func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
-	remote = s.normalizeKey(remote)
+func (s *s3BucketLarge) Download(ctx context.Context, key, path string) error {
+	return s.downloadHelper(ctx, s, key, path)
+}
+
+func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote string) error {
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
 		return errors.WithStack(err)
@@ -671,7 +656,7 @@ func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 		if !shouldUpload {
 			continue
 		}
-		if err = doUpload(ctx, s, target, file); err != nil {
+		if err = doUpload(ctx, b, target, file); err != nil {
 			return errors.WithStack(err)
 		}
 	}
@@ -681,34 +666,15 @@ func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 	}
 	return nil
 }
+
 func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
-	files, err := walkLocalTree(ctx, local)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	for _, fn := range files {
-		target := consistentJoin(remote, fn)
-		file := filepath.Join(local, fn)
-		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, target, file)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if !shouldUpload {
-			continue
-		}
-		if err = doUpload(ctx, s, target, file); err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	if s.deleteOnSync && !s.dryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
-	}
-	return nil
+	return s.pushHelper(ctx, s, local, remote)
+}
+func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
+	return s.pushHelper(ctx, s, local, remote)
 }
 
-func s3DownloadWithChecksum(ctx context.Context, item BucketItem, local string, b Bucket) error {
+func s3DownloadWithChecksum(ctx context.Context, b Bucket, item BucketItem, local string) error {
 	localmd5, err := md5sum(local)
 	if os.IsNotExist(errors.Cause(err)) {
 		if err = doDownload(ctx, b, item.Name(), local); err != nil {
@@ -726,7 +692,7 @@ func s3DownloadWithChecksum(ctx context.Context, item BucketItem, local string, 
 	return nil
 }
 
-func (s *s3Bucket) pull(ctx context.Context, local, remote string, b Bucket) error {
+func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucket) error {
 	iter, err := b.List(ctx, remote)
 	if err != nil {
 		return errors.WithStack(err)
@@ -743,7 +709,7 @@ func (s *s3Bucket) pull(ctx context.Context, local, remote string, b Bucket) err
 			return errors.Wrap(err, "problem getting relative filepath")
 		}
 		localName := filepath.Join(local, name)
-		if err := s3DownloadWithChecksum(ctx, iter.Item(), localName, b); err != nil {
+		if err := s3DownloadWithChecksum(ctx, b, iter.Item(), localName); err != nil {
 			return errors.WithStack(err)
 		}
 		keys = append(keys, iter.Item().Name())
@@ -756,11 +722,11 @@ func (s *s3Bucket) pull(ctx context.Context, local, remote string, b Bucket) err
 }
 
 func (s *s3BucketSmall) Pull(ctx context.Context, local, remote string) error {
-	return s.pull(ctx, local, remote, s)
+	return s.pullHelper(ctx, local, remote, s)
 }
 
 func (s *s3BucketLarge) Pull(ctx context.Context, local, remote string) error {
-	return s.pull(ctx, local, remote, s)
+	return s.pullHelper(ctx, local, remote, s)
 }
 
 func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {

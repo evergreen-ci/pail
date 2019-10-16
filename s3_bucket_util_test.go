@@ -407,7 +407,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 					Region:                   s3Region,
 					Name:                     s3BucketName,
 				}
-				_, err := NewS3MultiPartBucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
 				assert.NoError(t, err)
 				_, err = sharedCredsBucket.List(ctx, "")
 				assert.Error(t, err)
