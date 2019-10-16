@@ -153,10 +153,12 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 			}
 		}
 	}()
+
 	select {
 	case <-ctx.Done():
 	case <-deleteSignal:
 	}
+
 	return catcher.Resolve()
 }
 

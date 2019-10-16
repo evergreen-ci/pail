@@ -771,17 +771,15 @@ func TestBucket(t *testing.T) {
 				t.Run("BasicPull", func(t *testing.T) {
 					mirror := filepath.Join(tempdir, "pull-one", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
-					for i := 0; i < 100; i++ {
-						assert.NoError(t, bucket.Pull(ctx, mirror, ""))
-						files, err := walkLocalTree(ctx, mirror)
-						require.NoError(t, err)
-						require.Len(t, files, 100)
+					assert.NoError(t, bucket.Pull(ctx, mirror, ""))
+					files, err := walkLocalTree(ctx, mirror)
+					require.NoError(t, err)
+					require.Len(t, files, 100)
 
-						if !strings.Contains(impl.name, "GridFS") {
-							for _, fn := range files {
-								_, ok := data[filepath.Base(fn)]
-								require.True(t, ok)
-							}
+					if !strings.Contains(impl.name, "GridFS") {
+						for _, fn := range files {
+							_, ok := data[filepath.Base(fn)]
+							require.True(t, ok)
 						}
 					}
 				})
@@ -789,17 +787,15 @@ func TestBucket(t *testing.T) {
 					setDryRun(bucket, true)
 					mirror := filepath.Join(tempdir, "pull-one", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
-					for i := 0; i < 1050; i++ {
-						assert.NoError(t, bucket.Pull(ctx, mirror, ""))
-						files, err := walkLocalTree(ctx, mirror)
-						require.NoError(t, err)
-						require.Len(t, files, 100)
+					assert.NoError(t, bucket.Pull(ctx, mirror, ""))
+					files, err := walkLocalTree(ctx, mirror)
+					require.NoError(t, err)
+					require.Len(t, files, 100)
 
-						if !strings.Contains(impl.name, "GridFS") {
-							for _, fn := range files {
-								_, ok := data[filepath.Base(fn)]
-								require.True(t, ok)
-							}
+					if !strings.Contains(impl.name, "GridFS") {
+						for _, fn := range files {
+							_, ok := data[filepath.Base(fn)]
+							require.True(t, ok)
 						}
 					}
 					setDryRun(bucket, false)
@@ -847,7 +843,7 @@ func TestBucket(t *testing.T) {
 				t.Run("LargePull", func(t *testing.T) {
 					prefix := newUUID()
 					largeData := map[string]string{}
-					for i := 0; i < 3; i++ {
+					for i := 0; i < 1050; i++ {
 						largeData[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					}
 					for k, v := range largeData {
