@@ -369,7 +369,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 					Region:                    s3Region,
 					Name:                      s3BucketName,
 				}
-				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
 				require.NoError(t, err)
 				assert.NoError(t, sharedCredsBucket.Check(ctx))
 			},
@@ -384,7 +384,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 					Region:                   s3Region,
 					Name:                     s3BucketName,
 				}
-				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
 				require.NoError(t, err)
 				homeDir, err := homedir.Dir()
 				require.NoError(t, err)
@@ -407,11 +407,12 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 					Region:                   s3Region,
 					Name:                     s3BucketName,
 				}
-				_, err := NewS3Bucket(sharedCredsOptions)
+				_, err := NewS3MultiPartBucket(sharedCredsOptions)
+				assert.NoError(t, err)
+				_, err = sharedCredsBucket.List(ctx, "")
 				assert.Error(t, err)
 			},
 		},
-
 		{
 			id: "TestPermissions",
 			test: func(t *testing.T, b Bucket) {
