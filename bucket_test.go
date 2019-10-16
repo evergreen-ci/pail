@@ -847,7 +847,7 @@ func TestBucket(t *testing.T) {
 				t.Run("LargePull", func(t *testing.T) {
 					prefix := newUUID()
 					largeData := map[string]string{}
-					for i := 0; i < 1050; i++ {
+					for i := 0; i < 3; i++ {
 						largeData[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					}
 					for k, v := range largeData {

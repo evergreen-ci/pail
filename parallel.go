@@ -108,7 +108,13 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 		go func() {
 			defer wg.Done()
 			for item := range items {
-				if err := b.Download(ctx, item.Name(), remote); err != nil {
+				name, err := filepath.Rel(remote, item.Name())
+				if err != nil {
+					catcher.Add(errors.Wrap(err, "problem getting relative filepath"))
+					return
+				}
+				localName := filepath.Join(local, name)
+				if err := b.Download(ctx, item.Name(), localName); err != nil {
 					catcher.Add(err)
 					return
 				}

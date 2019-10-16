@@ -632,7 +632,7 @@ func (s *s3BucketLarge) Download(ctx context.Context, key, path string) error {
 		if !iter.Next(ctx) {
 			return errors.New("no results found")
 		}
-		return s3DownloadWithChecksum(ctx, iter.Item(), path, key, s)
+		return s3DownloadWithChecksum(ctx, iter.Item(), path, s)
 	}
 
 	return doDownload(ctx, s, key, path)
@@ -648,7 +648,7 @@ func (s *s3BucketSmall) Download(ctx context.Context, key, path string) error {
 			return errors.New("no results found")
 		}
 
-		return s3DownloadWithChecksum(ctx, iter.Item(), path, key, s)
+		return s3DownloadWithChecksum(ctx, iter.Item(), path, s)
 	}
 
 	return doDownload(ctx, s, key, path)
@@ -709,22 +709,17 @@ func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
 	return nil
 }
 
-func s3DownloadWithChecksum(ctx context.Context, item BucketItem, local, remote string, b Bucket) error {
-	// name, err := filepath.Rel(remote, item.Name())
-	// if err != nil {
-	//	return errors.Wrap(err, "problem getting relative filepath")
-	// }
-	localName := filepath.Join(local, item.Name())
-	localmd5, err := md5sum(localName)
+func s3DownloadWithChecksum(ctx context.Context, item BucketItem, local string, b Bucket) error {
+	localmd5, err := md5sum(local)
 	if os.IsNotExist(errors.Cause(err)) {
-		if err = doDownload(ctx, b, item.Name(), localName); err != nil {
+		if err = doDownload(ctx, b, item.Name(), local); err != nil {
 			return errors.WithStack(err)
 		}
 	} else if err != nil {
 		return errors.WithStack(err)
 	}
 	if localmd5 != item.Hash() {
-		if err = doDownload(ctx, b, item.Name(), localName); err != nil {
+		if err = doDownload(ctx, b, item.Name(), local); err != nil {
 			return errors.WithStack(err)
 		}
 	}
@@ -744,7 +739,12 @@ func (s *s3Bucket) pull(ctx context.Context, local, remote string, b Bucket) err
 			return errors.Wrap(err, "problem iterating bucket")
 		}
 
-		if err := s3DownloadWithChecksum(ctx, iter.Item(), local, remote, b); err != nil {
+		name, err := filepath.Rel(remote, iter.Item().Name())
+		if err != nil {
+			return errors.Wrap(err, "problem getting relative filepath")
+		}
+		localName := filepath.Join(local, name)
+		if err := s3DownloadWithChecksum(ctx, iter.Item(), localName, b); err != nil {
 			return errors.WithStack(err)
 		}
 		keys = append(keys, iter.Item().Name())
