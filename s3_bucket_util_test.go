@@ -129,7 +129,9 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 					Region:                   s3Region,
 					Name:                     s3BucketName,
 				}
-				_, err := NewS3Bucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+				assert.NoError(t, err)
+				_, err = sharedCredsBucket.List(ctx, "")
 				assert.Error(t, err)
 			},
 		},
