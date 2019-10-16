@@ -724,7 +724,7 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("RoundTripManyFiles", func(t *testing.T) {
 				data := map[string]string{}
-				for i := 0; i < 300; i++ {
+				for i := 0; i < 3; i++ {
 					data[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 				}
 
@@ -771,7 +771,7 @@ func TestBucket(t *testing.T) {
 				t.Run("BasicPull", func(t *testing.T) {
 					mirror := filepath.Join(tempdir, "pull-one", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
-					for i := 0; i < 3; i++ {
+					for i := 0; i < 100; i++ {
 						assert.NoError(t, bucket.Pull(ctx, mirror, ""))
 						files, err := walkLocalTree(ctx, mirror)
 						require.NoError(t, err)
@@ -789,7 +789,7 @@ func TestBucket(t *testing.T) {
 					setDryRun(bucket, true)
 					mirror := filepath.Join(tempdir, "pull-one", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
-					for i := 0; i < 3; i++ {
+					for i := 0; i < 1050; i++ {
 						assert.NoError(t, bucket.Pull(ctx, mirror, ""))
 						files, err := walkLocalTree(ctx, mirror)
 						require.NoError(t, err)

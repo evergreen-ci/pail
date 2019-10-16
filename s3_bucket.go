@@ -682,14 +682,13 @@ func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 	return nil
 }
 func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
-	remote = s.normalizeKey(remote)
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	for _, fn := range files {
-		target := filepath.Join(remote, fn)
+		target := consistentJoin(remote, fn)
 		file := filepath.Join(local, fn)
 		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, target, file)
 		if err != nil {
