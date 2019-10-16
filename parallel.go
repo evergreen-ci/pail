@@ -18,12 +18,20 @@ type parallelBucketImpl struct {
 	dryRun       bool
 }
 
+// ParallelBucketOptions support the use and creation of parallel sync buckets.
 type ParallelBucketOptions struct {
-	Workers      int
-	DryRun       bool
+	// Workers sets the number of worker threads.
+	Workers int
+	// DryRun enables running in a mode that will not execute any
+	// operations that modify the bucket.
+	DryRun bool
+	// DeleteOnSync will delete, either locally or remotely, all objects
+	// that were part of the sync operation (Push/Pull) from the source.
 	DeleteOnSync bool
 }
 
+// NewParallelSyncBucket returns a layered bucket implemenation that supports
+// parallel sync operations.
 func NewParallelSyncBucket(opts ParallelBucketOptions, b Bucket) Bucket {
 	return &parallelBucketImpl{
 		size:         opts.Workers,
@@ -81,12 +89,12 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 		for iter.Next(ctx) {
 			if iter.Err() != nil {
 				catcher.Add(errors.Wrap(err, "problem iterating bucket"))
-				break
+				return
 			}
 			select {
 			case <-ctx.Done():
 				catcher.Add(ctx.Err())
-				break
+				return
 			case items <- iter.Item():
 				continue
 			}

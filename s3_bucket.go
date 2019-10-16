@@ -195,9 +195,8 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 }
 
 // NewS3Bucket returns a Bucket implementation backed by S3. This
-// implementation does not support multipart uploads, if you would
-// like to add objects larger than 5 gigabytes see
-// `NewS3MultiPartBucket`.
+// implementation does not support multipart uploads, if you would like to add
+// objects larger than 5 gigabytes see `NewS3MultiPartBucket`.
 func NewS3Bucket(options S3Options) (Bucket, error) {
 	bucket, err := newS3BucketBase(nil, options)
 	if err != nil {

@@ -545,7 +545,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 					MaxRetries: 20,
 					Compress:   true,
 				}
-				cb, err := NewS3Bucket(s3Options)
+				cb, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
 
 				data := []byte{}
