@@ -87,6 +87,9 @@ func TestWalkTree(t *testing.T) {
 		assert.NotNil(t, out)
 	})
 	t.Run("SymLink", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("git symlinks do not work on windows")
+		}
 		vendor, err := walkLocalTree(ctx, "vendor")
 		require.NoError(t, err)
 
