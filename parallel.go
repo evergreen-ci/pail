@@ -59,14 +59,22 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 		go func() {
 			defer wg.Done()
 			for fn := range in {
-				catcher.Add(b.Bucket.Upload(ctx, filepath.Join(remote, fn), filepath.Join(local, fn)))
+				if b.dryRun {
+					continue
+				}
+
+				err = b.Bucket.Upload(ctx, filepath.Join(remote, fn), filepath.Join(local, fn))
+				if err != nil {
+					grip.Error(err)
+					catcher.Add(err)
+				}
 			}
 		}()
 	}
 	wg.Wait()
 
 	if b.deleteOnSync && !b.dryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
+		catcher.Add(errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local))
 	}
 
 	return catcher.Resolve()
@@ -88,11 +96,14 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 
 		for iter.Next(ctx) {
 			if iter.Err() != nil {
-				catcher.Add(errors.Wrap(err, "problem iterating bucket"))
+				err = errors.Wrap(iter.Err(), "problem iterating bucket")
+				grip.Error(err)
+				catcher.Add(err)
 				return
 			}
 			select {
 			case <-ctx.Done():
+				grip.Error(ctx.Err())
 				catcher.Add(ctx.Err())
 				return
 			case items <- iter.Item():
@@ -110,16 +121,20 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 			for item := range items {
 				name, err := filepath.Rel(remote, item.Name())
 				if err != nil {
-					catcher.Add(errors.Wrap(err, "problem getting relative filepath"))
+					err = errors.Wrap(err, "problem getting relative filepath")
+					grip.Error(err)
+					catcher.Add(err)
 					return
 				}
 				localName := filepath.Join(local, name)
 				if err := b.Download(ctx, item.Name(), localName); err != nil {
+					grip.Error(err)
 					catcher.Add(err)
 					return
 				}
 				select {
 				case <-ctx.Done():
+					grip.Error(ctx.Err())
 					catcher.Add(ctx.Err())
 					return
 				case toDelete <- item.Name():
