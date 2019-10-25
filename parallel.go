@@ -43,6 +43,8 @@ func NewParallelSyncBucket(opts ParallelBucketOptions, b Bucket) Bucket {
 
 func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) error {
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
 		return errors.WithStack(err)
@@ -89,6 +91,8 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 }
 func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) error {
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	iter, err := b.List(ctx, remote)
 	if err != nil {
 		return errors.WithStack(err)
