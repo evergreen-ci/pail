@@ -100,13 +100,14 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 
 	catcher := grip.NewBasicCatcher()
 	items := make(chan BucketItem)
-	toDelete := []string{}
+	toDelete := make(chan string)
 
 	go func() {
 		defer close(items)
 
 		for iter.Next(ctx) {
 			if iter.Err() != nil {
+				cancel()
 				catcher.Add(errors.Wrap(iter.Err(), "problem iterating bucket"))
 				return
 			}
@@ -126,13 +127,6 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 		go func() {
 			defer wg.Done()
 			for item := range items {
-				select {
-				case <-ctx.Done():
-					catcher.Add(ctx.Err())
-					return
-				default:
-				}
-
 				name, err := filepath.Rel(remote, item.Name())
 				if err != nil {
 					catcher.Add(errors.Wrap(err, "problem getting relative filepath"))
@@ -145,19 +139,45 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 					cancel()
 					return
 				}
+
+				select {
+				case <-ctx.Done():
+					catcher.Add(ctx.Err())
+					return
+				case toDelete <- item.Name():
+					continue
+				}
 			}
 		}()
 	}
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(toDelete)
+	}()
 
-	if b.deleteOnSync && b.dryRun {
-		grip.Debug(message.Fields{
-			"dry_run": true,
-			"keys":    toDelete,
-			"message": "would delete after push",
-		})
-	} else if b.deleteOnSync {
-		catcher.Add(errors.Wrapf(b.RemoveMany(ctx, toDelete...), "problem removing '%s' after pull", remote))
+	deleteSignal := make(chan struct{})
+	go func() {
+		defer close(deleteSignal)
+
+		keys := []string{}
+		for key := range toDelete {
+			keys = append(keys, key)
+		}
+
+		if b.deleteOnSync && b.dryRun {
+			grip.Debug(message.Fields{
+				"dry_run": true,
+				"keys":    toDelete,
+				"message": "would delete after push",
+			})
+		} else if ctx.Err() == nil && b.deleteOnSync {
+			catcher.Add(errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote))
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+	case <-deleteSignal:
 	}
 
 	return catcher.Resolve()
