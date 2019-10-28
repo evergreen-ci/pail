@@ -109,14 +109,12 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 			if iter.Err() != nil {
 				cancel()
 				catcher.Add(errors.Wrap(iter.Err(), "problem iterating bucket"))
-				return
 			}
 			select {
 			case <-ctx.Done():
 				catcher.Add(ctx.Err())
 				return
 			case items <- iter.Item():
-				continue
 			}
 		}
 	}()
@@ -131,13 +129,11 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 				if err != nil {
 					catcher.Add(errors.Wrap(err, "problem getting relative filepath"))
 					cancel()
-					return
 				}
 				localName := filepath.Join(local, name)
 				if err := b.Download(ctx, item.Name(), localName); err != nil {
 					catcher.Add(err)
 					cancel()
-					return
 				}
 
 				select {
@@ -145,7 +141,6 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 					catcher.Add(ctx.Err())
 					return
 				case toDelete <- item.Name():
-					continue
 				}
 			}
 		}()
