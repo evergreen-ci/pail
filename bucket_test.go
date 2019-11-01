@@ -927,17 +927,33 @@ func TestBucket(t *testing.T) {
 				t.Run("DeleteOnSync", func(t *testing.T) {
 					setDeleteOnSync(bucket, true)
 
+					contents := []byte("should be deleted")
+					assert.NoError(t, bucket.Put(ctx, filepath.Join("baz", "delete1"), bytes.NewBuffer(contents)))
+					contents = []byte("this should also be deleted")
+					assert.NoError(t, bucket.Put(ctx, filepath.Join("baz", "delete2"), bytes.NewBuffer(contents)))
+
 					// dry run bucket does not delete
 					setDryRun(bucket, true)
 					assert.NoError(t, bucket.Push(ctx, prefix, "baz"))
-					files, err := walkLocalTree(ctx, prefix)
-					require.NoError(t, err)
-					assert.Equal(t, 100, len(files))
 					setDryRun(bucket, false)
+					iter, err := bucket.List(ctx, "baz")
+					require.NoError(t, err)
+					count := 0
+					for iter.Next(ctx) {
+						require.NotNil(t, iter.Item())
+						count++
+					}
+					assert.Equal(t, 102, count)
 
 					assert.NoError(t, bucket.Push(ctx, prefix, "baz"))
-					_, err = os.Stat(prefix)
-					assert.True(t, os.IsNotExist(err))
+					iter, err = bucket.List(ctx, "baz")
+					require.NoError(t, err)
+					count = 0
+					for iter.Next(ctx) {
+						require.NotNil(t, iter.Item())
+						count++
+					}
+					assert.Equal(t, 100, count)
 
 					setDeleteOnSync(bucket, false)
 				})
