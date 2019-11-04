@@ -154,7 +154,7 @@ func deleteOnPush(ctx context.Context, sourceFiles []string, remote string, buck
 		fn = strings.TrimPrefix(fn, "\\") // cause windows...
 
 		if !sourceFilesMap[fn] {
-			toDelete = append(toDelete, fn)
+			toDelete = append(toDelete, iter.Item().Name())
 		}
 	}
 

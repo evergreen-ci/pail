@@ -806,38 +806,25 @@ func TestBucket(t *testing.T) {
 					// dry run bucket does not delete
 					mirror := filepath.Join(tempdir, "pull-one", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
+					require.NoError(t, writeDataToDisk(mirror, "delete1", "should be deleted"))
+					require.NoError(t, writeDataToDisk(mirror, "delete2", "this should also be deleted"))
 					setDryRun(bucket, true)
 					require.NoError(t, bucket.Pull(ctx, mirror, ""))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
-					require.Len(t, files, 100)
-
-					iter, err := bucket.List(ctx, "")
-					require.NoError(t, err)
-					count := 0
-					for iter.Next(ctx) {
-						require.NotNil(t, iter.Item())
-						count++
-					}
-					assert.NoError(t, iter.Err())
-					assert.Equal(t, 100, count)
+					require.Len(t, files, 102)
 					setDryRun(bucket, false)
 					require.NoError(t, os.RemoveAll(mirror))
 
 					// with out dry run set
 					mirror = filepath.Join(tempdir, "pull-one", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
+					require.NoError(t, writeDataToDisk(mirror, "delete1", "should be deleted"))
+					require.NoError(t, writeDataToDisk(mirror, "delete2", "this should also be deleted"))
 					assert.NoError(t, bucket.Pull(ctx, mirror, ""))
 					files, err = walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					assert.Len(t, files, 100)
-
-					iter, err = bucket.List(ctx, "")
-					require.NoError(t, err)
-					assert.False(t, iter.Next(ctx))
-					assert.Nil(t, iter.Item())
-					assert.NoError(t, iter.Err())
-
 					setDeleteOnSync(bucket, false)
 				})
 				t.Run("LargePull", func(t *testing.T) {
@@ -928,11 +915,11 @@ func TestBucket(t *testing.T) {
 					setDeleteOnSync(bucket, true)
 
 					contents := []byte("should be deleted")
-					assert.NoError(t, bucket.Put(ctx, filepath.Join("baz", "delete1"), bytes.NewBuffer(contents)))
+					require.NoError(t, bucket.Put(ctx, filepath.Join("baz", "delete1"), bytes.NewBuffer(contents)))
 					contents = []byte("this should also be deleted")
-					assert.NoError(t, bucket.Put(ctx, filepath.Join("baz", "delete2"), bytes.NewBuffer(contents)))
+					require.NoError(t, bucket.Put(ctx, filepath.Join("baz", "delete2"), bytes.NewBuffer(contents)))
 
-					// dry run bucket does not delete
+					// dry run bucket does not push or delete
 					setDryRun(bucket, true)
 					assert.NoError(t, bucket.Push(ctx, prefix, "baz"))
 					setDryRun(bucket, false)
@@ -943,7 +930,7 @@ func TestBucket(t *testing.T) {
 						require.NotNil(t, iter.Item())
 						count++
 					}
-					assert.Equal(t, 102, count)
+					assert.Equal(t, 2, count)
 
 					assert.NoError(t, bucket.Push(ctx, prefix, "baz"))
 					iter, err = bucket.List(ctx, "baz")

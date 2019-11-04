@@ -166,7 +166,6 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 		if b.deleteOnSync && b.dryRun {
 			grip.Debug(message.Fields{
 				"dry_run": true,
-				"keys":    toDelete,
 				"message": "would delete after push",
 			})
 		} else if ctx.Err() == nil && b.deleteOnSync {
