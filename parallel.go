@@ -16,7 +16,6 @@ type parallelBucketImpl struct {
 	size         int
 	deleteOnSync bool
 	dryRun       bool
-	verbose      bool
 }
 
 // ParallelBucketOptions support the use and creation of parallel sync buckets.

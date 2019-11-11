@@ -63,6 +63,7 @@ type s3Bucket struct {
 	deleteOnSync        bool
 	singleFileChecksums bool
 	compress            bool
+	verbose             bool
 	batchSize           int
 	sess                *session.Session
 	svc                 *s3.S3
@@ -70,7 +71,6 @@ type s3Bucket struct {
 	prefix              string
 	permissions         S3Permissions
 	contentType         string
-	verbose             bool
 }
 
 // S3Options support the use and creation of S3 backed buckets.
@@ -89,6 +89,8 @@ type S3Options struct {
 	// operations independently.) Useful for large files, particularly in
 	// coordination with the parallel sync bucket implementations.
 	UseSingleFileChecksums bool
+	// Verbose sets the logging mode to "debug".
+	Verbose bool
 	// MaxRetries sets the number of retry attemps for s3 operations.
 	MaxRetries int
 	// Credentials allows the passing in of explicit AWS credentials. These
@@ -116,8 +118,6 @@ type S3Options struct {
 	//`https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.17`
 	// for more information.
 	ContentType string
-	// Verbose sets the logging mode to "debug".
-	Verbose bool
 }
 
 // CreateAWSCredentials is a wrapper for creating AWS credentials.
@@ -188,6 +188,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		prefix:              options.Prefix,
 		compress:            options.Compress,
 		singleFileChecksums: options.UseSingleFileChecksums,
+		verbose:             options.Verbose,
 		sess:                sess,
 		svc:                 svc,
 		permissions:         options.Permissions,
@@ -195,7 +196,6 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		dryRun:              options.DryRun,
 		batchSize:           1000,
 		deleteOnSync:        options.DeleteOnSync,
-		verbose:             options.Verbose,
 	}, nil
 }
 
