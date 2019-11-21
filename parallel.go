@@ -43,20 +43,20 @@ func NewParallelSyncBucket(opts ParallelBucketOptions, b Bucket) Bucket {
 	}
 }
 
-func (b *parallelBucketImpl) Push(ctx context.Context, local, remote, exclude string) error {
+func (b *parallelBucketImpl) Push(ctx context.Context, opts SyncOptions) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	var re *regexp.Regexp
 	var err error
-	if exclude != "" {
-		re, err = regexp.Compile(exclude)
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
 			return errors.Wrap(err, "problem compiling exclude regex")
 		}
 	}
 
-	files, err := walkLocalTree(ctx, local)
+	files, err := walkLocalTree(ctx, opts.Local)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -86,7 +86,7 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote, exclude st
 					continue
 				}
 
-				err = b.Bucket.Upload(ctx, filepath.Join(remote, fn), filepath.Join(local, fn))
+				err = b.Bucket.Upload(ctx, filepath.Join(opts.Remote, fn), filepath.Join(opts.Local, fn))
 				if err != nil {
 					catcher.Add(err)
 					cancel()
@@ -97,26 +97,26 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote, exclude st
 	wg.Wait()
 
 	if ctx.Err() == nil && b.deleteOnSync && !b.dryRun {
-		catcher.Add(errors.Wrap(deleteOnPush(ctx, files, remote, b), "probelm with delete on sync after push"))
+		catcher.Add(errors.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "probelm with delete on sync after push"))
 	}
 
 	return catcher.Resolve()
 
 }
-func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote, exclude string) error {
+func (b *parallelBucketImpl) Pull(ctx context.Context, opts SyncOptions) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	var re *regexp.Regexp
 	var err error
-	if exclude != "" {
-		re, err = regexp.Compile(exclude)
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
 			return errors.Wrap(err, "problem compiling exclude regex")
 		}
 	}
 
-	iter, err := b.List(ctx, remote)
+	iter, err := b.List(ctx, opts.Remote)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -153,18 +153,18 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote, exclude st
 		go func() {
 			defer wg.Done()
 			for item := range items {
-				name, err := filepath.Rel(remote, item.Name())
+				name, err := filepath.Rel(opts.Remote, item.Name())
 				if err != nil {
 					catcher.Add(errors.Wrap(err, "problem getting relative filepath"))
 					cancel()
 				}
-				localName := filepath.Join(local, name)
+				localName := filepath.Join(opts.Local, name)
 				if err := b.Download(ctx, item.Name(), localName); err != nil {
 					catcher.Add(err)
 					cancel()
 				}
 
-				fn := strings.TrimPrefix(item.Name(), remote)
+				fn := strings.TrimPrefix(item.Name(), opts.Remote)
 				fn = strings.TrimPrefix(fn, "/")
 				fn = strings.TrimPrefix(fn, "\\") // cause windows...
 
@@ -197,7 +197,7 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote, exclude st
 				"message": "would delete after push",
 			})
 		} else if ctx.Err() == nil && b.deleteOnSync {
-			catcher.Add(errors.Wrap(deleteOnPull(ctx, keys, local), "problem with delete on sync after pull"))
+			catcher.Add(errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "problem with delete on sync after pull"))
 		}
 	}()
 

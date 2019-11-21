@@ -305,28 +305,28 @@ func (b *localFileSystem) RemoveMatching(ctx context.Context, expression string)
 	return removeMatching(ctx, expression, b)
 }
 
-func (b *localFileSystem) Push(ctx context.Context, local, remote, exclude string) error {
+func (b *localFileSystem) Push(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "push",
 		"bucket":        b.path,
 		"bucket_prefix": b.prefix,
-		"remote":        remote,
-		"local":         local,
-		"exclude":       exclude,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
 	})
 
 	var re *regexp.Regexp
 	var err error
-	if exclude != "" {
-		re, err = regexp.Compile(exclude)
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
 			return errors.Wrap(err, "problem compiling exclude regex")
 		}
 	}
 
-	files, err := walkLocalTree(ctx, local)
+	files, err := walkLocalTree(ctx, opts.Local)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -336,10 +336,10 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote, exclude strin
 			continue
 		}
 
-		target := filepath.Join(b.path, b.normalizeKey(filepath.Join(remote, fn)))
-		file := filepath.Join(local, fn)
+		target := filepath.Join(b.path, b.normalizeKey(filepath.Join(opts.Remote, fn)))
+		file := filepath.Join(opts.Local, fn)
 		if _, err := os.Stat(target); os.IsNotExist(err) {
-			if err := b.Upload(ctx, filepath.Join(remote, fn), file); err != nil {
+			if err := b.Upload(ctx, filepath.Join(opts.Remote, fn), file); err != nil {
 				return errors.WithStack(err)
 			}
 
@@ -356,39 +356,39 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote, exclude strin
 		}
 
 		if lsum != rsum {
-			if err := b.Upload(ctx, filepath.Join(remote, fn), file); err != nil {
+			if err := b.Upload(ctx, filepath.Join(opts.Remote, fn), file); err != nil {
 				return errors.WithStack(err)
 			}
 		}
 	}
 
 	if b.deleteOnSync && !b.dryRun {
-		return errors.Wrap(deleteOnPush(ctx, files, remote, b), "probelm with delete on sync after push")
+		return errors.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "probelm with delete on sync after push")
 	}
 	return nil
 }
 
-func (b *localFileSystem) Pull(ctx context.Context, local, remote, exclude string) error {
+func (b *localFileSystem) Pull(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(b.verbose, message.Fields{
 		"type":          "local",
 		"operation":     "pull",
 		"bucket":        b.path,
 		"bucket_prefix": b.prefix,
-		"remote":        remote,
-		"local":         local,
-		"exlude":        exclude,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
 	})
 
 	var re *regexp.Regexp
 	var err error
-	if exclude != "" {
-		re, err = regexp.Compile(exclude)
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
 			return errors.Wrap(err, "problem compiling exclude regex")
 		}
 	}
 
-	prefix := filepath.Join(b.path, b.normalizeKey(remote))
+	prefix := filepath.Join(b.path, b.normalizeKey(opts.Remote))
 	files, err := walkLocalTree(ctx, prefix)
 	if err != nil {
 		return errors.WithStack(err)
@@ -401,8 +401,8 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote, exclude strin
 		}
 
 		keys = append(keys, fn)
-		path := filepath.Join(local, fn)
-		fn = filepath.Join(remote, fn)
+		path := filepath.Join(opts.Local, fn)
+		fn = filepath.Join(opts.Remote, fn)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			if err := b.Download(ctx, fn, path); err != nil {
 				return errors.WithStack(err)
@@ -428,7 +428,7 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote, exclude strin
 	}
 
 	if b.deleteOnSync && !b.dryRun {
-		return errors.Wrap(deleteOnPull(ctx, keys, local), "problem with delete on sync after pull")
+		return errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "problem with delete on sync after pull")
 	}
 	return nil
 }

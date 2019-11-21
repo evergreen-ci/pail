@@ -70,7 +70,7 @@ func TestBucket(t *testing.T) {
 			constructor: func(t *testing.T) Bucket {
 				path := filepath.Join(tempdir, uuid)
 				require.NoError(t, os.MkdirAll(path, 0777))
-				return &localFileSystem{path: path, prefix: newUUID(), verbose: true}
+				return &localFileSystem{path: path, prefix: newUUID()}
 			},
 			tests: []bucketTestCase{
 				{
@@ -169,7 +169,8 @@ func TestBucket(t *testing.T) {
 						bucket := b.(*localFileSystem)
 						bucket.path = ""
 						bucket.prefix = ""
-						err := b.Pull(tctx, "", filepath.Dir(file), "")
+						opts := SyncOptions{Remote: filepath.Dir(file)}
+						err := b.Pull(tctx, opts)
 						assert.Error(t, err)
 					},
 				},
@@ -178,7 +179,8 @@ func TestBucket(t *testing.T) {
 					test: func(t *testing.T, b Bucket) {
 						tctx, cancel := context.WithCancel(ctx)
 						cancel()
-						err := b.Push(tctx, filepath.Dir(file), "", "")
+						opts := SyncOptions{Local: filepath.Dir(file)}
+						err := b.Push(tctx, opts)
 						assert.Error(t, err)
 					},
 				},
@@ -192,7 +194,6 @@ func TestBucket(t *testing.T) {
 					Name:     newUUID(),
 					Prefix:   newUUID(),
 					Database: uuid,
-					Verbose:  true,
 				})
 				require.NoError(t, err)
 				return b
@@ -206,7 +207,6 @@ func TestBucket(t *testing.T) {
 					Name:     newUUID(),
 					Prefix:   newUUID(),
 					Database: uuid,
-					Verbose:  true,
 				})
 				require.NoError(t, err)
 				return b
@@ -242,7 +242,6 @@ func TestBucket(t *testing.T) {
 					Name:       s3BucketName,
 					Prefix:     s3Prefix + newUUID(),
 					MaxRetries: 20,
-					Verbose:    true,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -259,7 +258,6 @@ func TestBucket(t *testing.T) {
 					Prefix:                 s3Prefix + newUUID(),
 					MaxRetries:             20,
 					UseSingleFileChecksums: true,
-					Verbose:                true,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -287,7 +285,6 @@ func TestBucket(t *testing.T) {
 					Prefix:                 s3Prefix + newUUID(),
 					MaxRetries:             20,
 					UseSingleFileChecksums: true,
-					Verbose:                true,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -302,7 +299,6 @@ func TestBucket(t *testing.T) {
 					Name:       s3BucketName,
 					Prefix:     s3Prefix + newUUID(),
 					MaxRetries: 20,
-					Verbose:    true,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
@@ -319,7 +315,6 @@ func TestBucket(t *testing.T) {
 					Prefix:                 s3Prefix + newUUID(),
 					MaxRetries:             20,
 					UseSingleFileChecksums: true,
-					Verbose:                true,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
@@ -778,7 +773,8 @@ func TestBucket(t *testing.T) {
 				t.Run("BasicPull", func(t *testing.T) {
 					mirror := filepath.Join(tempdir, "pull-one", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
-					assert.NoError(t, bucket.Pull(ctx, mirror, "", ""))
+					opts := SyncOptions{Local: mirror}
+					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					require.Len(t, files, 100)
@@ -794,7 +790,8 @@ func TestBucket(t *testing.T) {
 					setDryRun(bucket, true)
 					mirror := filepath.Join(tempdir, "pull-one", newUUID(), "")
 					require.NoError(t, os.MkdirAll(mirror, 0700))
-					assert.NoError(t, bucket.Pull(ctx, mirror, "", ""))
+					opts := SyncOptions{Local: mirror}
+					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					require.Len(t, files, 100)
@@ -813,7 +810,8 @@ func TestBucket(t *testing.T) {
 
 					mirror := filepath.Join(tempdir, "not_excludes", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
-					assert.NoError(t, bucket.Pull(ctx, mirror, "", ""))
+					opts := SyncOptions{Local: mirror}
+					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					require.Len(t, files, 102)
@@ -830,7 +828,9 @@ func TestBucket(t *testing.T) {
 
 					mirror = filepath.Join(tempdir, "excludes", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
-					assert.NoError(t, bucket.Pull(ctx, mirror, "", ".*\\.py"))
+					opts.Local = mirror
+					opts.Exclude = ".*\\.py"
+					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err = walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					require.Len(t, files, 100)
@@ -854,7 +854,8 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, writeDataToDisk(mirror, "delete1", "should be deleted"))
 					require.NoError(t, writeDataToDisk(mirror, "delete2", "this should also be deleted"))
 					setDryRun(bucket, true)
-					require.NoError(t, bucket.Pull(ctx, mirror, "", ""))
+					opts := SyncOptions{Local: mirror}
+					require.NoError(t, bucket.Pull(ctx, opts))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					require.Len(t, files, 102)
@@ -866,7 +867,8 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					require.NoError(t, writeDataToDisk(mirror, "delete1", "should be deleted"))
 					require.NoError(t, writeDataToDisk(mirror, "delete2", "this should also be deleted"))
-					assert.NoError(t, bucket.Pull(ctx, mirror, "", ""))
+					opts.Local = mirror
+					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err = walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					assert.Len(t, files, 100)
@@ -885,7 +887,8 @@ func TestBucket(t *testing.T) {
 					mirror := filepath.Join(tempdir, "pull-one", newUUID(), "")
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 
-					assert.NoError(t, bucket.Pull(ctx, mirror, prefix, ""))
+					opts := SyncOptions{Local: mirror, Remote: prefix}
+					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
 					assert.Len(t, files, len(largeData))
@@ -910,8 +913,8 @@ func TestBucket(t *testing.T) {
 
 				bucket := impl.constructor(t)
 				t.Run("NoPrefix", func(t *testing.T) {
-					assert.NoError(t, bucket.Push(ctx, prefix, "", ""))
-					assert.NoError(t, bucket.Push(ctx, prefix, "", ""))
+					opts := SyncOptions{Local: prefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
 
 					iter, err := bucket.List(ctx, "")
 					require.NoError(t, err)
@@ -925,8 +928,8 @@ func TestBucket(t *testing.T) {
 				})
 				t.Run("ShortPrefix", func(t *testing.T) {
 					remotePrefix := "foo"
-					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix, ""))
-					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix, ""))
+					opts := SyncOptions{Local: prefix, Remote: remotePrefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
 
 					iter, err := bucket.List(ctx, remotePrefix)
 					require.NoError(t, err)
@@ -943,7 +946,8 @@ func TestBucket(t *testing.T) {
 				t.Run("DryRunBucketDoesNotPush", func(t *testing.T) {
 					remotePrefix := "bar"
 					setDryRun(bucket, true)
-					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix, ""))
+					opts := SyncOptions{Local: prefix, Remote: remotePrefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
 
 					iter, err := bucket.List(ctx, remotePrefix)
 					require.NoError(t, err)
@@ -961,7 +965,8 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, writeDataToDisk(prefix, "python2.py", "exclude2"))
 
 					remotePrefix := "not_excludes"
-					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix, ""))
+					opts := SyncOptions{Local: prefix, Remote: remotePrefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
 					iter, err := bucket.List(ctx, remotePrefix)
 					require.NoError(t, err)
 					counter := 0
@@ -979,7 +984,9 @@ func TestBucket(t *testing.T) {
 					assert.Equal(t, 102, counter)
 
 					remotePrefix = "excludes"
-					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix, ".*\\.py"))
+					opts.Remote = remotePrefix
+					opts.Exclude = ".*\\.py"
+					assert.NoError(t, bucket.Push(ctx, opts))
 					iter, err = bucket.List(ctx, remotePrefix)
 					require.NoError(t, err)
 					counter = 0
@@ -1005,7 +1012,8 @@ func TestBucket(t *testing.T) {
 
 					// dry run bucket does not push or delete
 					setDryRun(bucket, true)
-					assert.NoError(t, bucket.Push(ctx, prefix, "baz", ""))
+					opts := SyncOptions{Local: prefix, Remote: "baz"}
+					assert.NoError(t, bucket.Push(ctx, opts))
 					setDryRun(bucket, false)
 					iter, err := bucket.List(ctx, "baz")
 					require.NoError(t, err)
@@ -1016,7 +1024,7 @@ func TestBucket(t *testing.T) {
 					}
 					assert.Equal(t, 2, count)
 
-					assert.NoError(t, bucket.Push(ctx, prefix, "baz", ""))
+					assert.NoError(t, bucket.Push(ctx, opts))
 					iter, err = bucket.List(ctx, "baz")
 					require.NoError(t, err)
 					count = 0

@@ -248,28 +248,28 @@ func (b *gridfsBucket) Download(ctx context.Context, name, path string) error {
 	return errors.WithStack(f.Close())
 }
 
-func (b *gridfsBucket) Push(ctx context.Context, local, remote, exclude string) error {
+func (b *gridfsBucket) Push(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"dry_run":       b.opts.DryRun,
 		"operation":     "push",
 		"bucket":        b.opts.Name,
 		"bucket_prefix": b.opts.Prefix,
-		"remote":        remote,
-		"local":         local,
-		"exclude":       exclude,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
 	})
 
 	var re *regexp.Regexp
 	var err error
-	if exclude != "" {
-		re, err = regexp.Compile(exclude)
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
 			return errors.Wrap(err, "problem compiling exclude regex")
 		}
 	}
 
-	localPaths, err := walkLocalTree(ctx, local)
+	localPaths, err := walkLocalTree(ctx, opts.Local)
 	if err != nil {
 		return errors.Wrap(err, "problem finding local paths")
 	}
@@ -279,41 +279,41 @@ func (b *gridfsBucket) Push(ctx context.Context, local, remote, exclude string) 
 			continue
 		}
 
-		target := consistentJoin(remote, path)
+		target := consistentJoin(opts.Remote, path)
 		_ = b.Remove(ctx, target)
-		if err = b.Upload(ctx, target, filepath.Join(local, path)); err != nil {
+		if err = b.Upload(ctx, target, filepath.Join(opts.Local, path)); err != nil {
 			return errors.Wrapf(err, "problem uploading '%s' to '%s'", path, target)
 		}
 	}
 
 	if b.opts.DeleteOnSync && !b.opts.DryRun {
-		return errors.Wrap(deleteOnPush(ctx, localPaths, remote, b), "probelm with delete on sync after push")
+		return errors.Wrap(deleteOnPush(ctx, localPaths, opts.Remote, b), "probelm with delete on sync after push")
 	}
 
 	return nil
 }
 
-func (b *gridfsBucket) Pull(ctx context.Context, local, remote, exclude string) error {
+func (b *gridfsBucket) Pull(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"operation":     "pull",
 		"bucket":        b.opts.Name,
 		"bucket_prefix": b.opts.Prefix,
-		"remote":        remote,
-		"local":         local,
-		"exclude":       exclude,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
 	})
 
 	var re *regexp.Regexp
 	var err error
-	if exclude != "" {
-		re, err = regexp.Compile(exclude)
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
 			return errors.Wrap(err, "problem compiling exclude regex")
 		}
 	}
 
-	iter, err := b.List(ctx, remote)
+	iter, err := b.List(ctx, opts.Remote)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -326,8 +326,8 @@ func (b *gridfsBucket) Pull(ctx context.Context, local, remote, exclude string) 
 			continue
 		}
 
-		fn := item.Name()[len(remote)+1:]
-		name := filepath.Join(local, fn)
+		fn := item.Name()[len(opts.Remote)+1:]
+		name := filepath.Join(opts.Local, fn)
 		keys = append(keys, fn)
 
 		if err = b.Download(ctx, item.Name(), name); err != nil {
@@ -340,7 +340,7 @@ func (b *gridfsBucket) Pull(ctx context.Context, local, remote, exclude string) 
 	}
 
 	if b.opts.DeleteOnSync && !b.opts.DryRun {
-		return errors.Wrap(deleteOnPull(ctx, keys, local), "problem with delete on sync after pull")
+		return errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "problem with delete on sync after pull")
 	}
 
 	return nil
