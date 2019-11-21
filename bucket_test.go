@@ -841,6 +841,9 @@ func TestBucket(t *testing.T) {
 							require.True(t, ok)
 						}
 					}
+
+					require.NoError(t, bucket.Remove("python.py"))
+					require.NoError(t, bucket.Remove("python2.py"))
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
 					setDeleteOnSync(bucket, true)
@@ -988,8 +991,10 @@ func TestBucket(t *testing.T) {
 					}
 					assert.NoError(t, iter.Err())
 					assert.Equal(t, 100, counter)
-				})
 
+					require.NoError(t, os.RemoveAll(filepath.Join(prefix, "python.py")))
+					require.NoError(t, os.RemoveAll(filepath.Join(prefix, "python2.py")))
+				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
 					setDeleteOnSync(bucket, true)
 
