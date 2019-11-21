@@ -842,8 +842,8 @@ func TestBucket(t *testing.T) {
 						}
 					}
 
-					require.NoError(t, bucket.Remove("python.py"))
-					require.NoError(t, bucket.Remove("python2.py"))
+					require.NoError(t, bucket.Remove(ctx, "python.py"))
+					require.NoError(t, bucket.Remove(ctx, "python2.py"))
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
 					setDeleteOnSync(bucket, true)
