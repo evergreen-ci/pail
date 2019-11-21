@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -800,7 +801,7 @@ func (s *s3BucketLarge) Download(ctx context.Context, key, path string) error {
 	return s.downloadHelper(ctx, s, key, path)
 }
 
-func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote string) error {
+func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote, exclude string) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",
 		"dry_run":       s.dryRun,
@@ -809,7 +810,17 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote strin
 		"bucket_prefix": s.prefix,
 		"remote":        remote,
 		"local":         local,
+		"exclude":       exclude,
 	})
+
+	var re *regexp.Regexp
+	var err error
+	if exclude != "" {
+		re, err = regexp.Compile(exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
 
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
@@ -817,6 +828,10 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote strin
 	}
 
 	for _, fn := range files {
+		if re != nil && re.MatchString(fn) {
+			continue
+		}
+
 		target := consistentJoin(remote, fn)
 		file := filepath.Join(local, fn)
 		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, target, file)
@@ -837,14 +852,14 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote strin
 	return nil
 }
 
-func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
-	return s.pushHelper(ctx, s, local, remote)
+func (s *s3BucketSmall) Push(ctx context.Context, local, remote, exclude string) error {
+	return s.pushHelper(ctx, s, local, remote, exclude)
 }
-func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
-	return s.pushHelper(ctx, s, local, remote)
+func (s *s3BucketLarge) Push(ctx context.Context, local, remote, exclude string) error {
+	return s.pushHelper(ctx, s, local, remote, exclude)
 }
 
-func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucket) error {
+func (s *s3Bucket) pullHelper(ctx context.Context, local, remote, exclude string, b Bucket) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",
 		"operation":     "pull",
@@ -852,7 +867,17 @@ func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucke
 		"bucket_prefix": s.prefix,
 		"remote":        remote,
 		"local":         local,
+		"exclude":       exclude,
 	})
+
+	var re *regexp.Regexp
+	var err error
+	if exclude != "" {
+		re, err = regexp.Compile(exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
 
 	iter, err := b.List(ctx, remote)
 	if err != nil {
@@ -863,6 +888,10 @@ func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucke
 	for iter.Next(ctx) {
 		if iter.Err() != nil {
 			return errors.Wrap(err, "problem iterating bucket")
+		}
+
+		if re != nil && re.MatchString(iter.Item().Name()) {
+			continue
 		}
 
 		name, err := filepath.Rel(remote, iter.Item().Name())
@@ -882,12 +911,12 @@ func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucke
 	return nil
 }
 
-func (s *s3BucketSmall) Pull(ctx context.Context, local, remote string) error {
-	return s.pullHelper(ctx, local, remote, s)
+func (s *s3BucketSmall) Pull(ctx context.Context, local, remote, exclude string) error {
+	return s.pullHelper(ctx, local, remote, exclude, s)
 }
 
-func (s *s3BucketLarge) Pull(ctx context.Context, local, remote string) error {
-	return s.pullHelper(ctx, local, remote, s)
+func (s *s3BucketLarge) Pull(ctx context.Context, local, remote, exclude string) error {
+	return s.pullHelper(ctx, local, remote, exclude, s)
 }
 
 func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {

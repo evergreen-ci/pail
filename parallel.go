@@ -3,6 +3,7 @@ package pail
 import (
 	"context"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -42,9 +43,18 @@ func NewParallelSyncBucket(opts ParallelBucketOptions, b Bucket) Bucket {
 	}
 }
 
-func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) error {
+func (b *parallelBucketImpl) Push(ctx context.Context, local, remote, exclude string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	var re *regexp.Regexp
+	var err error
+	if exclude != "" {
+		re, err = regexp.Compile(exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
 
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
@@ -53,6 +63,9 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 
 	in := make(chan string, len(files))
 	for i := range files {
+		if re != nil && re.MatchString(files[i]) {
+			continue
+		}
 		in <- files[i]
 	}
 	close(in)
@@ -90,9 +103,18 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 	return catcher.Resolve()
 
 }
-func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) error {
+func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote, exclude string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	var re *regexp.Regexp
+	var err error
+	if exclude != "" {
+		re, err = regexp.Compile(exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
 
 	iter, err := b.List(ctx, remote)
 	if err != nil {
@@ -111,6 +133,11 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 				cancel()
 				catcher.Add(errors.Wrap(iter.Err(), "problem iterating bucket"))
 			}
+
+			if re != nil && re.MatchString(iter.Item().Name()) {
+				continue
+			}
+
 			select {
 			case <-ctx.Done():
 				catcher.Add(ctx.Err())

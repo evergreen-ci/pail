@@ -60,8 +60,8 @@ type Bucket interface {
 	// Sync methods: these methods are the recursive, efficient
 	// copy methods of files from s3 to the local file
 	// system.
-	Push(context.Context, string, string) error
-	Pull(context.Context, string, string) error
+	Push(context.Context, string, string, string) error
+	Pull(context.Context, string, string, string) error
 
 	// Copy does a special copy operation that does not require
 	// downloading a file. Note that CopyOptions.DestinationBucket must

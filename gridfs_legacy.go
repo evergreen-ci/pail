@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/mongodb/grip"
@@ -246,7 +247,7 @@ func (b *gridfsLegacyBucket) Download(ctx context.Context, name, path string) er
 	return errors.WithStack(f.Close())
 }
 
-func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote string) error {
+func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote, exclude string) error {
 	grip.DebugWhen(b.opts.Verbose, message.Fields{
 		"type":          "legacy_gridfs",
 		"dry_run":       b.opts.DryRun,
@@ -255,7 +256,17 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote string) err
 		"bucket_prefix": b.opts.Prefix,
 		"remote":        remote,
 		"local":         local,
+		"exclude":       exclude,
 	})
+
+	var re *regexp.Regexp
+	var err error
+	if exclude != "" {
+		re, err = regexp.Compile(exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
 
 	localPaths, err := walkLocalTree(ctx, local)
 	if err != nil {
@@ -264,6 +275,10 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote string) err
 
 	gridfs := b.gridFS()
 	for _, path := range localPaths {
+		if re != nil && re.MatchString(path) {
+			continue
+		}
+
 		target := consistentJoin(remote, path)
 		file, err := gridfs.Open(b.normalizeKey(target))
 		if err == mgo.ErrNotFound {
@@ -293,7 +308,7 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote string) err
 	return nil
 }
 
-func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote string) error {
+func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote, exclude string) error {
 	grip.DebugWhen(b.opts.Verbose, message.Fields{
 		"type":          "legacy_gridfs",
 		"operation":     "pull",
@@ -301,7 +316,17 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote string) err
 		"bucket_prefix": b.opts.Prefix,
 		"remote":        remote,
 		"local":         local,
+		"exclude":       exclude,
 	})
+
+	var re *regexp.Regexp
+	var err error
+	if exclude != "" {
+		re, err = regexp.Compile(exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
 
 	iter, err := b.List(ctx, remote)
 	if err != nil {
@@ -318,6 +343,10 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote string) err
 	var checksum string
 	keys := []string{}
 	for gridfs.OpenNext(iterimpl.iter, &f) {
+		if re != nil && re.MatchString(f.Name()) {
+			continue
+		}
+
 		denormalizedName := b.denormalizeKey(f.Name())
 		fn := denormalizedName[len(remote)+1:]
 		name := filepath.Join(local, fn)

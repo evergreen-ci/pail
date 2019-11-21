@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
@@ -304,7 +305,7 @@ func (b *localFileSystem) RemoveMatching(ctx context.Context, expression string)
 	return removeMatching(ctx, expression, b)
 }
 
-func (b *localFileSystem) Push(ctx context.Context, local, remote string) error {
+func (b *localFileSystem) Push(ctx context.Context, local, remote, exclude string) error {
 	grip.DebugWhen(b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
@@ -313,7 +314,17 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 		"bucket_prefix": b.prefix,
 		"remote":        remote,
 		"local":         local,
+		"exclude":       exclude,
 	})
+
+	var re *regexp.Regexp
+	var err error
+	if exclude != "" {
+		re, err = regexp.Compile(exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
 
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
@@ -321,6 +332,10 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 	}
 
 	for _, fn := range files {
+		if re != nil && re.MatchString(fn) {
+			continue
+		}
+
 		target := filepath.Join(b.path, b.normalizeKey(filepath.Join(remote, fn)))
 		file := filepath.Join(local, fn)
 		if _, err := os.Stat(target); os.IsNotExist(err) {
@@ -353,7 +368,7 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 	return nil
 }
 
-func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error {
+func (b *localFileSystem) Pull(ctx context.Context, local, remote, exclude string) error {
 	grip.DebugWhen(b.verbose, message.Fields{
 		"type":          "local",
 		"operation":     "pull",
@@ -361,7 +376,17 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 		"bucket_prefix": b.prefix,
 		"remote":        remote,
 		"local":         local,
+		"exlude":        exclude,
 	})
+
+	var re *regexp.Regexp
+	var err error
+	if exclude != "" {
+		re, err = regexp.Compile(exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
 
 	prefix := filepath.Join(b.path, b.normalizeKey(remote))
 	files, err := walkLocalTree(ctx, prefix)
@@ -371,6 +396,10 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 
 	keys := []string{}
 	for _, fn := range files {
+		if re != nil && re.MatchString(fn) {
+			continue
+		}
+
 		keys = append(keys, fn)
 		path := filepath.Join(local, fn)
 		fn = filepath.Join(remote, fn)
