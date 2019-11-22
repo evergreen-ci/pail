@@ -1022,7 +1022,7 @@ func TestBucket(t *testing.T) {
 						require.NotNil(t, iter.Item())
 						count++
 					}
-					assert.Equal(t, 52, count)
+					assert.Equal(t, 2, count)
 
 					assert.NoError(t, bucket.Push(ctx, opts))
 					iter, err = bucket.List(ctx, "baz")
