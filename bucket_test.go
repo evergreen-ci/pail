@@ -761,7 +761,7 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("PullFromBucket", func(t *testing.T) {
 				data := map[string]string{}
-				for i := 0; i < 100; i++ {
+				for i := 0; i < 50; i++ {
 					data[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 				}
 
@@ -777,7 +777,7 @@ func TestBucket(t *testing.T) {
 					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
-					require.Len(t, files, 100)
+					require.Len(t, files, 50)
 
 					if !strings.Contains(impl.name, "GridFS") {
 						for _, fn := range files {
@@ -794,7 +794,7 @@ func TestBucket(t *testing.T) {
 					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
-					require.Len(t, files, 100)
+					require.Len(t, files, 50)
 
 					if !strings.Contains(impl.name, "GridFS") {
 						for _, fn := range files {
@@ -814,7 +814,7 @@ func TestBucket(t *testing.T) {
 					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
-					require.Len(t, files, 102)
+					require.Len(t, files, 52)
 
 					if !strings.Contains(impl.name, "GridFS") {
 						for _, fn := range files {
@@ -833,7 +833,7 @@ func TestBucket(t *testing.T) {
 					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err = walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
-					require.Len(t, files, 100)
+					require.Len(t, files, 50)
 
 					if !strings.Contains(impl.name, "GridFS") {
 						for _, fn := range files {
@@ -858,7 +858,7 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, bucket.Pull(ctx, opts))
 					files, err := walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
-					require.Len(t, files, 102)
+					require.Len(t, files, 52)
 					setDryRun(bucket, false)
 					require.NoError(t, os.RemoveAll(mirror))
 
@@ -871,7 +871,7 @@ func TestBucket(t *testing.T) {
 					assert.NoError(t, bucket.Pull(ctx, opts))
 					files, err = walkLocalTree(ctx, mirror)
 					require.NoError(t, err)
-					assert.Len(t, files, 100)
+					assert.Len(t, files, 50)
 					setDeleteOnSync(bucket, false)
 				})
 				t.Run("LargePull", func(t *testing.T) {
@@ -904,7 +904,7 @@ func TestBucket(t *testing.T) {
 			t.Run("PushToBucket", func(t *testing.T) {
 				prefix := filepath.Join(tempdir, newUUID())
 				filenames := map[string]bool{}
-				for i := 0; i < 100; i++ {
+				for i := 0; i < 50; i++ {
 					fn := newUUID()
 					filenames[fn] = true
 					require.NoError(t, writeDataToDisk(prefix,
@@ -924,7 +924,7 @@ func TestBucket(t *testing.T) {
 						counter++
 					}
 					assert.NoError(t, iter.Err())
-					assert.Equal(t, 100, counter)
+					assert.Equal(t, 50, counter)
 				})
 				t.Run("ShortPrefix", func(t *testing.T) {
 					remotePrefix := "foo"
@@ -941,7 +941,7 @@ func TestBucket(t *testing.T) {
 						counter++
 					}
 					assert.NoError(t, iter.Err())
-					assert.Equal(t, 100, counter)
+					assert.Equal(t, 50, counter)
 				})
 				t.Run("DryRunBucketDoesNotPush", func(t *testing.T) {
 					remotePrefix := "bar"
@@ -981,7 +981,7 @@ func TestBucket(t *testing.T) {
 						counter++
 					}
 					assert.NoError(t, iter.Err())
-					assert.Equal(t, 102, counter)
+					assert.Equal(t, 52, counter)
 
 					remotePrefix = "excludes"
 					opts.Remote = remotePrefix
@@ -997,7 +997,7 @@ func TestBucket(t *testing.T) {
 						counter++
 					}
 					assert.NoError(t, iter.Err())
-					assert.Equal(t, 100, counter)
+					assert.Equal(t, 50, counter)
 
 					require.NoError(t, os.RemoveAll(filepath.Join(prefix, "python.py")))
 					require.NoError(t, os.RemoveAll(filepath.Join(prefix, "python2.py")))
@@ -1022,7 +1022,7 @@ func TestBucket(t *testing.T) {
 						require.NotNil(t, iter.Item())
 						count++
 					}
-					assert.Equal(t, 2, count)
+					assert.Equal(t, 52, count)
 
 					assert.NoError(t, bucket.Push(ctx, opts))
 					iter, err = bucket.List(ctx, "baz")
@@ -1032,7 +1032,7 @@ func TestBucket(t *testing.T) {
 						require.NotNil(t, iter.Item())
 						count++
 					}
-					assert.Equal(t, 100, count)
+					assert.Equal(t, 50, count)
 
 					setDeleteOnSync(bucket, false)
 				})
