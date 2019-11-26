@@ -55,6 +55,7 @@ functions:
       silent: true
       working_dir: gopath/src/github.com/evergreen-ci/pail
       env:
+        WORK_DIR: ${workdir}
         AWS_KEY: ${aws_key}
         AWS_SECRET: ${aws_secret}
       command: bash scripts/setup-credentials.sh
@@ -70,7 +71,7 @@ functions:
         DISABLE_COVERAGE: ${disable_coverage}
         GOROOT: ${goroot}
         GOPATH: ${workdir}/gopath
-        USERPROFILE: C:\\Users\\Administrator
+        USERPROFILE: ${workdir}
         AWS_KEY: ${aws_key}
         AWS_SECRET: ${aws_secret}
         RACE_DETECTOR: ${race_detector}
