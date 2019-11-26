@@ -14,6 +14,7 @@ endif
 gopath := $(GOPATH)
 ifeq ($(OS),Windows_NT)
 gopath := $(shell cygpath -m $(gopath))
+userProfile := $(shell cygpath -m $(USERPROFILE))
 endif
 goEnv := GOPATH=$(gopath) $(if ${GO_BIN_PATH},PATH="$(shell dirname ${GO_BIN_PATH}):${PATH}")
 # end environment setup
@@ -63,6 +64,7 @@ ifneq (,$(RUN_TEST))
 testArgs += -run='$(RUN_TEST)'
 endif
 ifneq (,$(RUN_COUNT))
+  WORK_DIR: ${workdir}
 testArgs += -count='$(RUN_COUNT)'
 endif
 ifneq (,$(SKIP_LONG))
@@ -84,12 +86,15 @@ endif
 $(buildDir)/:
 	mkdir -p $@
 $(buildDir)/output.%.test:$(buildDir)/ .FORCE
+	export USERPROFILE=$(userProfile)
 	$(goEnv) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$*,) | tee $@
 	@! grep -s -q -e "^FAIL" $@ && ! grep -s -q "^WARNING: DATA RACE" $@
 $(buildDir)/output.test:$(buildDir)/ .FORCE
+	export USERPROFILE=$(userProfile)
 	$(goEnv) $(gobin) test $(testArgs) ./... | tee $@
 	@! grep -s -q -e "^FAIL" $@ && ! grep -s -q "^WARNING: DATA RACE" $@
 $(buildDir)/output.%.coverage:$(buildDir)/ .FORCE
+	export USERPROFILE=$(userProfile)
 	$(goEnv) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$*,) -covermode=count -coverprofile $@ | tee $(buildDir)/output.$*.test
 	@-[ -f $@ ] && $(goEnv) $(gobin) tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage
@@ -108,6 +113,7 @@ compile:
 	$(goEnv) $(gobin) build ./
 test:$(buildDir)/test.out
 $(buildDir)/test.out:.FORCE
+	export USERPROFILE=$(userProfile)
 	@mkdir -p $(buildDir)
 	$(goEnv) $(gobin) test $(testArgs) ./ | tee $@
 	@grep -s -q -e "^PASS" $@
@@ -128,6 +134,7 @@ phony += lint lint-deps build build-race race test coverage coverage-html
 $(buildDir):$(srcFiles) compile
 	@mkdir -p $@
 $(buildDir)/cover.out:$(buildDir) $(testFiles) .FORCE
+	export USERPROFILE=$(userProfile)
 	$(goEnv) $(gobin) test $(testArgs) -covermode=count -coverprofile $@ -cover ./
 $(buildDir)/cover.html:$(buildDir)/cover.out
 	$(goEnv) $(gobin) tool cover -html=$< -o $@
