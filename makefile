@@ -1,6 +1,7 @@
 buildDir := build
 srcFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "*\#*")
 testFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -path "*\#*")
+projectPath := github.com/evergreen-ci/pail
 
 packages := pail
 
@@ -111,7 +112,7 @@ $(buildDir)/test.out:.FORCE
 	$(goEnv) $(gobin) test $(testArgs) ./ | tee $@
 	@grep -s -q -e "^PASS" $@
 coverage:$(buildDir)/cover.out
-	$(goEnv) @$(gobin) tool cover -func=$< | sed -E 's%github.com/.*/ftdc/%%' | column -t
+	$(goEnv) @$(gobin) tool cover -func=$< | sed -E 's%$(projectPath)/%%' | column -t
 coverage-html:$(buildDir)/cover.html
 
 benchmark:
