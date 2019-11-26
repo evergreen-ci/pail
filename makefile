@@ -112,7 +112,7 @@ $(buildDir)/test.out:.FORCE
 	$(goEnv) $(gobin) test $(testArgs) ./ | tee $@
 	@grep -s -q -e "^PASS" $@
 coverage:$(buildDir)/cover.out
-	$(goEnv) @$(gobin) tool cover -func=$< | sed -E 's%$(projectPath)/%%' | column -t
+	@$(goEnv) $(gobin) tool cover -func=$< | sed -E 's%$(projectPath)/%%' | column -t
 coverage-html:$(buildDir)/cover.html
 
 benchmark:
