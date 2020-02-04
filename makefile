@@ -147,6 +147,8 @@ vendor-clean:
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/stretchr
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/davecgh
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/montanaflynn
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/errors
 phony += vendor-clean
 
 # mongodb utility targets

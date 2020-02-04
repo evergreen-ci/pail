@@ -6,11 +6,7 @@ import (
 	"github.com/shirou/gopsutil/internal/common"
 )
 
-var invoke common.Invoker
-
-func init() {
-	invoke = common.Invoke{}
-}
+var invoke common.Invoker = common.Invoke{}
 
 // A HostInfoStat describes the host status.
 // This is not in the psutil but it useful.
@@ -24,6 +20,7 @@ type InfoStat struct {
 	PlatformFamily       string `json:"platformFamily" bson:"platformFamily,omitempty"`   // ex: debian, rhel
 	PlatformVersion      string `json:"platformVersion" bson:"platformVersion,omitempty"` // version of the complete OS
 	KernelVersion        string `json:"kernelVersion" bson:"kernelVersion,omitempty"`     // version of the OS kernel (if available)
+	KernelArch           string `json:"kernelArch" bson:"kernelArch,omitempty"`           // native cpu architecture queried at runtime, as returned by `uname -m` or empty string in case of error
 	VirtualizationSystem string `json:"virtualizationSystem" bson:"virtualizationSystem,omitempty"`
 	VirtualizationRole   string `json:"virtualizationRole" bson:"virtualizationRole,omitempty"` // guest or host
 	HostID               string `json:"hostid" bson:"hostid,omitempty"`                         // ex: uuid

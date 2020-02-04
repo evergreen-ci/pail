@@ -6,11 +6,7 @@ import (
 	"github.com/shirou/gopsutil/internal/common"
 )
 
-var invoke common.Invoker
-
-func init() {
-	invoke = common.Invoke{}
-}
+var invoke common.Invoker = common.Invoke{}
 
 type AvgStat struct {
 	Load1  float64 `json:"load1" bson:"load1,omitempty"`
@@ -24,6 +20,7 @@ func (l AvgStat) String() string {
 }
 
 type MiscStat struct {
+	ProcsTotal   int `json:"procsTotal" bson:"procsTotal,omitempty"`
 	ProcsRunning int `json:"procsRunning" bson:"procsRunning,omitempty"`
 	ProcsBlocked int `json:"procsBlocked" bson:"procsBlocked,omitempty"`
 	Ctxt         int `json:"ctxt" bson:"ctxt,omitempty"`

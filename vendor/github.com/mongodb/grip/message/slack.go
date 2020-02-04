@@ -38,6 +38,8 @@ type SlackAttachment struct {
 
 	Fields     []*SlackAttachmentField `bson:"fields,omitempty" json:"fields,omitempty" yaml:"fields,omitempty"`
 	MarkdownIn []string                `bson:"mrkdwn_in,omitempty" json:"mrkdwn_in,omitempty" yaml:"mrkdwn_in,omitempty"`
+
+	Footer string `bson:"footer,omitempty" json:"footer,omitempty" yaml:"footer,omitempty"`
 }
 
 func (s *SlackAttachment) convert() *slack.Attachment {
@@ -163,7 +165,7 @@ func (c *slackMessage) Annotate(key string, data interface{}) error {
 		return errors.New("Annotate data must not be nil")
 	}
 	if len(c.raw.Attachments) == slackMaxAttachments {
-		return fmt.Errorf("Adding another Slack attachment would exceed maximum number of attachments, %d", slackMaxAttachments)
+		return fmt.Errorf("adding another Slack attachment would exceed maximum number of attachments, %d", slackMaxAttachments)
 	}
 
 	c.raw.Attachments = append(c.raw.Attachments, annotate.convert())

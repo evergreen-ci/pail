@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/mongodb/grip/level"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPopulatedMessageComposerConstructors(t *testing.T) {
@@ -34,7 +36,7 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		NewLineMessage(level.Error, testMsg):                                    testMsg,
 		MakeGroupComposer(NewString(testMsg)):                                   testMsg,
 		NewGroupComposer([]Composer{NewString(testMsg)}):                        testMsg,
-		MakeJiraMessage(JiraIssue{Summary: testMsg, Type: "Something"}):         testMsg,
+		MakeJiraMessage(&JiraIssue{Summary: testMsg, Type: "Something"}):        testMsg,
 		NewJiraMessage("", testMsg, JiraField{Key: "type", Value: "Something"}): testMsg,
 		NewFieldsMessage(level.Error, testMsg, Fields{}):                        fmt.Sprintf("[message='%s']", testMsg),
 		NewFields(level.Error, Fields{"test": testMsg}):                         fmt.Sprintf("[test='%s']", testMsg),
@@ -73,7 +75,7 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 
 		if strings.HasPrefix(output, "[") {
 			output = strings.Trim(output, "[]")
-			assert.True(strings.Contains(msg.String(), output))
+			assert.True(strings.Contains(msg.String(), output), fmt.Sprintf("%T: %s (%s)", msg, msg.String(), output))
 
 		} else {
 			// run the string test to make sure it doesn't change:
@@ -122,6 +124,7 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 		NewStackFormatted(1, ""),
 		MakeGroupComposer(),
 		&GroupComposer{},
+		&GoRuntimeInfo{},
 		When(false, ""),
 		Whenf(false, "", ""),
 		Whenln(false, "", ""),
@@ -139,41 +142,138 @@ func TestUnpopulatedMessageComposers(t *testing.T) {
 
 func TestDataCollecterComposerConstructors(t *testing.T) {
 	const testMsg = "hello"
-	assert := assert.New(t) // nolint
 	// map objects to output (prefix)
-	cases := map[Composer]string{
-		NewProcessInfo(level.Error, int32(os.Getpid()), testMsg): "",
-		NewSystemInfo(level.Error, testMsg):                      testMsg,
-		MakeSystemInfo(testMsg):                                  testMsg,
-		CollectProcessInfo(int32(1)):                             "",
-		CollectProcessInfoSelf():                                 "",
-		CollectSystemInfo():                                      "",
-		CollectGoStats():                                         "",
-	}
 
-	for msg, prefix := range cases {
-		assert.NotNil(msg)
-		assert.NotNil(msg.Raw())
-		assert.Implements((*Composer)(nil), msg)
-		assert.True(msg.Loggable())
-		assert.True(strings.HasPrefix(msg.String(), prefix), "%T: %s", msg, msg)
-	}
+	t.Run("Single", func(t *testing.T) {
+		for _, test := range []struct {
+			Name       string
+			Msg        Composer
+			Expected   string
+			ShouldSkip bool
+		}{
+			{
+				Name: "ProcessInfoCurrentProc",
+				Msg:  NewProcessInfo(level.Error, int32(os.Getpid()), testMsg),
+			},
+			{
+				Name:     "NewSystemInfo",
+				Msg:      NewSystemInfo(level.Error, testMsg),
+				Expected: testMsg,
+			},
 
-	multiCases := [][]Composer{
-		CollectProcessInfoSelfWithChildren(),
-		CollectProcessInfoWithChildren(int32(1)),
-		CollectAllProcesses(),
-	}
-
-	for _, group := range multiCases {
-		assert.True(len(group) >= 1)
-		for _, msg := range group {
-			assert.NotNil(msg)
-			assert.Implements((*Composer)(nil), msg)
-			assert.NotEqual("", msg.String())
-			assert.True(msg.Loggable())
+			{
+				Name:     "MakeSystemInfo",
+				Msg:      MakeSystemInfo(testMsg),
+				Expected: testMsg,
+			},
+			{
+				Name:       "CollectProcInfoPidOne",
+				Msg:        CollectProcessInfo(int32(1)),
+				ShouldSkip: runtime.GOOS == "windows",
+			},
+			{
+				Name: "CollectProcInfoSelf",
+				Msg:  CollectProcessInfoSelf(),
+			},
+			{
+				Name: "CollectSystemInfo",
+				Msg:  CollectSystemInfo(),
+			},
+			{
+				Name: "CollectBasicGoStats",
+				Msg:  CollectBasicGoStats(),
+			},
+			{
+				Name: "CollectGoStatsDeltas",
+				Msg:  CollectGoStatsDeltas(),
+			},
+			{
+				Name: "CollectGoStatsRates",
+				Msg:  CollectGoStatsRates(),
+			},
+			{
+				Name: "CollectGoStatsTotals",
+				Msg:  CollectGoStatsTotals(),
+			},
+			{
+				Name:     "MakeGoStatsDelta",
+				Msg:      MakeGoStatsDeltas(testMsg),
+				Expected: testMsg,
+			},
+			{
+				Name:     "MakeGoStatsRates",
+				Msg:      MakeGoStatsRates(testMsg),
+				Expected: testMsg,
+			},
+			{
+				Name:     "MakeGoStatsTotals",
+				Msg:      MakeGoStatsTotals(testMsg),
+				Expected: testMsg,
+			},
+			{
+				Name:     "NewGoStatsDeltas",
+				Msg:      NewGoStatsDeltas(level.Error, testMsg),
+				Expected: testMsg,
+			},
+			{
+				Name:     "NewGoStatsRates",
+				Msg:      NewGoStatsRates(level.Error, testMsg),
+				Expected: testMsg,
+			},
+			{
+				Name:     "NewGoStatsTotals",
+				Msg:      NewGoStatsTotals(level.Error, testMsg),
+				Expected: testMsg,
+			},
+		} {
+			if test.ShouldSkip {
+				continue
+			}
+			t.Run(test.Name, func(t *testing.T) {
+				assert.NotNil(t, test.Msg)
+				assert.NotNil(t, test.Msg.Raw())
+				assert.Implements(t, (*Composer)(nil), test.Msg)
+				assert.True(t, test.Msg.Loggable())
+				assert.True(t, strings.HasPrefix(test.Msg.String(), test.Expected), "%T: %s", test.Msg, test.Msg)
+			})
 		}
-	}
+	})
+
+	t.Run("Multi", func(t *testing.T) {
+		for _, test := range []struct {
+			Name       string
+			Group      []Composer
+			ShouldSkip bool
+		}{
+			{
+				Name:  "SelfWithChildren",
+				Group: CollectProcessInfoSelfWithChildren(),
+			},
+			{
+				Name:       "PidOneWithChildren",
+				Group:      CollectProcessInfoWithChildren(int32(1)),
+				ShouldSkip: runtime.GOOS == "windows",
+			},
+			{
+				Name:  "AllProcesses",
+				Group: CollectAllProcesses(),
+			},
+		} {
+			if test.ShouldSkip {
+				continue
+			}
+			t.Run(test.Name, func(t *testing.T) {
+				require.True(t, len(test.Group) >= 1)
+				for _, msg := range test.Group {
+					assert.NotNil(t, msg)
+					assert.Implements(t, (*Composer)(nil), msg)
+					assert.NotEqual(t, "", msg.String())
+					assert.True(t, msg.Loggable())
+				}
+			})
+
+		}
+	})
 }
 
 func TestStackMessages(t *testing.T) {
@@ -183,17 +283,17 @@ func TestStackMessages(t *testing.T) {
 	assert := assert.New(t) // nolint
 	// map objects to output (prefix)
 	cases := map[Composer]string{
-		NewStack(1, testMsg):                                       testMsg,
-		NewStackLines(1, testMsg):                                  testMsg,
-		NewStackLines(1):                                           "",
-		NewStackFormatted(1, "%s", testMsg):                        testMsg,
+		NewStack(1, testMsg):                testMsg,
+		NewStackLines(1, testMsg):           testMsg,
+		NewStackLines(1):                    "",
+		NewStackFormatted(1, "%s", testMsg): testMsg,
 		NewStackFormatted(1, string(testMsg[0])+"%s", testMsg[1:]): testMsg,
 
 		// with 0 frame
-		NewStack(0, testMsg):                                       testMsg,
-		NewStackLines(0, testMsg):                                  testMsg,
-		NewStackLines(0):                                           "",
-		NewStackFormatted(0, "%s", testMsg):                        testMsg,
+		NewStack(0, testMsg):                testMsg,
+		NewStackLines(0, testMsg):           testMsg,
+		NewStackLines(0):                    "",
+		NewStackFormatted(0, "%s", testMsg): testMsg,
 		NewStackFormatted(0, string(testMsg[0])+"%s", testMsg[1:]): testMsg,
 	}
 
@@ -271,7 +371,7 @@ func TestJiraMessageComposerConstructor(t *testing.T) {
 	labelsField := JiraField{Key: "Labels", Value: []string{"Soul", "Pop"}}
 	unknownField := JiraField{Key: "Artist", Value: "Adele"}
 	msg := NewJiraMessage("project", testMsg, reporterField, assigneeField, typeField, labelsField, unknownField)
-	issue := msg.Raw().(JiraIssue)
+	issue := msg.Raw().(*JiraIssue)
 
 	assert.Equal(issue.Project, "project")
 	assert.Equal(issue.Summary, testMsg)
@@ -300,7 +400,9 @@ func TestProcessTreeDoesNotHaveDuplicates(t *testing.T) {
 func TestJiraIssueAnnotationOnlySupportsStrings(t *testing.T) {
 	assert := assert.New(t) // nolint
 
-	m := &jiraMessage{}
+	m := &jiraMessage{
+		issue: &JiraIssue{},
+	}
 
 	assert.Error(m.Annotate("k", 1))
 	assert.Error(m.Annotate("k", true))

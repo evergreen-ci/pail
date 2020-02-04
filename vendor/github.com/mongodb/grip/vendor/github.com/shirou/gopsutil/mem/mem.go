@@ -6,11 +6,7 @@ import (
 	"github.com/shirou/gopsutil/internal/common"
 )
 
-var invoke common.Invoker
-
-func init() {
-	invoke = common.Invoke{}
-}
+var invoke common.Invoker = common.Invoke{}
 
 // Memory usage statistics. Total, Available and Used contain numbers of bytes
 // for human consumption.
@@ -46,18 +42,40 @@ type VirtualMemoryStat struct {
 	Inactive uint64 `json:"inactive" bson:"inactive,omitempty"`
 	Wired    uint64 `json:"wired" bson:"wired,omitempty"`
 
+	// FreeBSD specific numbers:
+	// https://reviews.freebsd.org/D8467
+	Laundry uint64 `json:"laundry" bson:"laundry,omitempty"`
+
 	// Linux specific numbers
 	// https://www.centos.org/docs/5/html/5.1/Deployment_Guide/s2-proc-meminfo.html
 	// https://www.kernel.org/doc/Documentation/filesystems/proc.txt
-	Buffers      uint64 `json:"buffers" bson:"buffers,omitempty"`
-	Cached       uint64 `json:"cached" bson:"cached,omitempty"`
-	Writeback    uint64 `json:"writeback" bson:"writeback,omitempty"`
-	Dirty        uint64 `json:"dirty" bson:"dirty,omitempty"`
-	WritebackTmp uint64 `json:"writebacktmp" bson:"writebacktmp,omitempty"`
-	Shared       uint64 `json:"shared" bson:"shared,omitempty"`
-	Slab         uint64 `json:"slab" bson:"slab,omitempty"`
-	PageTables   uint64 `json:"pagetables" bson:"pagetables,omitempty"`
-	SwapCached   uint64 `json:"swapcached" bson:"swapcached,omitempty"`
+	// https://www.kernel.org/doc/Documentation/vm/overcommit-accounting
+	Buffers        uint64 `json:"buffers" bson:"buffers,omitempty"`
+	Cached         uint64 `json:"cached" bson:"cached,omitempty"`
+	Writeback      uint64 `json:"writeback" bson:"writeback,omitempty"`
+	Dirty          uint64 `json:"dirty" bson:"dirty,omitempty"`
+	WritebackTmp   uint64 `json:"writebacktmp" bson:"writebacktmp,omitempty"`
+	Shared         uint64 `json:"shared" bson:"shared,omitempty"`
+	Slab           uint64 `json:"slab" bson:"slab,omitempty"`
+	SReclaimable   uint64 `json:"sreclaimable" bson:"sreclaimable,omitempty"`
+	SUnreclaim     uint64 `json:"sunreclaim" bson:"sunreclaim,omitempty"`
+	PageTables     uint64 `json:"pagetables" bson:"pagetables,omitempty"`
+	SwapCached     uint64 `json:"swapcached" bson:"swapcached,omitempty"`
+	CommitLimit    uint64 `json:"commitlimit" bson:"commitlimit,omitempty"`
+	CommittedAS    uint64 `json:"committedas" bson:"committedas,omitempty"`
+	HighTotal      uint64 `json:"hightotal" bson:"hightotal,omitempty"`
+	HighFree       uint64 `json:"highfree" bson:"highfree,omitempty"`
+	LowTotal       uint64 `json:"lowtotal" bson:"lowtotal,omitempty"`
+	LowFree        uint64 `json:"lowfree" bson:"lowfree,omitempty"`
+	SwapTotal      uint64 `json:"swaptotal" bson:"swaptotal,omitempty"`
+	SwapFree       uint64 `json:"swapfree" bson:"swapfree,omitempty"`
+	Mapped         uint64 `json:"mapped" bson:"mapped,omitempty"`
+	VMallocTotal   uint64 `json:"vmalloctotal" bson:"vmalloctotal,omitempty"`
+	VMallocUsed    uint64 `json:"vmallocused" bson:"vmallocused,omitempty"`
+	VMallocChunk   uint64 `json:"vmallocchunk" bson:"vmallocchunk,omitempty"`
+	HugePagesTotal uint64 `json:"hugepagestotal" bson:"hugepagestotal,omitempty"`
+	HugePagesFree  uint64 `json:"hugepagesfree" bson:"hugepagesfree,omitempty"`
+	HugePageSize   uint64 `json:"hugepagesize" bson:"hugepagesize,omitempty"`
 }
 
 type SwapMemoryStat struct {
@@ -67,6 +85,9 @@ type SwapMemoryStat struct {
 	UsedPercent float64 `json:"usedPercent" bson:"usedPercent,omitempty"`
 	Sin         uint64  `json:"sin" bson:"sin,omitempty"`
 	Sout        uint64  `json:"sout" bson:"sout,omitempty"`
+	PgIn        uint64  `json:"pgin" bson:"pgin,omitempty"`
+	PgOut       uint64  `json:"pgout" bson:"pgout,omitempty"`
+	PgFault     uint64  `json:"pgfault" bson:"pgfault,omitempty"`
 }
 
 func (m VirtualMemoryStat) String() string {
