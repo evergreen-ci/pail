@@ -17,7 +17,8 @@ type localFileSystem struct {
 	path         string
 	prefix       string
 	dryRun       bool
-	deleteOnSync bool
+	deleteOnPush bool
+	deleteOnPull bool
 	verbose      bool
 }
 
@@ -27,6 +28,8 @@ type LocalOptions struct {
 	Prefix       string
 	DryRun       bool
 	DeleteOnSync bool
+	DeleteOnPush bool
+	DeleteOnPull bool
 	Verbose      bool
 }
 
@@ -45,7 +48,8 @@ func NewLocalBucket(opts LocalOptions) (Bucket, error) {
 		path:         opts.Path,
 		prefix:       opts.Prefix,
 		dryRun:       opts.DryRun,
-		deleteOnSync: opts.DeleteOnSync,
+		deleteOnPush: opts.DeleteOnPush || opts.DeleteOnSync,
+		deleteOnPull: opts.DeleteOnPull || opts.DeleteOnSync,
 	}
 	if err := b.Check(context.TODO()); err != nil {
 		return nil, errors.WithStack(err)
@@ -64,7 +68,13 @@ func NewLocalTemporaryBucket(opts LocalOptions) (Bucket, error) {
 		return nil, errors.Wrap(err, "problem creating temporary directory")
 	}
 
-	return &localFileSystem{path: dir, prefix: opts.Prefix, dryRun: opts.DryRun, deleteOnSync: opts.DeleteOnSync}, nil
+	return &localFileSystem{
+		path:         dir,
+		prefix:       opts.Prefix,
+		dryRun:       opts.DryRun,
+		deleteOnPush: opts.DeleteOnPush || opts.DeleteOnSync,
+		deleteOnPull: opts.DeleteOnPull || opts.DeleteOnSync,
+	}, nil
 }
 
 func (b *localFileSystem) Check(_ context.Context) error {
@@ -362,7 +372,7 @@ func (b *localFileSystem) Push(ctx context.Context, opts SyncOptions) error {
 		}
 	}
 
-	if b.deleteOnSync && !b.dryRun {
+	if b.deleteOnPush && !b.dryRun {
 		return errors.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "problem with delete on sync after push")
 	}
 	return nil
@@ -427,7 +437,7 @@ func (b *localFileSystem) Pull(ctx context.Context, opts SyncOptions) error {
 		}
 	}
 
-	if b.deleteOnSync && !b.dryRun {
+	if b.deleteOnPull && !b.dryRun {
 		return errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "problem with delete on sync after pull")
 	}
 	return nil

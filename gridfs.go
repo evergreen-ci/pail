@@ -28,6 +28,8 @@ type GridFSOptions struct {
 	MongoDBURI   string
 	DryRun       bool
 	DeleteOnSync bool
+	DeleteOnPush bool
+	DeleteOnPull bool
 	Verbose      bool
 }
 
@@ -286,7 +288,7 @@ func (b *gridfsBucket) Push(ctx context.Context, opts SyncOptions) error {
 		}
 	}
 
-	if b.opts.DeleteOnSync && !b.opts.DryRun {
+	if (b.opts.DeleteOnPush || b.opts.DeleteOnSync) && !b.opts.DryRun {
 		return errors.Wrap(deleteOnPush(ctx, localPaths, opts.Remote, b), "problem with delete on sync after push")
 	}
 
@@ -339,7 +341,7 @@ func (b *gridfsBucket) Pull(ctx context.Context, opts SyncOptions) error {
 		return errors.WithStack(err)
 	}
 
-	if b.opts.DeleteOnSync && !b.opts.DryRun {
+	if (b.opts.DeleteOnPull || b.opts.DeleteOnSync) && !b.opts.DryRun {
 		return errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "problem with delete on sync after pull")
 	}
 
