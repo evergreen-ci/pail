@@ -41,14 +41,18 @@ type ParallelBucketOptions struct {
 
 // NewParallelSyncBucket returns a layered bucket implemenation that supports
 // parallel sync operations.
-func NewParallelSyncBucket(opts ParallelBucketOptions, b Bucket) Bucket {
+func NewParallelSyncBucket(opts ParallelBucketOptions, b Bucket) (Bucket, error) {
+	if (opts.DeleteOnPush != opts.DeleteOnPull) && opts.DeleteOnSync {
+		return nil, errors.New("ambiguous delete on sync options set")
+	}
+
 	return &parallelBucketImpl{
 		size:         opts.Workers,
 		deleteOnPush: opts.DeleteOnPush || opts.DeleteOnSync,
 		deleteOnPull: opts.DeleteOnPull || opts.DeleteOnSync,
 		dryRun:       opts.DryRun,
 		Bucket:       b,
-	}
+	}, nil
 }
 
 func (b *parallelBucketImpl) Push(ctx context.Context, opts SyncOptions) error {

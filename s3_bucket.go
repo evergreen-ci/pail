@@ -154,6 +154,10 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		}
 	}
 
+	if (options.DeleteOnPush != options.DeleteOnPull) && options.DeleteOnSync {
+		return nil, errors.New("ambiguous delete on sync options set")
+	}
+
 	config := &aws.Config{
 		Region:     aws.String(options.Region),
 		HTTPClient: client,

@@ -33,6 +33,14 @@ type GridFSOptions struct {
 	Verbose      bool
 }
 
+func (o *GridFSOptions) validate() error {
+	if (o.DeleteOnPush != o.DeleteOnPull) && o.DeleteOnSync {
+		return errors.New("ambiguous delete on sync options set")
+	}
+
+	return nil
+}
+
 type gridfsBucket struct {
 	opts   GridFSOptions
 	client *mongo.Client
@@ -61,6 +69,9 @@ func NewGridFSBucketWithClient(ctx context.Context, client *mongo.Client, opts G
 		return NewGridFSBucket(ctx, opts)
 	}
 
+	if err := opts.validate(); err != nil {
+		return nil, err
+	}
 	return &gridfsBucket{opts: opts, client: client}, nil
 }
 
@@ -68,6 +79,10 @@ func NewGridFSBucketWithClient(ctx context.Context, client *mongo.Client, opts G
 // driver, creating a new client and connecting to the URI.
 // Use the Check method to verify that this bucket ise operationsal.
 func NewGridFSBucket(ctx context.Context, opts GridFSOptions) (Bucket, error) {
+	if err := opts.validate(); err != nil {
+		return nil, err
+	}
+
 	client, err := mongo.NewClient(options.Client().ApplyURI(opts.MongoDBURI))
 	if err != nil {
 		return nil, errors.Wrap(err, "problem constructing client")

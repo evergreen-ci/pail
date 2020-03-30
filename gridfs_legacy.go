@@ -42,6 +42,10 @@ func (b *gridfsLegacyBucket) denormalizeKey(key string) string {
 // Mgo in general does not offer rich support for contexts, so
 // cancellation may not be robust.
 func NewLegacyGridFSBucket(opts GridFSOptions) (Bucket, error) {
+	if err := opts.validate(); err != nil {
+		return nil, err
+	}
+
 	if opts.MongoDBURI == "" {
 		return nil, errors.New("cannot create a new bucket without a URI")
 	}
@@ -69,6 +73,9 @@ func NewLegacyGridFSBucketWithSession(s *mgo.Session, opts GridFSOptions) (Bucke
 		return b, errors.WithStack(err)
 	}
 
+	if err := opts.validate(); err != nil {
+		return nil, err
+	}
 	return &gridfsLegacyBucket{
 		opts:    opts,
 		session: s,
