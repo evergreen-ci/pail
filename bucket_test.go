@@ -1142,17 +1142,21 @@ func setDryRun(b Bucket, set bool) {
 func setDeleteOnSync(b Bucket, set bool) {
 	switch i := b.(type) {
 	case *localFileSystem:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 	case *gridfsLegacyBucket:
 		i.opts.DeleteOnSync = set
 	case *s3BucketSmall:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 	case *s3BucketLarge:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 	case *gridfsBucket:
 		i.opts.DeleteOnSync = set
 	case *parallelBucketImpl:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 		setDeleteOnSync(i.Bucket, set)
 	}
 }
