@@ -273,7 +273,9 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, os.MkdirAll(path, 0777))
 				bucket := &localFileSystem{path: path}
 
-				return NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, bucket)
+				b, err := NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, bucket)
+				require.NoError(t, err)
+				return b
 			},
 		},
 		{
@@ -288,7 +290,10 @@ func TestBucket(t *testing.T) {
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
-				return NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, b)
+
+				b, err = NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, b)
+				require.NoError(t, err)
+				return b
 			},
 		},
 		{
@@ -1142,17 +1147,21 @@ func setDryRun(b Bucket, set bool) {
 func setDeleteOnSync(b Bucket, set bool) {
 	switch i := b.(type) {
 	case *localFileSystem:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 	case *gridfsLegacyBucket:
 		i.opts.DeleteOnSync = set
 	case *s3BucketSmall:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 	case *s3BucketLarge:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 	case *gridfsBucket:
 		i.opts.DeleteOnSync = set
 	case *parallelBucketImpl:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 		setDeleteOnSync(i.Bucket, set)
 	}
 }
