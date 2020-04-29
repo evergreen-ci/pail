@@ -139,6 +139,9 @@ func (b *localFileSystem) Reader(_ context.Context, name string) (io.ReadCloser,
 	path := filepath.Join(b.path, b.normalizeKey(name))
 	f, err := os.Open(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			err = MakeKeyNotFoundError(err)
+		}
 		return nil, errors.Wrapf(err, "problem opening file '%s'", path)
 	}
 
@@ -283,8 +286,11 @@ func (b *localFileSystem) Remove(ctx context.Context, key string) error {
 	}
 
 	path := filepath.Join(b.path, b.normalizeKey(key))
-
-	return errors.Wrapf(os.Remove(path), "problem removing path %s", path)
+	err := os.Remove(path)
+	if os.IsNotExist(err) {
+		err = MakeKeyNotFoundError(err)
+	}
+	return errors.Wrapf(err, "problem removing path %s", path)
 }
 
 func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error {

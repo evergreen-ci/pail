@@ -622,6 +622,9 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 
 	result, err := s.svc.GetObjectWithContext(ctx, input)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchKey {
+			err = MakeKeyNotFoundError(err)
+		}
 		return nil, err
 	}
 	return result.Body, nil
