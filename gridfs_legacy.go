@@ -113,6 +113,9 @@ func (b *gridfsLegacyBucket) openFile(ctx context.Context, name string, create b
 		file, err = gridfs.Open(normalizedName)
 	}
 	if err != nil {
+		if err == mgo.ErrNotFound {
+			err = MakeKeyNotFoundError(err)
+		}
 		ses.Close()
 		return nil, errors.Wrapf(err, "couldn't open %s/%s", b.opts.Name, normalizedName)
 	}
@@ -427,7 +430,12 @@ func (b *gridfsLegacyBucket) Remove(ctx context.Context, key string) error {
 	if b.opts.DryRun {
 		return nil
 	}
-	return errors.Wrapf(b.gridFS().Remove(b.normalizeKey(key)), "problem removing file %s", key)
+
+	err := b.gridFS().Remove(b.normalizeKey(key))
+	if err == mgo.ErrNotFound {
+		err = MakeKeyNotFoundError(err)
+	}
+	return errors.Wrapf(err, "problem removing file %s", key)
 }
 
 func (b *gridfsLegacyBucket) RemoveMany(ctx context.Context, keys ...string) error {
