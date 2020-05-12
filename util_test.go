@@ -118,12 +118,11 @@ func TestTarFile(t *testing.T) {
 		"CreatesTarWithSingleFile": func(t *testing.T, dir string) {
 			fileName := "foo.txt"
 			fileContent := "bar"
-			absPath := filepath.Join(dir, fileName)
-			require.NoError(t, ioutil.WriteFile(absPath, []byte(fileContent), 0777))
+			require.NoError(t, ioutil.WriteFile(filepath.Join(dir, fileName), []byte(fileContent), 0777))
 
 			b := &bytes.Buffer{}
 			tw := tar.NewWriter(b)
-			require.NoError(t, tarFile(tw, dir, absPath))
+			require.NoError(t, tarFile(tw, dir, fileName))
 
 			tr := tar.NewReader(b)
 			header, err := tr.Next()
@@ -145,7 +144,7 @@ func TestTarFile(t *testing.T) {
 
 			b := &bytes.Buffer{}
 			tw := tar.NewWriter(b)
-			require.NoError(t, tarFile(tw, dir, absPath))
+			require.NoError(t, tarFile(tw, dir, subDirName))
 
 			tr := tar.NewReader(b)
 			header, err := tr.Next()
@@ -162,7 +161,7 @@ func TestTarFile(t *testing.T) {
 
 			b := &bytes.Buffer{}
 			tw := tar.NewWriter(b)
-			require.NoError(t, tarFile(tw, dir, absPath))
+			require.NoError(t, tarFile(tw, dir, relFilePath))
 
 			tr := tar.NewReader(b)
 			header, err := tr.Next()

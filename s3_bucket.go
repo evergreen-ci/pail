@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -225,8 +224,6 @@ func NewS3BucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, 
 	return &s3BucketSmall{s3Bucket: *bucket}, nil
 }
 
-const defaultMinPartSize = 1024 * 1024 * 5
-
 // NewS3MultiPartBucket returns a Bucket implementation backed by S3
 // that supports multipart uploads for large objects.
 func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
@@ -235,7 +232,7 @@ func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
 		return nil, err
 	}
 	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
-	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: defaultMinPartSize}, nil
+	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 1024 * 1024 * 5}, nil
 }
 
 // NewS3MultiPartBucketWithHTTPClient returns a Bucket implementation backed
@@ -247,7 +244,7 @@ func NewS3MultiPartBucketWithHTTPClient(client *http.Client, options S3Options) 
 		return nil, err
 	}
 	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
-	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: defaultMinPartSize}, nil
+	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 1024 * 1024 * 5}, nil
 }
 
 func (s *s3Bucket) String() string { return s.name }
@@ -1203,6 +1200,8 @@ func newS3ArchiveBucketWithMultiPart(bucket Bucket, options S3Options) (Bucket, 
 	return &s3ArchiveBucket{s3BucketLarge: largeBucket}, nil
 }
 
+const syncArchiveName = "archive.tar"
+
 func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",
@@ -1229,16 +1228,16 @@ func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 		return errors.WithStack(err)
 	}
 
-	target := consistentJoin(opts.Remote, fmt.Sprintf("%s.tar", opts.Local))
+	target := consistentJoin(opts.Remote, syncArchiveName)
 	s3Writer, err := s.Writer(ctx, target)
 	if err != nil {
 		return errors.Wrap(err, "creating writer")
 	}
+	defer s3Writer.Close()
 
 	tarWriter := tar.NewWriter(s3Writer)
 	defer tarWriter.Close()
 
-	base := opts.Local
 	for _, fn := range files {
 		if re != nil && re.MatchString(fn) {
 			continue
@@ -1247,7 +1246,7 @@ func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 		file := filepath.Join(opts.Local, fn)
 		// We can't compare the checksum without processing all the local
 		// matched files as a tar stream, so just upload it unconditionally.
-		if err := tarFile(tarWriter, base, fn); err != nil {
+		if err := tarFile(tarWriter, opts.Local, fn); err != nil {
 			return errors.Wrap(err, file)
 		}
 	}
@@ -1275,7 +1274,7 @@ func (s *s3ArchiveBucket) Pull(ctx context.Context, opts SyncOptions) error {
 		}
 	}
 
-	target := consistentJoin(opts.Remote, fmt.Sprintf("%s.tar", opts.Local))
+	target := consistentJoin(opts.Remote, syncArchiveName)
 	reader, err := s.Get(ctx, target)
 	if err != nil {
 		return errors.WithStack(err)

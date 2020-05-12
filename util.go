@@ -187,21 +187,44 @@ func deleteOnPull(ctx context.Context, sourceFiles []string, local string) error
 // The archive/unarchive functions below are modified version of the same
 // functions from github.com/mholt/archiver.
 
-func tarFile(tarWriter *tar.Writer, dir, path string) error {
-	if !strings.HasPrefix(path, dir) {
-		return errors.Errorf("cannot archive file outside the directory %s", dir)
-	}
-	relPath, err := filepath.Rel(dir, path)
-	if err != nil {
-		return errors.Wrap(err, "getting relative path")
+func tarFile(tarWriter *tar.Writer, dir, relPath string) error {
+	var absPath string
+	if filepath.IsAbs(relPath) {
+		if !strings.HasPrefix(relPath, dir) {
+			return errors.Errorf("cannot specify absolute path to file that is not within directory %s", dir)
+		}
+		absPath = relPath
+		var err error
+		relPath, err = filepath.Rel(dir, relPath)
+		if err != nil {
+			return errors.Wrap(err, "getting relative path")
+		}
+	} else {
+		absPath = filepath.Join(dir, relPath)
 	}
 
-	info, err := os.Stat(path)
+	info, err := os.Stat(absPath)
 	if err != nil {
-		return errors.Wrapf(err, "stat %s", path)
+		return errors.Wrapf(err, "stat %s", absPath)
 	}
 
-	header, err := tar.FileInfoHeader(info, path)
+	var file *os.File
+	if info.Mode().IsRegular() {
+		file, err = os.Open(absPath)
+		if err != nil {
+			return errors.Wrap(err, "opening file")
+		}
+		defer file.Close()
+	}
+	if err := addToTar(tarWriter, info, file, absPath, relPath); err != nil {
+		return errors.Wrap(err, "adding file to archive")
+	}
+
+	return nil
+}
+
+func addToTar(tarWriter *tar.Writer, info os.FileInfo, content io.Reader, absPath, relPath string) error {
+	header, err := tar.FileInfoHeader(info, absPath)
 	if err != nil {
 		return errors.Wrap(err, "creating header")
 	}
@@ -217,17 +240,10 @@ func tarFile(tarWriter *tar.Writer, dir, path string) error {
 	}
 
 	if header.Typeflag == tar.TypeReg {
-		file, err := os.Open(path)
-		if err != nil {
-			return errors.Wrap(err, "opening file")
-		}
-		defer file.Close()
-
-		if _, err := io.CopyN(tarWriter, file, info.Size()); err != nil && err != io.EOF {
+		if _, err := io.CopyN(tarWriter, content, info.Size()); err != nil && err != io.EOF {
 			return errors.Wrap(err, "archiving contents")
 		}
 	}
-
 	return nil
 }
 
@@ -240,7 +256,7 @@ func untar(tarReader *tar.Reader, destination string, exclude *regexp.Regexp) er
 		if err != nil {
 			return err
 		}
-		if exclude.MatchString(header.Name) {
+		if exclude != nil && exclude.MatchString(header.Name) {
 			continue
 		}
 

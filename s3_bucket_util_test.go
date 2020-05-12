@@ -589,6 +589,29 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 	}
 }
 
+// TODO: write archive-specific tests for push/pull.
+func getS3ArchiveBucketTests() []bucketTestCase {
+	return []bucketTestCase{
+		{
+			id: "RoundTripPushAndPull",
+			test: func(t *testing.T, b Bucket) {
+			},
+		},
+		{
+			id: "PushWithExclude",
+			test: func(t *testing.T, b Bucket) {
+
+			},
+		},
+		{
+			id: "PullWithExclude",
+			test: func(t *testing.T, b Bucket) {
+
+			},
+		},
+	}
+}
+
 func cleanUpS3Bucket(name, prefix, region string) error {
 	svc, err := createS3Client(region)
 	if err != nil {

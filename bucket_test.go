@@ -1,6 +1,7 @@
 package pail
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -335,6 +336,7 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				return b
 			},
+			tests: getS3ArchiveBucketTests(),
 		},
 	} {
 		t.Run(impl.name, func(t *testing.T) {
@@ -780,8 +782,12 @@ func TestBucket(t *testing.T) {
 				}
 
 				bucket := impl.constructor(t)
-				for k, v := range data {
-					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+				if isArchiveCase(impl.name) {
+					require.NoError(t, writeDataToArchiveFile(ctx, bucket, syncArchiveName, data))
+				} else {
+					for k, v := range data {
+						require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+					}
 				}
 
 				t.Run("BasicPull", func(t *testing.T) {
@@ -819,8 +825,14 @@ func TestBucket(t *testing.T) {
 					setDryRun(bucket, false)
 				})
 				t.Run("PullWithExcludes", func(t *testing.T) {
-					require.NoError(t, writeDataToFile(ctx, bucket, "python.py", "exclude"))
-					require.NoError(t, writeDataToFile(ctx, bucket, "python2.py", "exclude2"))
+					if isArchiveCase(impl.name) {
+						data["python.py"] = "exclude"
+						data["python2.py"] = "exclude2"
+						require.NoError(t, writeDataToArchiveFile(ctx, bucket, syncArchiveName, data))
+					} else {
+						require.NoError(t, writeDataToFile(ctx, bucket, "python.py", "exclude"))
+						require.NoError(t, writeDataToFile(ctx, bucket, "python2.py", "exclude2"))
+					}
 
 					mirror := filepath.Join(tempdir, "not_excludes", newUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
@@ -860,8 +872,8 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, bucket.Remove(ctx, "python2.py"))
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
-					if strings.Contains(strings.ToLower(impl.name), "archive") {
-						t.Skip("DeleteOnSync is not supported for archive buckets")
+					if isArchiveCase(impl.name) {
+						t.Skip("archive buckets do not support DeleteOnSync")
 					}
 					setDeleteOnSync(bucket, true)
 
@@ -895,10 +907,14 @@ func TestBucket(t *testing.T) {
 					prefix := newUUID()
 					largeData := map[string]string{}
 					for i := 0; i < 1050; i++ {
-						largeData[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+						largeData[prefix+"/"+newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					}
-					for k, v := range largeData {
-						require.NoError(t, writeDataToFile(ctx, bucket, prefix+"/"+k, v))
+					if isArchiveCase(impl.name) {
+						require.NoError(t, writeDataToArchiveFile(ctx, bucket, prefix+"/"+syncArchiveName, largeData))
+					} else {
+						for k, v := range largeData {
+							require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+						}
 					}
 
 					mirror := filepath.Join(tempdir, "pull-one", newUUID(), "")
@@ -930,6 +946,9 @@ func TestBucket(t *testing.T) {
 
 				bucket := impl.constructor(t)
 				t.Run("NoPrefix", func(t *testing.T) {
+					if isArchiveCase(impl.name) {
+						t.Skip("archive buckets cannot not list individual files from push since they are archived")
+					}
 					opts := SyncOptions{Local: prefix}
 					assert.NoError(t, bucket.Push(ctx, opts))
 
@@ -944,6 +963,9 @@ func TestBucket(t *testing.T) {
 					assert.Equal(t, 50, counter)
 				})
 				t.Run("ShortPrefix", func(t *testing.T) {
+					if isArchiveCase(impl.name) {
+						t.Skip("archive buckets cannot not list individual files from push since they are archived")
+					}
 					remotePrefix := "foo"
 					opts := SyncOptions{Local: prefix, Remote: remotePrefix}
 					assert.NoError(t, bucket.Push(ctx, opts))
@@ -961,6 +983,9 @@ func TestBucket(t *testing.T) {
 					assert.Equal(t, 50, counter)
 				})
 				t.Run("DryRunBucketDoesNotPush", func(t *testing.T) {
+					if isArchiveCase(impl.name) {
+						t.Skip("archive buckets cannot not list individual files from push since they are archived")
+					}
 					remotePrefix := "bar"
 					setDryRun(bucket, true)
 					opts := SyncOptions{Local: prefix, Remote: remotePrefix}
@@ -978,6 +1003,9 @@ func TestBucket(t *testing.T) {
 					setDryRun(bucket, false)
 				})
 				t.Run("PushWithExcludes", func(t *testing.T) {
+					if isArchiveCase(impl.name) {
+						t.Skip("archive buckets cannot not list individual files from push since they are archived")
+					}
 					require.NoError(t, writeDataToDisk(prefix, "python.py", "exclude"))
 					require.NoError(t, writeDataToDisk(prefix, "python2.py", "exclude2"))
 
@@ -1021,8 +1049,8 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, os.RemoveAll(filepath.Join(prefix, "python2.py")))
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
-					if strings.Contains(strings.ToLower(impl.name), "archive") {
-						t.Skip("DeleteOnSync is not supported for archive buckets")
+					if isArchiveCase(impl.name) {
+						t.Skip("archive buckets do not support DeleteOnSync")
 					}
 					setDeleteOnSync(bucket, true)
 
@@ -1114,6 +1142,46 @@ func writeDataToFile(ctx context.Context, bucket Bucket, key, data string) error
 	return errors.WithStack(writer.Close())
 }
 
+type mockFileInfo struct {
+	name    string
+	size    int
+	mode    os.FileMode
+	modTime time.Time
+	isDir   bool
+}
+
+func (m mockFileInfo) Name() string       { return m.name }
+func (m mockFileInfo) Size() int64        { return int64(m.size) }
+func (m mockFileInfo) Mode() os.FileMode  { return m.mode }
+func (m mockFileInfo) ModTime() time.Time { return m.modTime }
+func (m mockFileInfo) IsDir() bool        { return m.isDir }
+func (m mockFileInfo) Sys() interface{}   { return nil }
+
+func writeDataToArchiveFile(ctx context.Context, bucket Bucket, key string, data map[string]string) error {
+	wctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	writer, err := bucket.Writer(wctx, key)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer writer.Close()
+	tarWriter := tar.NewWriter(writer)
+	defer tarWriter.Close()
+
+	for name, content := range data {
+		info := mockFileInfo{
+			name: name,
+			size: len(content),
+		}
+		if err := addToTar(tarWriter, info, bytes.NewBufferString(content), name, name); err != nil {
+			return errors.Wrap(err, "adding to tar")
+		}
+	}
+
+	return errors.WithStack(writer.Close())
+}
+
 func readDataFromFile(ctx context.Context, bucket Bucket, key string) (string, error) {
 	rctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -1177,4 +1245,8 @@ func setDeleteOnSync(b Bucket, set bool) {
 		i.deleteOnSync = set
 		setDeleteOnSync(i.Bucket, set)
 	}
+}
+
+func isArchiveCase(name string) bool {
+	return strings.Contains(strings.ToLower(name), "archive")
 }
