@@ -322,6 +322,20 @@ func TestBucket(t *testing.T) {
 			},
 			tests: getS3LargeBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
 		},
+		{
+			name: "S3Archive",
+			constructor: func(t *testing.T) Bucket {
+				s3Options := S3Options{
+					Region:     s3Region,
+					Name:       s3BucketName,
+					Prefix:     s3Prefix + newUUID(),
+					MaxRetries: 20,
+				}
+				b, err := NewS3ArchiveBucket(s3Options)
+				require.NoError(t, err)
+				return b
+			},
+		},
 	} {
 		t.Run(impl.name, func(t *testing.T) {
 			for _, test := range impl.tests {
@@ -846,6 +860,9 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, bucket.Remove(ctx, "python2.py"))
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
+					if strings.Contains(strings.ToLower(impl.name), "archive") {
+						t.Skip("DeleteOnSync is not supported for archive buckets")
+					}
 					setDeleteOnSync(bucket, true)
 
 					// dry run bucket does not delete
@@ -1004,6 +1021,9 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, os.RemoveAll(filepath.Join(prefix, "python2.py")))
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
+					if strings.Contains(strings.ToLower(impl.name), "archive") {
+						t.Skip("DeleteOnSync is not supported for archive buckets")
+					}
 					setDeleteOnSync(bucket, true)
 
 					contents := []byte("should be deleted")
@@ -1130,6 +1150,8 @@ func setDryRun(b Bucket, set bool) {
 	case *s3BucketSmall:
 		i.dryRun = set
 	case *s3BucketLarge:
+		i.dryRun = set
+	case *s3ArchiveBucket:
 		i.dryRun = set
 	case *gridfsBucket:
 		i.opts.DryRun = set
