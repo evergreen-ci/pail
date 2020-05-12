@@ -907,13 +907,13 @@ func TestBucket(t *testing.T) {
 					prefix := newUUID()
 					largeData := map[string]string{}
 					for i := 0; i < 1050; i++ {
-						largeData[prefix+"/"+newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+						largeData[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
 					}
 					if isArchiveCase(impl.name) {
 						require.NoError(t, writeDataToArchiveFile(ctx, bucket, prefix+"/"+syncArchiveName, largeData))
 					} else {
 						for k, v := range largeData {
-							require.NoError(t, writeDataToFile(ctx, bucket, k, v))
+							require.NoError(t, writeDataToFile(ctx, bucket, prefix+"/"+k, v))
 						}
 					}
 

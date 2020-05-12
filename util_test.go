@@ -166,7 +166,7 @@ func TestTarFile(t *testing.T) {
 			tr := tar.NewReader(b)
 			header, err := tr.Next()
 			require.NoError(t, err)
-			assert.Equal(t, relFilePath, header.Name)
+			assert.Equal(t, filepath.ToSlash(relFilePath), header.Name)
 			assert.EqualValues(t, tar.TypeReg, header.Typeflag)
 			checkContent, err := ioutil.ReadAll(tr)
 			require.NoError(t, err)
