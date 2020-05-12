@@ -1,8 +1,10 @@
 package pail
 
 import (
+	"archive/tar"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -223,6 +225,8 @@ func NewS3BucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, 
 	return &s3BucketSmall{s3Bucket: *bucket}, nil
 }
 
+const defaultMinPartSize = 1024 * 1024 * 5
+
 // NewS3MultiPartBucket returns a Bucket implementation backed by S3
 // that supports multipart uploads for large objects.
 func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
@@ -231,7 +235,7 @@ func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
 		return nil, err
 	}
 	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
-	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 1024 * 1024 * 5}, nil
+	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: defaultMinPartSize}, nil
 }
 
 // NewS3MultiPartBucketWithHTTPClient returns a Bucket implementation backed
@@ -243,7 +247,7 @@ func NewS3MultiPartBucketWithHTTPClient(client *http.Client, options S3Options) 
 		return nil, err
 	}
 	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
-	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 1024 * 1024 * 5}, nil
+	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: defaultMinPartSize}, nil
 }
 
 func (s *s3Bucket) String() string { return s.name }
@@ -1163,4 +1167,125 @@ func (iter *s3BucketIterator) Next(ctx context.Context) bool {
 		b:      iter.b,
 	}
 	return true
+}
+
+type s3ArchiveBucket struct {
+	*s3BucketLarge
+}
+
+// NewS3ArchiveBucket returns a Bucket implementation backed by S3 that
+// supports syncing as a single archive file rather than creating an individual
+// object for each file.
+func NewS3ArchiveBucket(options S3Options) (Bucket, error) {
+	bucket, err := NewS3MultiPartBucket(options)
+	if err != nil {
+		return nil, err
+	}
+	return newS3ArchiveBucketWithMultiPart(bucket, options)
+}
+
+func NewS3ArchiveBucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
+	bucket, err := NewS3MultiPartBucketWithHTTPClient(client, options)
+	if err != nil {
+		return nil, err
+	}
+	return newS3ArchiveBucketWithMultiPart(bucket, options)
+}
+
+func newS3ArchiveBucketWithMultiPart(bucket Bucket, options S3Options) (Bucket, error) {
+	if options.DeleteOnSync {
+		return nil, errors.New("delete on sync is not supported for archive buckets")
+	}
+	largeBucket, ok := bucket.(*s3BucketLarge)
+	if !ok {
+		return nil, errors.New("bucket is not a large multipart bucket")
+	}
+	return &s3ArchiveBucket{s3BucketLarge: largeBucket}, nil
+}
+
+func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "push",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
+	})
+
+	var re *regexp.Regexp
+	var err error
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
+
+	files, err := walkLocalTree(ctx, opts.Local)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	target := consistentJoin(opts.Remote, fmt.Sprintf("%s.tar", opts.Local))
+	s3Writer, err := s.Writer(ctx, target)
+	if err != nil {
+		return errors.Wrap(err, "creating writer")
+	}
+
+	tarWriter := tar.NewWriter(s3Writer)
+	defer tarWriter.Close()
+
+	base := opts.Local
+	for _, fn := range files {
+		if re != nil && re.MatchString(fn) {
+			continue
+		}
+
+		file := filepath.Join(opts.Local, fn)
+		// We can't compare the checksum without processing all the local
+		// matched files as a tar stream, so just upload it unconditionally.
+		if err := tarFile(tarWriter, base, fn); err != nil {
+			return errors.Wrap(err, file)
+		}
+	}
+
+	return nil
+}
+
+func (s *s3ArchiveBucket) Pull(ctx context.Context, opts SyncOptions) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"operation":     "pull",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
+	})
+
+	var re *regexp.Regexp
+	var err error
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
+
+	target := consistentJoin(opts.Remote, fmt.Sprintf("%s.tar", opts.Local))
+	reader, err := s.Get(ctx, target)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer reader.Close()
+
+	tarReader := tar.NewReader(reader)
+	if err := untar(tarReader, opts.Local, re); err != nil {
+		return errors.Wrapf(err, "unarchiving from remote to %s", opts.Local)
+	}
+
+	return nil
 }
