@@ -1173,7 +1173,7 @@ type s3ArchiveBucket struct {
 // NewS3ArchiveBucket returns a Bucket implementation backed by S3 that
 // supports syncing as a single archive file rather than creating an individual
 // object for each file.
-func NewS3ArchiveBucket(options S3Options) (Bucket, error) {
+func NewS3ArchiveBucket(options S3Options) (SyncBucket, error) {
 	bucket, err := NewS3MultiPartBucket(options)
 	if err != nil {
 		return nil, err
@@ -1181,7 +1181,7 @@ func NewS3ArchiveBucket(options S3Options) (Bucket, error) {
 	return newS3ArchiveBucketWithMultiPart(bucket, options)
 }
 
-func NewS3ArchiveBucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
+func NewS3ArchiveBucketWithHTTPClient(client *http.Client, options S3Options) (SyncBucket, error) {
 	bucket, err := NewS3MultiPartBucketWithHTTPClient(client, options)
 	if err != nil {
 		return nil, err
@@ -1189,7 +1189,7 @@ func NewS3ArchiveBucketWithHTTPClient(client *http.Client, options S3Options) (B
 	return newS3ArchiveBucketWithMultiPart(bucket, options)
 }
 
-func newS3ArchiveBucketWithMultiPart(bucket Bucket, options S3Options) (Bucket, error) {
+func newS3ArchiveBucketWithMultiPart(bucket Bucket, options S3Options) (*s3ArchiveBucket, error) {
 	if options.DeleteOnSync {
 		return nil, errors.New("delete on sync is not supported for archive buckets")
 	}
