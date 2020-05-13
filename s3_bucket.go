@@ -81,7 +81,7 @@ type S3Options struct {
 	// operations that modify the bucket.
 	DryRun bool
 	// DeleteOnSync will delete all objects from the target that do not
-	// exist in the source after the completion of a sync operation
+	// exist in the destination after the completion of a sync operation
 	// (Push/Pull).
 	DeleteOnSync bool
 	// Compress enables gzipping of uploaded objects.
@@ -1170,9 +1170,10 @@ type s3ArchiveBucket struct {
 	*s3BucketLarge
 }
 
-// NewS3ArchiveBucket returns a Bucket implementation backed by S3 that
-// supports syncing as a single archive file rather than creating an individual
-// object for each file.
+// NewS3ArchiveBucket returns a SyncBucket implementation backed by S3 that
+// supports syncing the local file system as a single archive file in S3 rather
+// than creating an individual object for each file. This SyncBucket is not
+// compatible with regular Bucket implementations.
 func NewS3ArchiveBucket(options S3Options) (SyncBucket, error) {
 	bucket, err := NewS3MultiPartBucket(options)
 	if err != nil {
@@ -1181,6 +1182,8 @@ func NewS3ArchiveBucket(options S3Options) (SyncBucket, error) {
 	return newS3ArchiveBucketWithMultiPart(bucket, options)
 }
 
+// NewS3ArchiveBucketWithHTTPClient is the same as NewS3ArchiveBucket but allows
+// the user to specify an existing HTTP client connection.
 func NewS3ArchiveBucketWithHTTPClient(client *http.Client, options S3Options) (SyncBucket, error) {
 	bucket, err := NewS3MultiPartBucketWithHTTPClient(client, options)
 	if err != nil {
@@ -1190,9 +1193,6 @@ func NewS3ArchiveBucketWithHTTPClient(client *http.Client, options S3Options) (S
 }
 
 func newS3ArchiveBucketWithMultiPart(bucket Bucket, options S3Options) (*s3ArchiveBucket, error) {
-	if options.DeleteOnSync {
-		return nil, errors.New("delete on sync is not supported for archive buckets")
-	}
 	largeBucket, ok := bucket.(*s3BucketLarge)
 	if !ok {
 		return nil, errors.New("bucket is not a large multipart bucket")
@@ -1202,6 +1202,10 @@ func newS3ArchiveBucketWithMultiPart(bucket Bucket, options S3Options) (*s3Archi
 
 const syncArchiveName = "archive.tar"
 
+// Push pushes the contents from opts.Local to the archive prefixed by
+// opts.Remote. This operation automatically performs DeleteOnSync in the remote
+// regardless of the bucket setting. UseSingleFileChecksums is ignored if it is
+// set on the bucket.
 func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",
@@ -1229,6 +1233,7 @@ func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 	}
 
 	target := consistentJoin(opts.Remote, syncArchiveName)
+
 	s3Writer, err := s.Writer(ctx, target)
 	if err != nil {
 		return errors.Wrap(err, "creating writer")
@@ -1254,6 +1259,8 @@ func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 	return nil
 }
 
+// Push pulls the contents from the archive prefixed by opts.Remote to
+// opts.Local. UseSingleFileChecksums is ignored if it is set on the bucket.
 func (s *s3ArchiveBucket) Pull(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",

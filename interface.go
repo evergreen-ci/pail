@@ -84,6 +84,8 @@ type Bucket interface {
 	List(context.Context, string) (BucketIterator, error)
 }
 
+// SyncBucket defines an interface to access a remote blob store and synchronize
+// the local file system tree with the remote store.
 type SyncBucket interface {
 	// Sync methods: these methods are the recursive, efficient
 	// copy methods of files from s3 to the local file

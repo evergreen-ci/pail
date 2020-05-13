@@ -279,11 +279,11 @@ func untarFile(tarReader *tar.Reader, header *tar.Header, destination string) er
 	case tar.TypeDir:
 		return mkdir(destpath)
 	case tar.TypeReg, tar.TypeRegA, tar.TypeChar, tar.TypeBlock, tar.TypeFifo:
-		return writeNewFile(destpath, tarReader, header.FileInfo().Mode())
+		return writeFile(destpath, tarReader, header.FileInfo().Mode())
 	case tar.TypeSymlink:
-		return writeNewSymbolicLink(destpath, header.Linkname)
+		return writeSymlink(destpath, header.Linkname)
 	case tar.TypeLink:
-		return writeNewHardLink(destpath, filepath.Join(destination, header.Linkname))
+		return writeHardLink(destpath, filepath.Join(destination, header.Linkname))
 	case tar.TypeXGlobalHeader:
 		// ignore the pax global header from git generated tarballs
 		return nil
@@ -310,12 +310,12 @@ func mkdir(dirPath string) error {
 	return nil
 }
 
-func writeNewFile(path string, content io.Reader, mode os.FileMode) error {
+func writeFile(path string, content io.Reader, mode os.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return errors.Wrapf(err, "making parent directories for file %s", path)
 	}
 
-	file, err := os.Create(path)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0700)
 	if err != nil {
 		return err
 	}
@@ -331,7 +331,7 @@ func writeNewFile(path string, content io.Reader, mode os.FileMode) error {
 	return nil
 }
 
-func writeNewSymbolicLink(path string, target string) error {
+func writeSymlink(path string, target string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return errors.Wrapf(err, "making parent directories for file %s", path)
 	}
@@ -343,7 +343,7 @@ func writeNewSymbolicLink(path string, target string) error {
 	return nil
 }
 
-func writeNewHardLink(path string, target string) error {
+func writeHardLink(path string, target string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return errors.Wrapf(err, "making parent directories for file %s", path)
 	}
