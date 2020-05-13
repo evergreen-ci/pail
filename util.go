@@ -184,7 +184,7 @@ func deleteOnPull(ctx context.Context, sourceFiles []string, local string) error
 	return catcher.Resolve()
 }
 
-// The archive/unarchive functions below are modified version of the same
+// The archive/unarchive functions below are modified versions of the same
 // functions from github.com/mholt/archiver.
 
 func tarFile(tarWriter *tar.Writer, dir, relPath string) error {
