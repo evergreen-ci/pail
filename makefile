@@ -117,6 +117,12 @@ vendor-clean:
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/montanaflynn
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/errors
+	rm -rf vendor/github.com/evergreen-ci/utility/file.go
+	rm -rf vendor/github.com/evergreen-ci/utility/http.go
+	rm -rf vendor/github.com/evergreen-ci/utility/network.go
+	rm -rf vendor/github.com/evergreen-ci/utility/parsing.go
+	find vendor/ -type d -empty | xargs rm -rf
+	find vendor/ -type d -name '.git' | xargs rm -rf
 phony += vendor-clean
 clean:
 	rm -rf $(lintDeps)
