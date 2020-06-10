@@ -27,6 +27,14 @@ $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
 # end lint setup targets
 
 
+# benchmark setup targets
+benchmarks:$(buildDir)/run-benchmarks $(buildDir) .FORCE
+	$(goEnv) ./$(buildDir)/run-benchmarks $(run-benchmark)
+$(buildDir)/run-benchmarks:cmd/run-benchmarks/run-benchmarks.go $(buildDir)
+	$(goEnv) $(gobin) build -o $@ $<
+# end benchmark setup targets
+
+
 testArgs := -v
 ifneq (,$(RUN_TEST))
 testArgs += -run='$(RUN_TEST)'
