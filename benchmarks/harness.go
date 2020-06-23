@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/evergreen-ci/pail"
+	"github.com/evergreen-ci/pail/testutil"
 	"github.com/evergreen-ci/poplar"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
@@ -26,7 +27,7 @@ func RunBucket(ctx context.Context) error {
 	}
 
 	var resultText string
-	s := bucketBenchmarkSuite()
+	s := syncBucketBenchmarkSuite()
 	res, err := s.Run(ctx, prefix)
 	if err != nil {
 		resultText = err.Error()
@@ -42,15 +43,18 @@ func RunBucket(ctx context.Context) error {
 	return catcher.Resolve()
 }
 
-type closeFunc func() error
+type syncBucketConstructor func(pail.S3Options) (pail.SyncBucket, error)
+type uploadPayloadConstructor func(name string, bytes int) uploadPayload
+type uploadPayload func(context.Context, pail.S3Options) error
 
-type bucketConstructor func(context.Context) (pail.Bucket, closeFunc, error)
-type payloadConstructor func(id string) []byte
-
-func basicThroughputBenchmark(makeBucket bucketConstructor, makePayload payloadConstructor, timeout time.Duration) poplar.Benchmark {
+func basicPullIteration(makeBucket syncBucketConstructor, doUploadPayload uploadPayload, timeout time.Duration) poplar.Benchmark {
 	return func(ctx context.Context, r poplar.Recorder, count int) error {
 		for i := 0; i < count; i++ {
-			if err := runBasicThroughputIteration(ctx, r, makeBucket, makePayload, timeout); err != nil {
+			opts := s3Opts()
+			if err := doUploadPayload(ctx, opts); err != nil {
+				return errors.Wrap(err, "uploading benchmark test case data")
+			}
+			if err := runBasicPullIteration(ctx, r, makeBucket, opts, timeout); err != nil {
 				return errors.Wrapf(err, "iteration %d", i)
 			}
 		}
@@ -58,38 +62,18 @@ func basicThroughputBenchmark(makeBucket bucketConstructor, makePayload payloadC
 	}
 }
 
-func runBasicThroughputIteration(ctx context.Context, r poplar.Recorder, makeBucket bucketConstructor, makePayload payloadConstructor, timeout time.Duration) error {
-	b, cleanupBucket, err := makeBucket(ctx)
+func runBasicPullIteration(ctx context.Context, r poplar.Recorder, makeBucket syncBucketConstructor, opts pail.S3Options, timeout time.Duration) error {
+	b, err := makeBucket(opts)
 	if err != nil {
 		return errors.Wrap(err, "making bucket")
 	}
 	defer func() {
-		grip.Error(errors.Wrap(cleanupBucket(), "cleaning up bucket"))
+		grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
 	}()
 
 	errChan := make(chan error)
-	qctx, cancel := context.WithCancel(ctx)
+	bctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	// kim: TODO: set up bucket to be ready to perform operation (e.g. push,
-	// pull, download, upload)
-	// go func() {
-	//     for {
-	//         if qctx.Err() != nil {
-	//             return
-	//         }
-	//
-	//         // kim: TODO: replace with creating payload
-	//         // j := makePayload(uuid.New().String())
-	//         // if err := b.Put(qctx, j); err != nil {
-	//         //     select {
-	//         //     case <-qctx.Done():
-	//         //         return
-	//         //     case errChan <- errors.Wrap(err, ""):
-	//         //         return
-	//         //     }
-	//         // }
-	//     }
-	// }()
 
 	startAt := time.Now()
 	r.BeginIteration()
@@ -97,42 +81,77 @@ func runBasicThroughputIteration(ctx context.Context, r poplar.Recorder, makeBuc
 		r.EndIteration(time.Since(startAt))
 	}()
 
-	// kim: TODO: replace with some bucket operation
-	// if err = b.Start(qctx); err != nil {
-	//     return errors.Wrap(err, "starting queue")
-	// }
+	local := "kim: TODO: some temp dir"
+	syncOpts := pail.SyncOptions{
+		Local:  local,
+		Remote: opts.Prefix,
+	}
+	go func() {
+		select {
+		case errChan <- b.Pull(bctx, syncOpts):
+		case <-bctx.Done():
+		}
+	}()
 
-	timer := time.NewTimer(timeout)
+	catcher := grip.NewBasicCatcher()
 	select {
 	case err := <-errChan:
-		return errors.WithStack(err)
-	case <-qctx.Done():
-		return qctx.Err()
-	case <-timer.C:
-		// stats := b.Stats(ctx)
-		// r.IncOperations(int64(stats.Completed))
+		catcher.Wrap(err, "pulling directory from remote store")
+	case <-bctx.Done():
+		catcher.Wrap(bctx.Err(), "cancelled pulling directory")
 	}
+
+	totalBytes, err := getDirTotalSize(local)
+	if err != nil {
+		catcher.Add(err)
+	} else {
+		r.IncSize(totalBytes)
+	}
+
 	return nil
+}
+
+func getDirTotalSize(dir string) (int64, error) {
+	var size int64
+	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	}); err != nil {
+		return -1, errors.Wrap(err, "summing total directory size")
+	}
+	return size, nil
 }
 
 // kim: TODO:
 // - feed data to bucket
-// - see how fast it uploads/downloads N bytes OR see how many bytes it can
-// upload/download in T time.
-func bucketBenchmarkSuite() poplar.BenchmarkSuite {
+// - see how fast it uploads/downloads N bytes, with max of T seconds.
+func syncBucketBenchmarkSuite() poplar.BenchmarkSuite {
 	var suite poplar.BenchmarkSuite
-	for bucketName, makeBucket := range map[string]bucketConstructor{
-		// "MongoDB": makeMongoDBQueue,
+	for bucketName, makeBucket := range map[string]syncBucketConstructor{
+		// kim: TODO: small bucket bucket
+		// kim: TODO: large bucket bucket
+		// kim: TODO: archive bucket
 	} {
-		for payloadName, makePayload := range map[string]payloadConstructor{
-			// "Noop":                     newNoopJob,
-			// "ScopedNoop":               newScopedNoopJob,
-			// "MixedScopeAndNoScopeNoop": newSometimesScopedJob(50),
+		for caseName, benchCase := range map[string]struct {
+			numFiles                 string
+			bytesPerFile             int
+			uploadPayloadConstructor uploadPayloadConstructor
+			timeout                  time.Duration
+		}{
+			// kim: TODO: write payload constructor that uploads to S3 first.
+			// kim: TODO: few items, large size
+			// kim: TODO: many items, small size
 		} {
 			suite = append(suite,
 				&poplar.BenchmarkCase{
-					CaseName:      fmt.Sprintf("%s-%s-15Second", bucketName, payloadName),
-					Bench:         basicThroughputBenchmark(makeBucket, makePayload, 15*time.Second),
+					CaseName:      fmt.Sprintf("%s-%s-%dFilesEachWith%dBytes", bucketName, caseName, benchCase.numFiles, benchCase.bytesPerFile),
+					Bench:         basicPullIteration(makeBucket, benchCase.uploadPayloadConstructor(benchCase.numFiles, benchCase.bytesPerFile), benchCase.timeout),
 					Count:         1,
 					MinRuntime:    15 * time.Second,
 					MaxRuntime:    5 * time.Minute,
@@ -142,8 +161,8 @@ func bucketBenchmarkSuite() poplar.BenchmarkSuite {
 					Recorder:      poplar.RecorderPerf,
 				},
 				&poplar.BenchmarkCase{
-					CaseName:      fmt.Sprintf("%s-%s-1Minute", bucketName, payloadName),
-					Bench:         basicThroughputBenchmark(makeBucket, makePayload, time.Minute),
+					CaseName:      fmt.Sprintf("%s-%s-%dFilesEachWith%dBytes", bucketName, caseName, benchCase.numFiles, benchCase.bytesPerFile),
+					Bench:         basicPullIteration(makeBucket, benchCase.uploadPayloadConstructor(benchCase.numFiles, benchCase.bytesPerFile), benchCase.timeout),
 					Count:         1,
 					MinRuntime:    time.Minute,
 					MaxRuntime:    15 * time.Minute,
@@ -152,55 +171,42 @@ func bucketBenchmarkSuite() poplar.BenchmarkSuite {
 					MaxIterations: 20,
 					Recorder:      poplar.RecorderPerf,
 				},
+				// kim: TODO: push iteration
 			)
 		}
 	}
 	return suite
 }
 
-// type noopJob struct {
-//     job.Base
-// }
-//
-// func newNoopJobInstance() *noopJob {
-//     j := &noopJob{
-//         Base: job.Base{
-//             JobType: amboy.JobType{
-//                 Name:    "benchmark",
-//                 Version: 1,
-//             },
-//         },
-//     }
-//     j.SetDependency(dependency.NewAlways())
-//     return j
-// }
-//
-// func newNoopJob(id string) amboy.Job {
-//     j := newNoopJobInstance()
-//     j.SetID(id)
-//     return j
-// }
-//
-// func newScopedNoopJob(id string) amboy.Job {
-//     j := newNoopJobInstance()
-//     j.SetScopes([]string{"common_scope"})
-//     j.SetID(id)
-//     return j
-// }
-//
-// func newSometimesScopedJob(percentScoped int) func(id string) amboy.Job {
-//     if percentScoped < rand.Intn(100) {
-//         return newScopedNoopJob
-//     }
-//     return newNoopJob
-// }
-//
-// func init() {
-//     registry.AddJobType("benchmark", func() amboy.Job {
-//         return newNoopJobInstance()
-//     })
-// }
-//
-// func (j *noopJob) Run(ctx context.Context) {
-//     j.MarkComplete()
-// }
+func s3Opts() pail.S3Options {
+	return pail.S3Options{
+		Region:     "us-east-1",
+		Name:       "sync-bucket-benchmarks",
+		Prefix:     testutil.NewUUID(),
+		MaxRetries: 20,
+	}
+}
+
+func smallBucketConstructor(opts pail.S3Options) (pail.SyncBucket, error) {
+	b, err := pail.NewS3Bucket(opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "making small bucket")
+	}
+	return b, nil
+}
+
+func largeBucketConstructor(opts pail.S3Options) (pail.SyncBucket, error) {
+	b, err := pail.NewS3MultiPartBucket(opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "making large bucket")
+	}
+	return b, nil
+}
+
+func archiveBucketConstructor(opts pail.S3Options) (pail.SyncBucket, error) {
+	b, err := pail.NewS3ArchiveBucket(opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "making archive bucket")
+	}
+	return b, nil
+}
