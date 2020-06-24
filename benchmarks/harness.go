@@ -53,10 +53,10 @@ func RunSyncBucket(ctx context.Context) error {
 }
 
 type syncBucketConstructor func(pail.S3Options) (pail.SyncBucket, error)
-type uploadPayloadConstructor func(numFiles int, bytesPerFile int) uploadPayload
-type uploadPayload func(context.Context, pail.SyncBucket, pail.S3Options) error
+type payloadConstructor func(numFiles int, bytesPerFile int) makePayload
+type makePayload func(context.Context, pail.SyncBucket, pail.S3Options) (dir string, err error)
 
-func basicPullIteration(makeBucket syncBucketConstructor, doUploadPayload uploadPayload, opts pail.S3Options) poplar.Benchmark {
+func basicPullIteration(makeBucket syncBucketConstructor, makePayload makePayload, opts pail.S3Options) poplar.Benchmark {
 	return func(ctx context.Context, r poplar.Recorder, count int) error {
 		for i := 0; i < count; i++ {
 			if err := func() error {
@@ -67,10 +67,94 @@ func basicPullIteration(makeBucket syncBucketConstructor, doUploadPayload upload
 				defer func() {
 					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
 				}()
-				if err := doUploadPayload(ctx, b, opts); err != nil {
-					return errors.Wrap(err, "uploading benchmark test case data")
+
+				dir, err := makePayload(ctx, b, opts)
+				defer func() {
+					grip.Error(errors.Wrap(os.RemoveAll(dir), "cleaning up payload"))
+				}()
+				if err != nil {
+					return errors.Wrap(err, "setting up benchmark test case payload")
 				}
+
 				if err := runBasicPullIteration(ctx, r, b, opts); err != nil {
+					return errors.Wrapf(err, "iteration %d", i)
+				}
+
+				return nil
+			}(); err != nil {
+				return errors.WithStack(err)
+			}
+		}
+		return nil
+	}
+}
+
+func runBasicPullIteration(ctx context.Context, r poplar.Recorder, b pail.SyncBucket, opts pail.S3Options) error {
+	bctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	local, err := ioutil.TempDir(buildDir(), "sync-bucket-benchmarks-pull")
+	if err != nil {
+		return errors.Wrap(err, "making local directory for pull")
+	}
+	defer func() {
+		grip.Error(errors.Wrap(os.RemoveAll(local), "cleaning up local pull directory"))
+	}()
+
+	startAt := time.Now()
+	r.BeginIteration()
+
+	syncOpts := pail.SyncOptions{
+		Local:  local,
+		Remote: opts.Prefix,
+	}
+	errChan := make(chan error)
+	go func() {
+		select {
+		case errChan <- b.Pull(bctx, syncOpts):
+		case <-bctx.Done():
+		}
+	}()
+
+	catcher := grip.NewBasicCatcher()
+	select {
+	case err := <-errChan:
+		r.EndIteration(time.Since(startAt))
+		catcher.Wrap(err, "pulling directory from remote store")
+	case <-bctx.Done():
+		r.EndIteration(time.Since(startAt))
+		catcher.Wrap(bctx.Err(), "cancelled pulling directory")
+	}
+
+	totalBytes, err := getDirTotalSize(local)
+	if err != nil {
+		catcher.Add(err)
+	} else {
+		r.IncSize(totalBytes)
+	}
+
+	return catcher.Resolve()
+}
+
+func basicPushIteration(makeBucket syncBucketConstructor, makePayload makePayload, opts pail.S3Options) poplar.Benchmark {
+	return func(ctx context.Context, r poplar.Recorder, count int) error {
+		for i := 0; i < count; i++ {
+			if err := func() error {
+				b, err := makeBucket(opts)
+				if err != nil {
+					return errors.Wrap(err, "making bucket")
+				}
+				defer func() {
+					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
+				}()
+				dir, err := makePayload(ctx, b, opts)
+				defer func() {
+					grip.Error(errors.Wrap(os.RemoveAll(dir), "cleaning up payload"))
+				}()
+				if err != nil {
+					return errors.Wrap(err, "setting up benchmark test case payload")
+				}
+				if err := runBasicPushIteration(ctx, r, b, opts, dir); err != nil {
 					return errors.Wrapf(err, "iteration %d", i)
 				}
 				return nil
@@ -82,32 +166,21 @@ func basicPullIteration(makeBucket syncBucketConstructor, doUploadPayload upload
 	}
 }
 
-func runBasicPullIteration(ctx context.Context, r poplar.Recorder, b pail.SyncBucket, opts pail.S3Options) error {
-
-	errChan := make(chan error)
+func runBasicPushIteration(ctx context.Context, r poplar.Recorder, b pail.SyncBucket, opts pail.S3Options, dir string) error {
 	bctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	startAt := time.Now()
 	r.BeginIteration()
-	defer func() {
-		r.EndIteration(time.Since(startAt))
-	}()
 
-	local, err := ioutil.TempDir(buildDir(), "sync-bucket-benchmarks-pull")
-	if err != nil {
-		return errors.Wrap(err, "making temp directory")
-	}
-	defer func() {
-		grip.Error(errors.Wrap(os.RemoveAll(local), "cleaning up local pull directory"))
-	}()
 	syncOpts := pail.SyncOptions{
-		Local:  local,
+		Local:  dir,
 		Remote: opts.Prefix,
 	}
+	errChan := make(chan error)
 	go func() {
 		select {
-		case errChan <- b.Pull(bctx, syncOpts):
+		case errChan <- b.Push(bctx, syncOpts):
 		case <-bctx.Done():
 		}
 	}()
@@ -115,19 +188,23 @@ func runBasicPullIteration(ctx context.Context, r poplar.Recorder, b pail.SyncBu
 	catcher := grip.NewBasicCatcher()
 	select {
 	case err := <-errChan:
-		catcher.Wrap(err, "pulling directory from remote store")
+		r.EndIteration(time.Since(startAt))
+		catcher.Wrap(err, "pushing directory to remote store")
+		totalBytes, err := getDirTotalSize(dir)
+		if err != nil {
+			catcher.Add(err)
+		} else {
+			r.IncSize(totalBytes)
+		}
 	case <-bctx.Done():
-		catcher.Wrap(bctx.Err(), "cancelled pulling directory")
+		r.EndIteration(time.Since(startAt))
+		catcher.Wrap(bctx.Err(), "cancelled pushing directory")
+		// If the context is done (e.g. due to timeout) before the push
+		// finishes, this won't increment the total bytes pushed since it would
+		// require extra work to sum the size of all the objects pushed to S3.
 	}
 
-	totalBytes, err := getDirTotalSize(local)
-	if err != nil {
-		catcher.Add(err)
-	} else {
-		r.IncSize(totalBytes)
-	}
-
-	return nil
+	return catcher.Resolve()
 }
 
 func getDirTotalSize(dir string) (int64, error) {
@@ -149,49 +226,48 @@ func getDirTotalSize(dir string) (int64, error) {
 
 func syncBucketBenchmarkSuite() poplar.BenchmarkSuite {
 	var suite poplar.BenchmarkSuite
-	for bucketName, bucketCase := range map[string]struct {
-		constructor              syncBucketConstructor
-		uploadPayloadConstructor uploadPayloadConstructor
+	bucketCases := map[string]syncBucketConstructor{
+		"Small":   smallBucketConstructor,
+		"Large":   largeBucketConstructor,
+		"Archive": archiveBucketConstructor,
+	}
+	benchCases := map[string]struct {
+		numFiles     int
+		bytesPerFile int
+		timeout      time.Duration
 	}{
-		"Small": {
-			constructor:              smallBucketConstructor,
-			uploadPayloadConstructor: uploadLocalTree,
+		"FewFilesLargeSize": {
+			numFiles:     1,
+			bytesPerFile: 1024 * 1024,
+			timeout:      time.Hour,
 		},
-		"Large": {
-			constructor:              largeBucketConstructor,
-			uploadPayloadConstructor: uploadLocalTree,
+		"ManyFilesSmallSize": {
+			numFiles:     1000,
+			bytesPerFile: 10,
+			timeout:      time.Hour,
 		},
-		"Archive": {
-			constructor:              archiveBucketConstructor,
-			uploadPayloadConstructor: uploadLocalTree,
-		},
-	} {
-		for caseName, benchCase := range map[string]struct {
-			numFiles     int
-			bytesPerFile int
-			timeout      time.Duration
-		}{
-			"FewFilesLargeSize": {
-				numFiles:     1,
-				bytesPerFile: 1024 * 1024,
-				timeout:      time.Hour,
-			},
-			// "ManyFilesSmallSize": {
-			//     numFiles:     1000,
-			//     bytesPerFile: 10,
-			//     timeout:      time.Hour,
-			// },
-		} {
+	}
+	for bucketName, makeBucket := range bucketCases {
+		for caseName, benchCase := range benchCases {
 			suite = append(suite,
 				&poplar.BenchmarkCase{
 					CaseName:      fmt.Sprintf("%sBucket-Pull-%s-%dFilesEachWith%dBytes", bucketName, caseName, benchCase.numFiles, benchCase.bytesPerFile),
-					Bench:         basicPullIteration(bucketCase.constructor, bucketCase.uploadPayloadConstructor(benchCase.numFiles, benchCase.bytesPerFile), s3Opts()),
+					Bench:         basicPullIteration(makeBucket, uploadLocalTree(benchCase.numFiles, benchCase.bytesPerFile), s3Opts()),
 					Count:         1,
-					MinRuntime:    1 * time.Nanosecond, // time.Nanosecond, // We have to set this even though the test does not use it.
-					MaxRuntime:    2 * time.Nanosecond, // benchCase.timeout,
-					Timeout:       benchCase.timeout,
-					MinIterations: 10,
-					MaxIterations: 20,
+					MinRuntime:    1 * time.Nanosecond, // We have to set this to be non-zero even though the test does not use it.
+					MaxRuntime:    benchCase.timeout,
+					MinIterations: 1,
+					MaxIterations: 2,
+					Recorder:      poplar.RecorderPerf,
+				},
+				&poplar.BenchmarkCase{
+					CaseName:      fmt.Sprintf("%sBucket-Push-%s-%dFilesEachWith%dBytes", bucketName, caseName, benchCase.numFiles, benchCase.bytesPerFile),
+					Bench:         basicPushIteration(makeBucket, makeLocalTree(benchCase.numFiles, benchCase.bytesPerFile), s3Opts()),
+					Count:         1,
+					MinRuntime:    1 * time.Nanosecond, // We have to set this to be non-zero even though the test does not use it.
+					MaxRuntime:    benchCase.timeout,
+					MinIterations: 1,
+					MaxIterations: 2,
 					Recorder:      poplar.RecorderPerf,
 				},
 			)
@@ -200,17 +276,23 @@ func syncBucketBenchmarkSuite() poplar.BenchmarkSuite {
 	return suite
 }
 
-func uploadLocalTree(numFiles int, bytesPerFile int) uploadPayload {
-	return func(ctx context.Context, b pail.SyncBucket, opts pail.S3Options) error {
+func uploadLocalTree(numFiles int, bytesPerFile int) makePayload {
+	return func(ctx context.Context, b pail.SyncBucket, opts pail.S3Options) (dir string, err error) {
 		local, err := ioutil.TempDir(buildDir(), "sync-bucket-benchmarks-setup-upload")
 		if err != nil {
-			return errors.Wrap(err, "setting up local setup test data")
+			return "", errors.Wrap(err, "setting up local setup test data")
 		}
+		defer func() {
+			if err != nil {
+				grip.Error(errors.Wrapf(os.RemoveAll(local), "cleaning up local directory '%s'", local))
+			}
+		}()
+
 		for i := 0; i < numFiles; i++ {
 			file := testutil.NewUUID()
 			content := utility.MakeRandomString(bytesPerFile)
 			if err := ioutil.WriteFile(filepath.Join(local, file), []byte(content), 0777); err != nil {
-				return errors.Wrap(err, "writing local setup test data file")
+				return "", errors.Wrap(err, "writing local setup test data file")
 			}
 		}
 
@@ -218,16 +300,39 @@ func uploadLocalTree(numFiles int, bytesPerFile int) uploadPayload {
 			Local:  local,
 			Remote: opts.Prefix,
 		}); err != nil {
-			return errors.Wrap(err, "uploading setup test data")
+			return "", errors.Wrap(err, "uploading setup test data")
 		}
-		return nil
+		return local, nil
+	}
+}
+
+func makeLocalTree(numFiles int, bytesPerFile int) makePayload {
+	return func(ctx context.Context, b pail.SyncBucket, opts pail.S3Options) (dir string, err error) {
+		local, err := ioutil.TempDir(buildDir(), "sync-bucket-benchmarks-setup-upload")
+		if err != nil {
+			return "", errors.Wrap(err, "setting up local setup test data")
+		}
+		defer func() {
+			if err != nil {
+				grip.Error(errors.Wrapf(os.RemoveAll(local), "cleaning up local directory '%s'", local))
+			}
+		}()
+
+		for i := 0; i < numFiles; i++ {
+			file := testutil.NewUUID()
+			content := utility.MakeRandomString(bytesPerFile)
+			if err := ioutil.WriteFile(filepath.Join(local, file), []byte(content), 0777); err != nil {
+				return "", errors.Wrap(err, "writing local setup test data file")
+			}
+		}
+
+		return local, nil
 	}
 }
 
 func s3Opts() pail.S3Options {
 	return pail.S3Options{
-		Region: "us-east-1",
-		// kim: TODO: not sure if this is a legit bucket but maybe.
+		Region:     "us-east-1",
 		Name:       "build-test-curator",
 		Prefix:     testutil.NewUUID(),
 		MaxRetries: 20,
