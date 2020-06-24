@@ -29,7 +29,7 @@ $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
 
 # benchmark setup targets
 benchmarks:$(buildDir)/run-benchmarks $(buildDir) .FORCE
-	$(goEnv) ./$(buildDir)/run-benchmarks $(run-benchmark)
+	$(goEnv) ./$(buildDir)/run-benchmarks
 $(buildDir)/run-benchmarks:cmd/run-benchmarks/run-benchmarks.go $(buildDir)
 	$(goEnv) $(gobin) build -o $@ $<
 # end benchmark setup targets
@@ -123,6 +123,13 @@ vendor-clean:
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/montanaflynn
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/errors
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/mongodb/grip
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/pkg/errors
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/stretchr/testify
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/go.mongodb.org/mongo-driver
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/mongodb/ftdc/vendor/go.mongodb.org/mongo-driver/
+	# Note: we have a circular dependency problem between pail and poplar
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/pail
 	rm -rf vendor/github.com/evergreen-ci/utility/file.go
 	rm -rf vendor/github.com/evergreen-ci/utility/http.go
 	rm -rf vendor/github.com/evergreen-ci/utility/network.go

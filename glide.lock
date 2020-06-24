@@ -17,3 +17,5 @@ imports:
   version: 82905e3077cb5ce7f194748a47b55bf7fff65ccf
 - name: github.com/evergreen-ci/utility
   version: 282a6f91af567e4826cecb85349f1cfb379ae183
+- name: github.com/evergreen-ci/poplar
+  version: 9840e0e5a17f525b4f39ee7b5c18f646ab749111

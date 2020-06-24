@@ -3,20 +3,29 @@ package benchmarks
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/evergreen-ci/pail"
 	"github.com/evergreen-ci/pail/testutil"
 	"github.com/evergreen-ci/poplar"
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
 
-// RunBucket runs the bucket benchmark suite.
-func RunBucket(ctx context.Context) error {
-	prefix := filepath.Join("build", fmt.Sprintf("bucket-benchmark-%d", time.Now().Unix()))
+func buildDir() string {
+	_, file, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(filepath.Dir(file)), "build")
+}
+
+// RunSyncBucket runs the bucket benchmark suite.
+func RunSyncBucket(ctx context.Context) error {
+	dir := buildDir()
+	prefix := filepath.Join(dir, fmt.Sprintf("sync-bucket-benchmarks-%d", time.Now().Unix()))
 	if err := os.MkdirAll(prefix, os.ModePerm); err != nil {
 		return errors.Wrap(err, "creating benchmark directory")
 	}
@@ -44,35 +53,39 @@ func RunBucket(ctx context.Context) error {
 }
 
 type syncBucketConstructor func(pail.S3Options) (pail.SyncBucket, error)
-type uploadPayloadConstructor func(name string, bytes int) uploadPayload
-type uploadPayload func(context.Context, pail.S3Options) error
+type uploadPayloadConstructor func(numFiles int, bytesPerFile int) uploadPayload
+type uploadPayload func(context.Context, pail.SyncBucket, pail.S3Options) error
 
-func basicPullIteration(makeBucket syncBucketConstructor, doUploadPayload uploadPayload, timeout time.Duration) poplar.Benchmark {
+func basicPullIteration(makeBucket syncBucketConstructor, doUploadPayload uploadPayload, opts pail.S3Options) poplar.Benchmark {
 	return func(ctx context.Context, r poplar.Recorder, count int) error {
 		for i := 0; i < count; i++ {
-			opts := s3Opts()
-			if err := doUploadPayload(ctx, opts); err != nil {
-				return errors.Wrap(err, "uploading benchmark test case data")
-			}
-			if err := runBasicPullIteration(ctx, r, makeBucket, opts, timeout); err != nil {
-				return errors.Wrapf(err, "iteration %d", i)
+			if err := func() error {
+				b, err := makeBucket(opts)
+				if err != nil {
+					return errors.Wrap(err, "making bucket")
+				}
+				defer func() {
+					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
+				}()
+				if err := doUploadPayload(ctx, b, opts); err != nil {
+					return errors.Wrap(err, "uploading benchmark test case data")
+				}
+				if err := runBasicPullIteration(ctx, r, b, opts); err != nil {
+					return errors.Wrapf(err, "iteration %d", i)
+				}
+				return nil
+			}(); err != nil {
+				return errors.WithStack(err)
 			}
 		}
 		return nil
 	}
 }
 
-func runBasicPullIteration(ctx context.Context, r poplar.Recorder, makeBucket syncBucketConstructor, opts pail.S3Options, timeout time.Duration) error {
-	b, err := makeBucket(opts)
-	if err != nil {
-		return errors.Wrap(err, "making bucket")
-	}
-	defer func() {
-		grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
-	}()
+func runBasicPullIteration(ctx context.Context, r poplar.Recorder, b pail.SyncBucket, opts pail.S3Options) error {
 
 	errChan := make(chan error)
-	bctx, cancel := context.WithTimeout(ctx, timeout)
+	bctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	startAt := time.Now()
@@ -81,7 +94,13 @@ func runBasicPullIteration(ctx context.Context, r poplar.Recorder, makeBucket sy
 		r.EndIteration(time.Since(startAt))
 	}()
 
-	local := "kim: TODO: some temp dir"
+	local, err := ioutil.TempDir(buildDir(), "sync-bucket-benchmarks-pull")
+	if err != nil {
+		return errors.Wrap(err, "making temp directory")
+	}
+	defer func() {
+		grip.Error(errors.Wrap(os.RemoveAll(local), "cleaning up local pull directory"))
+	}()
 	syncOpts := pail.SyncOptions{
 		Local:  local,
 		Remote: opts.Prefix,
@@ -128,60 +147,88 @@ func getDirTotalSize(dir string) (int64, error) {
 	return size, nil
 }
 
-// kim: TODO:
-// - feed data to bucket
-// - see how fast it uploads/downloads N bytes, with max of T seconds.
 func syncBucketBenchmarkSuite() poplar.BenchmarkSuite {
 	var suite poplar.BenchmarkSuite
-	for bucketName, makeBucket := range map[string]syncBucketConstructor{
-		// kim: TODO: small bucket bucket
-		// kim: TODO: large bucket bucket
-		// kim: TODO: archive bucket
+	for bucketName, bucketCase := range map[string]struct {
+		constructor              syncBucketConstructor
+		uploadPayloadConstructor uploadPayloadConstructor
+	}{
+		"Small": {
+			constructor:              smallBucketConstructor,
+			uploadPayloadConstructor: uploadLocalTree,
+		},
+		"Large": {
+			constructor:              largeBucketConstructor,
+			uploadPayloadConstructor: uploadLocalTree,
+		},
+		"Archive": {
+			constructor:              archiveBucketConstructor,
+			uploadPayloadConstructor: uploadLocalTree,
+		},
 	} {
 		for caseName, benchCase := range map[string]struct {
-			numFiles                 string
-			bytesPerFile             int
-			uploadPayloadConstructor uploadPayloadConstructor
-			timeout                  time.Duration
+			numFiles     int
+			bytesPerFile int
+			timeout      time.Duration
 		}{
-			// kim: TODO: write payload constructor that uploads to S3 first.
-			// kim: TODO: few items, large size
-			// kim: TODO: many items, small size
+			"FewFilesLargeSize": {
+				numFiles:     1,
+				bytesPerFile: 1024 * 1024,
+				timeout:      time.Hour,
+			},
+			// "ManyFilesSmallSize": {
+			//     numFiles:     1000,
+			//     bytesPerFile: 10,
+			//     timeout:      time.Hour,
+			// },
 		} {
 			suite = append(suite,
 				&poplar.BenchmarkCase{
-					CaseName:      fmt.Sprintf("%s-%s-%dFilesEachWith%dBytes", bucketName, caseName, benchCase.numFiles, benchCase.bytesPerFile),
-					Bench:         basicPullIteration(makeBucket, benchCase.uploadPayloadConstructor(benchCase.numFiles, benchCase.bytesPerFile), benchCase.timeout),
+					CaseName:      fmt.Sprintf("%sBucket-Pull-%s-%dFilesEachWith%dBytes", bucketName, caseName, benchCase.numFiles, benchCase.bytesPerFile),
+					Bench:         basicPullIteration(bucketCase.constructor, bucketCase.uploadPayloadConstructor(benchCase.numFiles, benchCase.bytesPerFile), s3Opts()),
 					Count:         1,
-					MinRuntime:    15 * time.Second,
-					MaxRuntime:    5 * time.Minute,
-					Timeout:       10 * time.Minute,
+					MinRuntime:    1 * time.Nanosecond, // time.Nanosecond, // We have to set this even though the test does not use it.
+					MaxRuntime:    2 * time.Nanosecond, // benchCase.timeout,
+					Timeout:       benchCase.timeout,
 					MinIterations: 10,
 					MaxIterations: 20,
 					Recorder:      poplar.RecorderPerf,
 				},
-				&poplar.BenchmarkCase{
-					CaseName:      fmt.Sprintf("%s-%s-%dFilesEachWith%dBytes", bucketName, caseName, benchCase.numFiles, benchCase.bytesPerFile),
-					Bench:         basicPullIteration(makeBucket, benchCase.uploadPayloadConstructor(benchCase.numFiles, benchCase.bytesPerFile), benchCase.timeout),
-					Count:         1,
-					MinRuntime:    time.Minute,
-					MaxRuntime:    15 * time.Minute,
-					Timeout:       30 * time.Minute,
-					MinIterations: 10,
-					MaxIterations: 20,
-					Recorder:      poplar.RecorderPerf,
-				},
-				// kim: TODO: push iteration
 			)
 		}
 	}
 	return suite
 }
 
+func uploadLocalTree(numFiles int, bytesPerFile int) uploadPayload {
+	return func(ctx context.Context, b pail.SyncBucket, opts pail.S3Options) error {
+		local, err := ioutil.TempDir(buildDir(), "sync-bucket-benchmarks-setup-upload")
+		if err != nil {
+			return errors.Wrap(err, "setting up local setup test data")
+		}
+		for i := 0; i < numFiles; i++ {
+			file := testutil.NewUUID()
+			content := utility.MakeRandomString(bytesPerFile)
+			if err := ioutil.WriteFile(filepath.Join(local, file), []byte(content), 0777); err != nil {
+				return errors.Wrap(err, "writing local setup test data file")
+			}
+		}
+
+		if err := b.Push(ctx, pail.SyncOptions{
+			Local:  local,
+			Remote: opts.Prefix,
+		}); err != nil {
+			return errors.Wrap(err, "uploading setup test data")
+		}
+		return nil
+	}
+}
+
 func s3Opts() pail.S3Options {
 	return pail.S3Options{
-		Region:     "us-east-1",
-		Name:       "sync-bucket-benchmarks",
+		Region: "us-east-1",
+		// kim: TODO: not sure if this is a legit bucket but maybe.
+		Name:       "build-test-curator",
 		Prefix:     testutil.NewUUID(),
 		MaxRetries: 20,
 	}
