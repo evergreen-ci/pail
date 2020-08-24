@@ -53,10 +53,10 @@ func CleanupS3Bucket(creds *credentials.Credentials, name, prefix, region string
 	return nil
 }
 
-func CreateS3Client(creds *credentials.Credentials region string) (*s3.S3, error) {
+func CreateS3Client(creds *credentials.Credentials, region string) (*s3.S3, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Credentials: creds,
-		Region: aws.String(region),
+		Region:      aws.String(region),
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "problem connecting to AWS")
