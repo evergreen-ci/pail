@@ -49,7 +49,7 @@ func TestBucket(t *testing.T) {
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Region := "us-east-1"
 	defer func() {
-		require.NoError(t, testutil.CleanupS3Bucket(s3BucketName, s3Prefix, s3Region))
+		require.NoError(t, testutil.CleanupS3Bucket(s3Credentials, s3BucketName, s3Prefix, s3Region))
 	}()
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(mdburl))
@@ -1114,7 +1114,7 @@ func TestS3ArchiveBucket(t *testing.T) {
 	s3BucketName := "build-test-curator"
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Region := "us-east-1"
-	defer func() { require.NoError(t, testutil.CleanupS3Bucket(s3BucketName, s3Prefix, s3Region)) }()
+	defer func() { require.NoError(t, testutil.CleanupS3Bucket(s3Credentials, s3BucketName, s3Prefix, s3Region)) }()
 
 	for _, impl := range []struct {
 		name        string

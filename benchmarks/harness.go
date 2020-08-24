@@ -65,7 +65,7 @@ func basicPullIteration(makeBucket syncBucketConstructor, makePayload makePayloa
 					return errors.Wrap(err, "making bucket")
 				}
 				defer func() {
-					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
+					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Credentials, opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
 				}()
 
 				dir, err := makePayload(ctx, b, opts)
@@ -145,7 +145,7 @@ func basicPushIteration(makeBucket syncBucketConstructor, makePayload makePayloa
 					return errors.Wrap(err, "making bucket")
 				}
 				defer func() {
-					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
+					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Credentials, opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
 				}()
 				dir, err := makePayload(ctx, b, opts)
 				defer func() {
@@ -332,10 +332,11 @@ func makeLocalTree(numFiles int, bytesPerFile int) makePayload {
 
 func s3Opts() pail.S3Options {
 	return pail.S3Options{
-		Region:     "us-east-1",
-		Name:       "build-test-curator",
-		Prefix:     testutil.NewUUID(),
-		MaxRetries: 20,
+		Credentials: pail.CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+		Region:      "us-east-1",
+		Name:        "build-test-curator",
+		Prefix:      testutil.NewUUID(),
+		MaxRetries:  20,
 	}
 }
 
