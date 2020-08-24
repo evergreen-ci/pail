@@ -235,10 +235,11 @@ func TestBucket(t *testing.T) {
 			name: "S3Bucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     s3Prefix + testutil.NewUUID(),
-					MaxRetries: 20,
+					Credentials: CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + testutil.NewUUID(),
+					MaxRetries:  20,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -250,6 +251,7 @@ func TestBucket(t *testing.T) {
 			name: "S3BucketChecksums",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
+					Credentials:            CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
 					Region:                 s3Region,
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
@@ -279,6 +281,7 @@ func TestBucket(t *testing.T) {
 			name: "ParallelS3Bucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
+					Credentials:            CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
 					Region:                 s3Region,
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
@@ -297,10 +300,11 @@ func TestBucket(t *testing.T) {
 			name: "S3MultiPartBucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     s3Prefix + testutil.NewUUID(),
-					MaxRetries: 20,
+					Credentials: CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + testutil.NewUUID(),
+					MaxRetries:  20,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
@@ -312,6 +316,7 @@ func TestBucket(t *testing.T) {
 			name: "S3MultiPartBucketChecksum",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
+					Credentials:            CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
 					Region:                 s3Region,
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
@@ -1117,10 +1122,11 @@ func TestS3ArchiveBucket(t *testing.T) {
 			name: "S3Archive",
 			constructor: func(t *testing.T) *s3ArchiveBucket {
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     s3Prefix + testutil.NewUUID(),
-					MaxRetries: 20,
+					Credentials: CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + testutil.NewUUID(),
+					MaxRetries:  20,
 				}
 				bucket, err := NewS3ArchiveBucket(s3Options)
 				require.NoError(t, err)

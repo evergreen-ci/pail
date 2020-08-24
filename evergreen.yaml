@@ -148,8 +148,8 @@ buildvariants:
     display_name: Race Detector (Arch Linux)
     expansions:
       DISABLE_COVERAGE: true
-      GOROOT: /opt/golang/go1.13/bin/go
       GO_BIN_PATH: /opt/golang/go1.13
+      GOROOT: /opt/golang/go1.13/bin/go
       RACE_DETECTOR: true
       mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
     run_on:

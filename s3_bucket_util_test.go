@@ -157,6 +157,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set permissions
 				openOptions := S3Options{
+					Credentials: CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
@@ -214,6 +215,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set content type
 				htmlOptions := S3Options{
+					Credentials: CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
@@ -244,11 +246,12 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketSmall)
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     rawBucket.prefix,
-					MaxRetries: 20,
-					Compress:   true,
+					Credentials: CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      rawBucket.prefix,
+					MaxRetries:  20,
+					Compress:    true,
 				}
 				cb, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
