@@ -54,6 +54,7 @@ functions:
       working_dir: gopath/src/github.com/evergreen-ci/pail
       binary: make
       args: ["${target}"]
+      add_expansions_to_env: true
       env:
         GOPATH: ${workdir}/gopath
         AWS_KEY: ${aws_key}
