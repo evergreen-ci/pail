@@ -40,7 +40,7 @@ $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
 # benchmark setup targets
 benchmarks:$(buildDir)/run-benchmarks .FORCE
 	./$(buildDir)/run-benchmarks
-$(buildDir)/run-benchmarks:cmd/run-benchmarks/run-benchmarks.go $(buildDir)
+$(buildDir)/run-benchmarks:cmd/run-benchmarks/run-benchmarks.go
 	$(gobin) build -o $@ $<
 # end benchmark setup targets
 

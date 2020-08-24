@@ -219,9 +219,8 @@ buildvariants:
       - windows-64-vs2015-small
     expansions:
       DISABLE_COVERAGE: true
-      GO_BIN_PATH: /cygdrive/c/golang/go1.9/bin/go
-      GOROOT: C:/golang/go1.9
-      USERPROFILE: C:/Users/Administrator
+      GO_BIN_PATH: /cygdrive/c/golang/go1.14/bin/go
+      GOROOT: C:/golang/go1.14
       mongodb_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-4.0.1.zip
     tasks:
       - name: ".test"
