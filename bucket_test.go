@@ -44,6 +44,7 @@ func TestBucket(t *testing.T) {
 	defer ses.Close()
 	defer func() { assert.NoError(t, ses.DB(uuid).DropDatabase()) }()
 
+	s3Credentials := CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
 	s3BucketName := "build-test-curator"
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Region := "us-east-1"
@@ -235,7 +236,7 @@ func TestBucket(t *testing.T) {
 			name: "S3Bucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Credentials: CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
@@ -245,13 +246,13 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				return b
 			},
-			tests: getS3SmallBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
+			tests: getS3SmallBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 		{
 			name: "S3BucketChecksums",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Credentials:            CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Credentials:            s3Credentials,
 					Region:                 s3Region,
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
@@ -262,7 +263,7 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				return b
 			},
-			tests: getS3SmallBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
+			tests: getS3SmallBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 		{
 			name: "ParallelLocal",
@@ -281,7 +282,7 @@ func TestBucket(t *testing.T) {
 			name: "ParallelS3Bucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Credentials:            CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Credentials:            s3Credentials,
 					Region:                 s3Region,
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
@@ -300,7 +301,7 @@ func TestBucket(t *testing.T) {
 			name: "S3MultiPartBucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Credentials: CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
@@ -310,13 +311,13 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				return b
 			},
-			tests: getS3LargeBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
+			tests: getS3LargeBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 		{
 			name: "S3MultiPartBucketChecksum",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Credentials:            CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Credentials:            s3Credentials,
 					Region:                 s3Region,
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
@@ -327,7 +328,7 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				return b
 			},
-			tests: getS3LargeBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
+			tests: getS3LargeBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 	} {
 		t.Run(impl.name, func(t *testing.T) {
@@ -1109,6 +1110,7 @@ func TestS3ArchiveBucket(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { require.NoError(t, os.RemoveAll(tempdir)) }()
 
+	s3Credentials := CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
 	s3BucketName := "build-test-curator"
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Region := "us-east-1"
@@ -1122,7 +1124,7 @@ func TestS3ArchiveBucket(t *testing.T) {
 			name: "S3Archive",
 			constructor: func(t *testing.T) *s3ArchiveBucket {
 				s3Options := S3Options{
-					Credentials: CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
