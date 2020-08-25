@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/evergreen-ci/pail/testutil"
 	homedir "github.com/mitchellh/go-homedir"
@@ -18,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
+func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *credentials.Credentials, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
 	return []bucketTestCase{
 		{
 			id: "VerifyBucketType",
@@ -157,6 +158,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set permissions
 				openOptions := S3Options{
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
@@ -214,6 +216,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set content type
 				htmlOptions := S3Options{
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
@@ -244,11 +247,12 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketSmall)
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     rawBucket.prefix,
-					MaxRetries: 20,
-					Compress:   true,
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      rawBucket.prefix,
+					MaxRetries:  20,
+					Compress:    true,
 				}
 				cb, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -296,7 +300,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 	}
 }
 
-func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
+func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *credentials.Credentials, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
 	return []bucketTestCase{
 		{
 			id: "VerifyBucketType",
@@ -434,6 +438,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set permissions
 				openOptions := S3Options{
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
@@ -512,6 +517,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set content type
 				htmlOptions := S3Options{
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
@@ -541,11 +547,12 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketLarge)
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     rawBucket.prefix,
-					MaxRetries: 20,
-					Compress:   true,
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      rawBucket.prefix,
+					MaxRetries:  20,
+					Compress:    true,
 				}
 				cb, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)

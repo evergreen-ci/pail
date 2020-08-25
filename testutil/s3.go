@@ -2,13 +2,14 @@ package testutil
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/pkg/errors"
 )
 
-func CleanupS3Bucket(name, prefix, region string) error {
-	svc, err := CreateS3Client(region)
+func CleanupS3Bucket(creds *credentials.Credentials, name, prefix, region string) error {
+	svc, err := CreateS3Client(creds, region)
 	if err != nil {
 		return errors.Wrap(err, "clean up failed")
 	}
@@ -52,8 +53,11 @@ func CleanupS3Bucket(name, prefix, region string) error {
 	return nil
 }
 
-func CreateS3Client(region string) (*s3.S3, error) {
-	sess, err := session.NewSession(&aws.Config{Region: aws.String(region)})
+func CreateS3Client(creds *credentials.Credentials, region string) (*s3.S3, error) {
+	sess, err := session.NewSession(&aws.Config{
+		Credentials: creds,
+		Region:      aws.String(region),
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "problem connecting to AWS")
 	}
