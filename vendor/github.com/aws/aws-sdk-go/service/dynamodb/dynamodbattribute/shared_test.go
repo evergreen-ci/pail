@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/stretchr/testify/assert"
 )
 
 type testBinarySetStruct struct {
@@ -59,6 +58,8 @@ type testAliasedStruct struct {
 
 	Value13 testAliasedBool
 	Value14 testAliasedBoolSlice
+
+	Value15 map[testAliasedString]string
 }
 
 type testNamedPointer *int
@@ -257,6 +258,9 @@ var sharedTestCases = []struct {
 					{BOOL: aws.Bool(false)},
 					{BOOL: aws.Bool(true)},
 				}},
+				"Value15": {M: map[string]*dynamodb.AttributeValue{
+					"TestKey": {S: aws.String("TestElement")},
+				}},
 			},
 		},
 		actual: &testAliasedStruct{},
@@ -279,6 +283,9 @@ var sharedTestCases = []struct {
 			Value12: testAliasedStringSlice{"1", "2", "3"},
 			Value13: true,
 			Value14: testAliasedBoolSlice{true, false, true},
+			Value15: map[testAliasedString]string{
+				"TestKey": "TestElement",
+			},
 		},
 	},
 	{
@@ -376,14 +383,18 @@ func assertConvertTest(t *testing.T, i int, actual, expected interface{}, err, e
 	i++
 	if expectedErr != nil {
 		if err != nil {
-			assert.Equal(t, expectedErr, err, "case %d", i)
+			if e, a := expectedErr, err; !reflect.DeepEqual(e, a) {
+				t.Errorf("case %d expect %v, got %v", i, e, a)
+			}
 		} else {
-			assert.Fail(t, "", "case %d, expected error, %v", i)
+			t.Fatalf("case %d, expected error, %v", i, expectedErr)
 		}
 	} else if err != nil {
-		assert.Fail(t, "", "case %d, expect no error, got %v", i, err)
+		t.Fatalf("case %d, expect no error, got %v", i, err)
 	} else {
-		assert.Equal(t, ptrToValue(expected), ptrToValue(actual), "case %d", i)
+		if e, a := ptrToValue(expected), ptrToValue(actual); !reflect.DeepEqual(e, a) {
+			t.Errorf("case %d, expect %v, got %v", i, e, a)
+		}
 	}
 }
 

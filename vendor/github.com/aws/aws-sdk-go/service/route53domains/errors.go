@@ -2,6 +2,10 @@
 
 package route53domains
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeDomainLimitExceeded for service response error code
@@ -20,8 +24,8 @@ const (
 	// "InvalidInput".
 	//
 	// The requested item is not acceptable. For example, for an OperationId it
-	// may refer to the ID of an operation that is already completed. For a domain
-	// name, it may not be a valid domain name or belong to the requester account.
+	// might refer to the ID of an operation that is already completed. For a domain
+	// name, it might not be a valid domain name or belong to the requester account.
 	ErrCodeInvalidInput = "InvalidInput"
 
 	// ErrCodeOperationLimitExceeded for service response error code
@@ -40,6 +44,15 @@ const (
 	// ErrCodeUnsupportedTLD for service response error code
 	// "UnsupportedTLD".
 	//
-	// Amazon Route 53 does not support this top-level domain.
+	// Amazon Route 53 does not support this top-level domain (TLD).
 	ErrCodeUnsupportedTLD = "UnsupportedTLD"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"DomainLimitExceeded":    newErrorDomainLimitExceeded,
+	"DuplicateRequest":       newErrorDuplicateRequest,
+	"InvalidInput":           newErrorInvalidInput,
+	"OperationLimitExceeded": newErrorOperationLimitExceeded,
+	"TLDRulesViolation":      newErrorTLDRulesViolation,
+	"UnsupportedTLD":         newErrorUnsupportedTLD,
+}

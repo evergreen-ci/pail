@@ -55,6 +55,8 @@ func ExampleLambda_AddPermission_shared00() {
 				fmt.Println(lambda.ErrCodePolicyLengthExceededException, aerr.Error())
 			case lambda.ErrCodeTooManyRequestsException:
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
+			case lambda.ErrCodePreconditionFailedException:
+				fmt.Println(lambda.ErrCodePreconditionFailedException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -82,7 +84,7 @@ func ExampleLambda_CreateFunction_shared00() {
 		MemorySize:   aws.Int64(128),
 		Publish:      aws.Bool(true),
 		Role:         aws.String("arn:aws:iam::123456789012:role/service-role/role-name"),
-		Runtime:      aws.String("nodejs4.3"),
+		Runtime:      aws.String("nodejs8.10"),
 		Timeout:      aws.Int64(15),
 		VpcConfig:    &lambda.VpcConfig{},
 	}
@@ -135,6 +137,8 @@ func ExampleLambda_DeleteAlias_shared00() {
 				fmt.Println(lambda.ErrCodeServiceException, aerr.Error())
 			case lambda.ErrCodeInvalidParameterValueException:
 				fmt.Println(lambda.ErrCodeInvalidParameterValueException, aerr.Error())
+			case lambda.ErrCodeResourceConflictException:
+				fmt.Println(lambda.ErrCodeResourceConflictException, aerr.Error())
 			case lambda.ErrCodeTooManyRequestsException:
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
 			default:
@@ -172,6 +176,8 @@ func ExampleLambda_DeleteEventSourceMapping_shared00() {
 				fmt.Println(lambda.ErrCodeInvalidParameterValueException, aerr.Error())
 			case lambda.ErrCodeTooManyRequestsException:
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
+			case lambda.ErrCodeResourceInUseException:
+				fmt.Println(lambda.ErrCodeResourceInUseException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -490,6 +496,10 @@ func ExampleLambda_Invoke_shared00() {
 				fmt.Println(lambda.ErrCodeKMSNotFoundException, aerr.Error())
 			case lambda.ErrCodeInvalidRuntimeException:
 				fmt.Println(lambda.ErrCodeInvalidRuntimeException, aerr.Error())
+			case lambda.ErrCodeResourceConflictException:
+				fmt.Println(lambda.ErrCodeResourceConflictException, aerr.Error())
+			case lambda.ErrCodeResourceNotReadyException:
+				fmt.Println(lambda.ErrCodeResourceNotReadyException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -526,6 +536,8 @@ func ExampleLambda_InvokeAsync_shared00() {
 				fmt.Println(lambda.ErrCodeInvalidRequestContentException, aerr.Error())
 			case lambda.ErrCodeInvalidRuntimeException:
 				fmt.Println(lambda.ErrCodeInvalidRuntimeException, aerr.Error())
+			case lambda.ErrCodeResourceConflictException:
+				fmt.Println(lambda.ErrCodeResourceConflictException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -674,6 +686,10 @@ func ExampleLambda_PublishVersion_shared00() {
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
 			case lambda.ErrCodeCodeStorageExceededException:
 				fmt.Println(lambda.ErrCodeCodeStorageExceededException, aerr.Error())
+			case lambda.ErrCodePreconditionFailedException:
+				fmt.Println(lambda.ErrCodePreconditionFailedException, aerr.Error())
+			case lambda.ErrCodeResourceConflictException:
+				fmt.Println(lambda.ErrCodeResourceConflictException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -711,6 +727,8 @@ func ExampleLambda_RemovePermission_shared00() {
 				fmt.Println(lambda.ErrCodeInvalidParameterValueException, aerr.Error())
 			case lambda.ErrCodeTooManyRequestsException:
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
+			case lambda.ErrCodePreconditionFailedException:
+				fmt.Println(lambda.ErrCodePreconditionFailedException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -749,6 +767,10 @@ func ExampleLambda_UpdateAlias_shared00() {
 				fmt.Println(lambda.ErrCodeInvalidParameterValueException, aerr.Error())
 			case lambda.ErrCodeTooManyRequestsException:
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
+			case lambda.ErrCodePreconditionFailedException:
+				fmt.Println(lambda.ErrCodePreconditionFailedException, aerr.Error())
+			case lambda.ErrCodeResourceConflictException:
+				fmt.Println(lambda.ErrCodeResourceConflictException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -789,6 +811,8 @@ func ExampleLambda_UpdateEventSourceMapping_shared00() {
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
 			case lambda.ErrCodeResourceConflictException:
 				fmt.Println(lambda.ErrCodeResourceConflictException, aerr.Error())
+			case lambda.ErrCodeResourceInUseException:
+				fmt.Println(lambda.ErrCodeResourceInUseException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -831,6 +855,10 @@ func ExampleLambda_UpdateFunctionCode_shared00() {
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
 			case lambda.ErrCodeCodeStorageExceededException:
 				fmt.Println(lambda.ErrCodeCodeStorageExceededException, aerr.Error())
+			case lambda.ErrCodePreconditionFailedException:
+				fmt.Println(lambda.ErrCodePreconditionFailedException, aerr.Error())
+			case lambda.ErrCodeResourceConflictException:
+				fmt.Println(lambda.ErrCodeResourceConflictException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -875,6 +903,8 @@ func ExampleLambda_UpdateFunctionConfiguration_shared00() {
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
 			case lambda.ErrCodeResourceConflictException:
 				fmt.Println(lambda.ErrCodeResourceConflictException, aerr.Error())
+			case lambda.ErrCodePreconditionFailedException:
+				fmt.Println(lambda.ErrCodePreconditionFailedException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
