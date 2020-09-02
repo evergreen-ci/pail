@@ -64,7 +64,7 @@ endif
 ifneq (,$(TEST_TIMEOUT))
 	testArgs += -timeout=$(TEST_TIMEOUT)
 else
-	testArgs += -timeout=30m
+	testArgs += -timeout=1h
 endif
 
 # test execution and output handlers
