@@ -135,7 +135,6 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				assert.Error(t, err)
 			},
 		},
-
 		{
 			id: "TestPermissions",
 			test: func(t *testing.T, b Bucket) {
@@ -241,7 +240,6 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 			},
 		},
-
 		{
 			id: "TestCompressingWriter",
 			test: func(t *testing.T, b Bucket) {
