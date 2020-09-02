@@ -2250,6 +2250,95 @@ func (c *Connect) ListUsersPagesWithContext(ctx aws.Context, input *ListUsersInp
 	return p.Err()
 }
 
+const opResumeContactRecording = "ResumeContactRecording"
+
+// ResumeContactRecordingRequest generates a "aws/request.Request" representing the
+// client's request for the ResumeContactRecording operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ResumeContactRecording for more information on using the ResumeContactRecording
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ResumeContactRecordingRequest method.
+//    req, resp := client.ResumeContactRecordingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ResumeContactRecording
+func (c *Connect) ResumeContactRecordingRequest(input *ResumeContactRecordingInput) (req *request.Request, output *ResumeContactRecordingOutput) {
+	op := &request.Operation{
+		Name:       opResumeContactRecording,
+		HTTPMethod: "POST",
+		HTTPPath:   "/contact/resume-recording",
+	}
+
+	if input == nil {
+		input = &ResumeContactRecordingInput{}
+	}
+
+	output = &ResumeContactRecordingOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// ResumeContactRecording API operation for Amazon Connect Service.
+//
+// When a contact is being recorded, and the recording has been suspended using
+// SuspendContactRecording, this API resumes recording the call.
+//
+// Only voice recordings are supported at this time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation ResumeContactRecording for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/ResumeContactRecording
+func (c *Connect) ResumeContactRecording(input *ResumeContactRecordingInput) (*ResumeContactRecordingOutput, error) {
+	req, out := c.ResumeContactRecordingRequest(input)
+	return out, req.Send()
+}
+
+// ResumeContactRecordingWithContext is the same as ResumeContactRecording with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ResumeContactRecording for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) ResumeContactRecordingWithContext(ctx aws.Context, input *ResumeContactRecordingInput, opts ...request.Option) (*ResumeContactRecordingOutput, error) {
+	req, out := c.ResumeContactRecordingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opStartChatContact = "StartChatContact"
 
 // StartChatContactRequest generates a "aws/request.Request" representing the
@@ -2349,6 +2438,106 @@ func (c *Connect) StartChatContactWithContext(ctx aws.Context, input *StartChatC
 	return out, req.Send()
 }
 
+const opStartContactRecording = "StartContactRecording"
+
+// StartContactRecordingRequest generates a "aws/request.Request" representing the
+// client's request for the StartContactRecording operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartContactRecording for more information on using the StartContactRecording
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartContactRecordingRequest method.
+//    req, resp := client.StartContactRecordingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/StartContactRecording
+func (c *Connect) StartContactRecordingRequest(input *StartContactRecordingInput) (req *request.Request, output *StartContactRecordingOutput) {
+	op := &request.Operation{
+		Name:       opStartContactRecording,
+		HTTPMethod: "POST",
+		HTTPPath:   "/contact/start-recording",
+	}
+
+	if input == nil {
+		input = &StartContactRecordingInput{}
+	}
+
+	output = &StartContactRecordingOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// StartContactRecording API operation for Amazon Connect Service.
+//
+// This API starts recording the contact when the agent joins the call. StartContactRecording
+// is a one-time action. For example, if you use StopContactRecording to stop
+// recording an ongoing call, you can't use StartContactRecording to restart
+// it. For scenarios where the recording has started and you want to suspend
+// and resume it, such as when collecting sensitive information (for example,
+// a credit card number), use SuspendContactRecording and ResumeContactRecording.
+//
+// You can use this API to override the recording behavior configured in the
+// Set recording behavior (https://docs.aws.amazon.com/connect/latest/adminguide/set-recording-behavior.html)
+// block.
+//
+// Only voice recordings are supported at this time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation StartContactRecording for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * InvalidParameterException
+//   One or more of the specified parameters are not valid.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/StartContactRecording
+func (c *Connect) StartContactRecording(input *StartContactRecordingInput) (*StartContactRecordingOutput, error) {
+	req, out := c.StartContactRecordingRequest(input)
+	return out, req.Send()
+}
+
+// StartContactRecordingWithContext is the same as StartContactRecording with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartContactRecording for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) StartContactRecordingWithContext(ctx aws.Context, input *StartContactRecordingInput, opts ...request.Option) (*StartContactRecordingOutput, error) {
+	req, out := c.StartContactRecordingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opStartOutboundVoiceContact = "StartOutboundVoiceContact"
 
 // StartOutboundVoiceContactRequest generates a "aws/request.Request" representing the
@@ -2393,7 +2582,13 @@ func (c *Connect) StartOutboundVoiceContactRequest(input *StartOutboundVoiceCont
 
 // StartOutboundVoiceContact API operation for Amazon Connect Service.
 //
-// Initiates a contact flow to place an outbound call to a customer.
+// This API places an outbound call to a contact, and then initiates the contact
+// flow. It performs the actions in the contact flow that's specified (in ContactFlowId).
+//
+// Agents are not involved in initiating the outbound API (that is, dialing
+// the contact). If the contact flow places an outbound call to a contact, and
+// then puts the contact in queue, that's when the call is routed to the agent,
+// like any other inbound case.
 //
 // There is a 60 second dialing timeout for this operation. If the call is not
 // connected after 60 seconds, it fails.
@@ -2536,6 +2731,193 @@ func (c *Connect) StopContact(input *StopContactInput) (*StopContactOutput, erro
 // for more information on using Contexts.
 func (c *Connect) StopContactWithContext(ctx aws.Context, input *StopContactInput, opts ...request.Option) (*StopContactOutput, error) {
 	req, out := c.StopContactRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStopContactRecording = "StopContactRecording"
+
+// StopContactRecordingRequest generates a "aws/request.Request" representing the
+// client's request for the StopContactRecording operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StopContactRecording for more information on using the StopContactRecording
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StopContactRecordingRequest method.
+//    req, resp := client.StopContactRecordingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/StopContactRecording
+func (c *Connect) StopContactRecordingRequest(input *StopContactRecordingInput) (req *request.Request, output *StopContactRecordingOutput) {
+	op := &request.Operation{
+		Name:       opStopContactRecording,
+		HTTPMethod: "POST",
+		HTTPPath:   "/contact/stop-recording",
+	}
+
+	if input == nil {
+		input = &StopContactRecordingInput{}
+	}
+
+	output = &StopContactRecordingOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// StopContactRecording API operation for Amazon Connect Service.
+//
+// When a contact is being recorded, this API stops recording the call. StopContactRecording
+// is a one-time action. If you use StopContactRecording to stop recording an
+// ongoing call, you can't use StartContactRecording to restart it. For scenarios
+// where the recording has started and you want to suspend it for sensitive
+// information (for example, to collect a credit card number), and then restart
+// it, use SuspendContactRecording and ResumeContactRecording.
+//
+// Only voice recordings are supported at this time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation StopContactRecording for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/StopContactRecording
+func (c *Connect) StopContactRecording(input *StopContactRecordingInput) (*StopContactRecordingOutput, error) {
+	req, out := c.StopContactRecordingRequest(input)
+	return out, req.Send()
+}
+
+// StopContactRecordingWithContext is the same as StopContactRecording with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StopContactRecording for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) StopContactRecordingWithContext(ctx aws.Context, input *StopContactRecordingInput, opts ...request.Option) (*StopContactRecordingOutput, error) {
+	req, out := c.StopContactRecordingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opSuspendContactRecording = "SuspendContactRecording"
+
+// SuspendContactRecordingRequest generates a "aws/request.Request" representing the
+// client's request for the SuspendContactRecording operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See SuspendContactRecording for more information on using the SuspendContactRecording
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the SuspendContactRecordingRequest method.
+//    req, resp := client.SuspendContactRecordingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/SuspendContactRecording
+func (c *Connect) SuspendContactRecordingRequest(input *SuspendContactRecordingInput) (req *request.Request, output *SuspendContactRecordingOutput) {
+	op := &request.Operation{
+		Name:       opSuspendContactRecording,
+		HTTPMethod: "POST",
+		HTTPPath:   "/contact/suspend-recording",
+	}
+
+	if input == nil {
+		input = &SuspendContactRecordingInput{}
+	}
+
+	output = &SuspendContactRecordingOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// SuspendContactRecording API operation for Amazon Connect Service.
+//
+// When a contact is being recorded, this API suspends recording the call. For
+// example, you might suspend the call recording while collecting sensitive
+// information, such as a credit card number. Then use ResumeContactRecording
+// to restart recording.
+//
+// The period of time that the recording is suspended is filled with silence
+// in the final recording.
+//
+// Only voice recordings are supported at this time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Connect Service's
+// API operation SuspendContactRecording for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidRequestException
+//   The request is not valid.
+//
+//   * ResourceNotFoundException
+//   The specified resource was not found.
+//
+//   * InternalServiceException
+//   Request processing failed due to an error or failure with the service.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/connect-2017-08-08/SuspendContactRecording
+func (c *Connect) SuspendContactRecording(input *SuspendContactRecordingInput) (*SuspendContactRecordingOutput, error) {
+	req, out := c.SuspendContactRecordingRequest(input)
+	return out, req.Send()
+}
+
+// SuspendContactRecordingWithContext is the same as SuspendContactRecording with the addition of
+// the ability to pass a context and additional request options.
+//
+// See SuspendContactRecording for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Connect) SuspendContactRecordingWithContext(ctx aws.Context, input *SuspendContactRecordingInput, opts ...request.Option) (*SuspendContactRecordingOutput, error) {
+	req, out := c.SuspendContactRecordingRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3408,8 +3790,8 @@ func (s *ContactFlowSummary) SetName(v string) *ContactFlowSummary {
 
 // The contact with the specified ID is not active or does not exist.
 type ContactNotFoundException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	// The message.
 	Message_ *string `locationName:"Message" type:"string"`
@@ -3427,17 +3809,17 @@ func (s ContactNotFoundException) GoString() string {
 
 func newErrorContactNotFoundException(v protocol.ResponseMetadata) error {
 	return &ContactNotFoundException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ContactNotFoundException) Code() string {
+func (s *ContactNotFoundException) Code() string {
 	return "ContactNotFoundException"
 }
 
 // Message returns the exception's message.
-func (s ContactNotFoundException) Message() string {
+func (s *ContactNotFoundException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -3445,22 +3827,22 @@ func (s ContactNotFoundException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ContactNotFoundException) OrigErr() error {
+func (s *ContactNotFoundException) OrigErr() error {
 	return nil
 }
 
-func (s ContactNotFoundException) Error() string {
+func (s *ContactNotFoundException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ContactNotFoundException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ContactNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ContactNotFoundException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ContactNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type CreateUserInput struct {
@@ -3722,7 +4104,9 @@ func (s *Credentials) SetRefreshTokenExpiration(v time.Time) *Credentials {
 	return s
 }
 
-// Contains information about a real-time metric.
+// Contains information about a real-time metric. For a description of each
+// metric, see Real-time Metrics Definitions (https://docs.aws.amazon.com/connect/latest/adminguide/real-time-metrics-definitions.html)
+// in the Amazon Connect Administrator Guide.
 type CurrentMetric struct {
 	_ struct{} `type:"structure"`
 
@@ -4121,8 +4505,8 @@ func (s *DescribeUserOutput) SetUser(v *User) *DescribeUserOutput {
 
 // Outbound calls to the destination number are not allowed.
 type DestinationNotAllowedException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	// The message.
 	Message_ *string `locationName:"Message" type:"string"`
@@ -4140,17 +4524,17 @@ func (s DestinationNotAllowedException) GoString() string {
 
 func newErrorDestinationNotAllowedException(v protocol.ResponseMetadata) error {
 	return &DestinationNotAllowedException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s DestinationNotAllowedException) Code() string {
+func (s *DestinationNotAllowedException) Code() string {
 	return "DestinationNotAllowedException"
 }
 
 // Message returns the exception's message.
-func (s DestinationNotAllowedException) Message() string {
+func (s *DestinationNotAllowedException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -4158,22 +4542,22 @@ func (s DestinationNotAllowedException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s DestinationNotAllowedException) OrigErr() error {
+func (s *DestinationNotAllowedException) OrigErr() error {
 	return nil
 }
 
-func (s DestinationNotAllowedException) Error() string {
+func (s *DestinationNotAllowedException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s DestinationNotAllowedException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *DestinationNotAllowedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s DestinationNotAllowedException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *DestinationNotAllowedException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Contains information about the dimensions for a set of metrics.
@@ -4211,8 +4595,8 @@ func (s *Dimensions) SetQueue(v *QueueReference) *Dimensions {
 
 // A resource with the specified name already exists.
 type DuplicateResourceException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" type:"string"`
 }
@@ -4229,17 +4613,17 @@ func (s DuplicateResourceException) GoString() string {
 
 func newErrorDuplicateResourceException(v protocol.ResponseMetadata) error {
 	return &DuplicateResourceException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s DuplicateResourceException) Code() string {
+func (s *DuplicateResourceException) Code() string {
 	return "DuplicateResourceException"
 }
 
 // Message returns the exception's message.
-func (s DuplicateResourceException) Message() string {
+func (s *DuplicateResourceException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -4247,22 +4631,22 @@ func (s DuplicateResourceException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s DuplicateResourceException) OrigErr() error {
+func (s *DuplicateResourceException) OrigErr() error {
 	return nil
 }
 
-func (s DuplicateResourceException) Error() string {
+func (s *DuplicateResourceException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s DuplicateResourceException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *DuplicateResourceException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s DuplicateResourceException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *DuplicateResourceException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Contains the filter to apply when retrieving metrics.
@@ -4397,7 +4781,9 @@ type GetCurrentMetricDataInput struct {
 	_ struct{} `type:"structure"`
 
 	// The metrics to retrieve. Specify the name and unit for each metric. The following
-	// metrics are available:
+	// metrics are available. For a description of each metric, see Real-time Metrics
+	// Definitions (https://docs.aws.amazon.com/connect/latest/adminguide/real-time-metrics-definitions.html)
+	// in the Amazon Connect Administrator Guide.
 	//
 	// AGENTS_AFTER_CONTACT_WORK
 	//
@@ -4703,7 +5089,9 @@ type GetMetricDataInput struct {
 	Groupings []*string `type:"list"`
 
 	// The metrics to retrieve. Specify the name, unit, and statistic for each metric.
-	// The following historical metrics are available:
+	// The following historical metrics are available. For a description of each
+	// metric, see Historical Metrics Definitions (https://docs.aws.amazon.com/connect/latest/adminguide/historical-metrics-definitions.html)
+	// in the Amazon Connect Administrator Guide.
 	//
 	// ABANDON_TIME
 	//
@@ -5281,7 +5669,9 @@ func (s *HierarchyStructure) SetLevelTwo(v *HierarchyLevel) *HierarchyStructure 
 	return s
 }
 
-// Contains information about a historical metric.
+// Contains information about a historical metric. For a description of each
+// metric, see Historical Metrics Definitions (https://docs.aws.amazon.com/connect/latest/adminguide/historical-metrics-definitions.html)
+// in the Amazon Connect Administrator Guide.
 type HistoricalMetric struct {
 	_ struct{} `type:"structure"`
 
@@ -5442,8 +5832,8 @@ func (s *HoursOfOperationSummary) SetName(v string) *HoursOfOperationSummary {
 
 // Request processing failed due to an error or failure with the service.
 type InternalServiceException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	// The message.
 	Message_ *string `locationName:"Message" type:"string"`
@@ -5461,17 +5851,17 @@ func (s InternalServiceException) GoString() string {
 
 func newErrorInternalServiceException(v protocol.ResponseMetadata) error {
 	return &InternalServiceException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InternalServiceException) Code() string {
+func (s *InternalServiceException) Code() string {
 	return "InternalServiceException"
 }
 
 // Message returns the exception's message.
-func (s InternalServiceException) Message() string {
+func (s *InternalServiceException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -5479,28 +5869,28 @@ func (s InternalServiceException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InternalServiceException) OrigErr() error {
+func (s *InternalServiceException) OrigErr() error {
 	return nil
 }
 
-func (s InternalServiceException) Error() string {
+func (s *InternalServiceException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InternalServiceException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InternalServiceException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InternalServiceException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InternalServiceException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // One or more of the specified parameters are not valid.
 type InvalidParameterException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	// The message.
 	Message_ *string `locationName:"Message" type:"string"`
@@ -5518,17 +5908,17 @@ func (s InvalidParameterException) GoString() string {
 
 func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
 	return &InvalidParameterException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidParameterException) Code() string {
+func (s *InvalidParameterException) Code() string {
 	return "InvalidParameterException"
 }
 
 // Message returns the exception's message.
-func (s InvalidParameterException) Message() string {
+func (s *InvalidParameterException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -5536,28 +5926,28 @@ func (s InvalidParameterException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidParameterException) OrigErr() error {
+func (s *InvalidParameterException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidParameterException) Error() string {
+func (s *InvalidParameterException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidParameterException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidParameterException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidParameterException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidParameterException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The request is not valid.
 type InvalidRequestException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	// The message.
 	Message_ *string `locationName:"Message" type:"string"`
@@ -5575,17 +5965,17 @@ func (s InvalidRequestException) GoString() string {
 
 func newErrorInvalidRequestException(v protocol.ResponseMetadata) error {
 	return &InvalidRequestException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidRequestException) Code() string {
+func (s *InvalidRequestException) Code() string {
 	return "InvalidRequestException"
 }
 
 // Message returns the exception's message.
-func (s InvalidRequestException) Message() string {
+func (s *InvalidRequestException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -5593,28 +5983,28 @@ func (s InvalidRequestException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidRequestException) OrigErr() error {
+func (s *InvalidRequestException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidRequestException) Error() string {
+func (s *InvalidRequestException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidRequestException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidRequestException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidRequestException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidRequestException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The allowed limit for the resource has been exceeded.
 type LimitExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	// The message.
 	Message_ *string `locationName:"Message" type:"string"`
@@ -5632,17 +6022,17 @@ func (s LimitExceededException) GoString() string {
 
 func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
 	return &LimitExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s LimitExceededException) Code() string {
+func (s *LimitExceededException) Code() string {
 	return "LimitExceededException"
 }
 
 // Message returns the exception's message.
-func (s LimitExceededException) Message() string {
+func (s *LimitExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -5650,22 +6040,22 @@ func (s LimitExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s LimitExceededException) OrigErr() error {
+func (s *LimitExceededException) OrigErr() error {
 	return nil
 }
 
-func (s LimitExceededException) Error() string {
+func (s *LimitExceededException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s LimitExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *LimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s LimitExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *LimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type ListContactFlowsInput struct {
@@ -6530,8 +6920,8 @@ func (s *ListUsersOutput) SetUserSummaryList(v []*UserSummary) *ListUsersOutput 
 
 // The contact is not permitted.
 type OutboundContactNotPermittedException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	// The message.
 	Message_ *string `locationName:"Message" type:"string"`
@@ -6549,17 +6939,17 @@ func (s OutboundContactNotPermittedException) GoString() string {
 
 func newErrorOutboundContactNotPermittedException(v protocol.ResponseMetadata) error {
 	return &OutboundContactNotPermittedException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s OutboundContactNotPermittedException) Code() string {
+func (s *OutboundContactNotPermittedException) Code() string {
 	return "OutboundContactNotPermittedException"
 }
 
 // Message returns the exception's message.
-func (s OutboundContactNotPermittedException) Message() string {
+func (s *OutboundContactNotPermittedException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -6567,22 +6957,22 @@ func (s OutboundContactNotPermittedException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s OutboundContactNotPermittedException) OrigErr() error {
+func (s *OutboundContactNotPermittedException) OrigErr() error {
 	return nil
 }
 
-func (s OutboundContactNotPermittedException) Error() string {
+func (s *OutboundContactNotPermittedException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s OutboundContactNotPermittedException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *OutboundContactNotPermittedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s OutboundContactNotPermittedException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *OutboundContactNotPermittedException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The customer's details.
@@ -6773,8 +7163,8 @@ func (s *QueueSummary) SetQueueType(v string) *QueueSummary {
 
 // The specified resource was not found.
 type ResourceNotFoundException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	// The message.
 	Message_ *string `locationName:"Message" type:"string"`
@@ -6792,17 +7182,17 @@ func (s ResourceNotFoundException) GoString() string {
 
 func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
 	return &ResourceNotFoundException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ResourceNotFoundException) Code() string {
+func (s *ResourceNotFoundException) Code() string {
 	return "ResourceNotFoundException"
 }
 
 // Message returns the exception's message.
-func (s ResourceNotFoundException) Message() string {
+func (s *ResourceNotFoundException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -6810,22 +7200,112 @@ func (s ResourceNotFoundException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ResourceNotFoundException) OrigErr() error {
+func (s *ResourceNotFoundException) OrigErr() error {
 	return nil
 }
 
-func (s ResourceNotFoundException) Error() string {
+func (s *ResourceNotFoundException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ResourceNotFoundException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ResourceNotFoundException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type ResumeContactRecordingInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the contact.
+	//
+	// ContactId is a required field
+	ContactId *string `min:"1" type:"string" required:"true"`
+
+	// The identifier of the contact. This is the identifier of the contact associated
+	// with the first interaction with the contact center.
+	//
+	// InitialContactId is a required field
+	InitialContactId *string `min:"1" type:"string" required:"true"`
+
+	// The identifier of the Amazon Connect instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ResumeContactRecordingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResumeContactRecordingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResumeContactRecordingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResumeContactRecordingInput"}
+	if s.ContactId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContactId"))
+	}
+	if s.ContactId != nil && len(*s.ContactId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ContactId", 1))
+	}
+	if s.InitialContactId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InitialContactId"))
+	}
+	if s.InitialContactId != nil && len(*s.InitialContactId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InitialContactId", 1))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.InstanceId != nil && len(*s.InstanceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContactId sets the ContactId field's value.
+func (s *ResumeContactRecordingInput) SetContactId(v string) *ResumeContactRecordingInput {
+	s.ContactId = &v
+	return s
+}
+
+// SetInitialContactId sets the InitialContactId field's value.
+func (s *ResumeContactRecordingInput) SetInitialContactId(v string) *ResumeContactRecordingInput {
+	s.InitialContactId = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *ResumeContactRecordingInput) SetInstanceId(v string) *ResumeContactRecordingInput {
+	s.InstanceId = &v
+	return s
+}
+
+type ResumeContactRecordingOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s ResumeContactRecordingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResumeContactRecordingOutput) GoString() string {
+	return s.String()
 }
 
 // Contains summary information about a routing profile.
@@ -7068,6 +7548,110 @@ func (s *StartChatContactOutput) SetParticipantToken(v string) *StartChatContact
 	return s
 }
 
+type StartContactRecordingInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the contact.
+	//
+	// ContactId is a required field
+	ContactId *string `min:"1" type:"string" required:"true"`
+
+	// The identifier of the contact. This is the identifier of the contact associated
+	// with the first interaction with the contact center.
+	//
+	// InitialContactId is a required field
+	InitialContactId *string `min:"1" type:"string" required:"true"`
+
+	// The identifier of the Amazon Connect instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `min:"1" type:"string" required:"true"`
+
+	// Who is being recorded.
+	//
+	// VoiceRecordingConfiguration is a required field
+	VoiceRecordingConfiguration *VoiceRecordingConfiguration `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartContactRecordingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartContactRecordingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartContactRecordingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartContactRecordingInput"}
+	if s.ContactId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContactId"))
+	}
+	if s.ContactId != nil && len(*s.ContactId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ContactId", 1))
+	}
+	if s.InitialContactId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InitialContactId"))
+	}
+	if s.InitialContactId != nil && len(*s.InitialContactId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InitialContactId", 1))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.InstanceId != nil && len(*s.InstanceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceId", 1))
+	}
+	if s.VoiceRecordingConfiguration == nil {
+		invalidParams.Add(request.NewErrParamRequired("VoiceRecordingConfiguration"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContactId sets the ContactId field's value.
+func (s *StartContactRecordingInput) SetContactId(v string) *StartContactRecordingInput {
+	s.ContactId = &v
+	return s
+}
+
+// SetInitialContactId sets the InitialContactId field's value.
+func (s *StartContactRecordingInput) SetInitialContactId(v string) *StartContactRecordingInput {
+	s.InitialContactId = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *StartContactRecordingInput) SetInstanceId(v string) *StartContactRecordingInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetVoiceRecordingConfiguration sets the VoiceRecordingConfiguration field's value.
+func (s *StartContactRecordingInput) SetVoiceRecordingConfiguration(v *VoiceRecordingConfiguration) *StartContactRecordingInput {
+	s.VoiceRecordingConfiguration = v
+	return s
+}
+
+type StartContactRecordingOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s StartContactRecordingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartContactRecordingOutput) GoString() string {
+	return s.String()
+}
+
 type StartOutboundVoiceContactInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7280,6 +7864,186 @@ func (s StopContactOutput) GoString() string {
 	return s.String()
 }
 
+type StopContactRecordingInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the contact.
+	//
+	// ContactId is a required field
+	ContactId *string `min:"1" type:"string" required:"true"`
+
+	// The identifier of the contact. This is the identifier of the contact associated
+	// with the first interaction with the contact center.
+	//
+	// InitialContactId is a required field
+	InitialContactId *string `min:"1" type:"string" required:"true"`
+
+	// The identifier of the Amazon Connect instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StopContactRecordingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopContactRecordingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopContactRecordingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopContactRecordingInput"}
+	if s.ContactId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContactId"))
+	}
+	if s.ContactId != nil && len(*s.ContactId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ContactId", 1))
+	}
+	if s.InitialContactId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InitialContactId"))
+	}
+	if s.InitialContactId != nil && len(*s.InitialContactId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InitialContactId", 1))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.InstanceId != nil && len(*s.InstanceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContactId sets the ContactId field's value.
+func (s *StopContactRecordingInput) SetContactId(v string) *StopContactRecordingInput {
+	s.ContactId = &v
+	return s
+}
+
+// SetInitialContactId sets the InitialContactId field's value.
+func (s *StopContactRecordingInput) SetInitialContactId(v string) *StopContactRecordingInput {
+	s.InitialContactId = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *StopContactRecordingInput) SetInstanceId(v string) *StopContactRecordingInput {
+	s.InstanceId = &v
+	return s
+}
+
+type StopContactRecordingOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s StopContactRecordingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopContactRecordingOutput) GoString() string {
+	return s.String()
+}
+
+type SuspendContactRecordingInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the contact.
+	//
+	// ContactId is a required field
+	ContactId *string `min:"1" type:"string" required:"true"`
+
+	// The identifier of the contact. This is the identifier of the contact associated
+	// with the first interaction with the contact center.
+	//
+	// InitialContactId is a required field
+	InitialContactId *string `min:"1" type:"string" required:"true"`
+
+	// The identifier of the Amazon Connect instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s SuspendContactRecordingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SuspendContactRecordingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SuspendContactRecordingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SuspendContactRecordingInput"}
+	if s.ContactId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContactId"))
+	}
+	if s.ContactId != nil && len(*s.ContactId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ContactId", 1))
+	}
+	if s.InitialContactId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InitialContactId"))
+	}
+	if s.InitialContactId != nil && len(*s.InitialContactId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InitialContactId", 1))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.InstanceId != nil && len(*s.InstanceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContactId sets the ContactId field's value.
+func (s *SuspendContactRecordingInput) SetContactId(v string) *SuspendContactRecordingInput {
+	s.ContactId = &v
+	return s
+}
+
+// SetInitialContactId sets the InitialContactId field's value.
+func (s *SuspendContactRecordingInput) SetInitialContactId(v string) *SuspendContactRecordingInput {
+	s.InitialContactId = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *SuspendContactRecordingInput) SetInstanceId(v string) *SuspendContactRecordingInput {
+	s.InstanceId = &v
+	return s
+}
+
+type SuspendContactRecordingOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s SuspendContactRecordingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SuspendContactRecordingOutput) GoString() string {
+	return s.String()
+}
+
 type TagResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7388,8 +8152,8 @@ func (s *Threshold) SetThresholdValue(v float64) *Threshold {
 
 // The throttling limit has been exceeded.
 type ThrottlingException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" type:"string"`
 }
@@ -7406,17 +8170,17 @@ func (s ThrottlingException) GoString() string {
 
 func newErrorThrottlingException(v protocol.ResponseMetadata) error {
 	return &ThrottlingException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ThrottlingException) Code() string {
+func (s *ThrottlingException) Code() string {
 	return "ThrottlingException"
 }
 
 // Message returns the exception's message.
-func (s ThrottlingException) Message() string {
+func (s *ThrottlingException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -7424,22 +8188,22 @@ func (s ThrottlingException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ThrottlingException) OrigErr() error {
+func (s *ThrottlingException) OrigErr() error {
 	return nil
 }
 
-func (s ThrottlingException) Error() string {
+func (s *ThrottlingException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ThrottlingException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ThrottlingException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ThrottlingException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ThrottlingException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type UntagResourceInput struct {
@@ -8211,8 +8975,8 @@ func (s *UserIdentityInfo) SetLastName(v string) *UserIdentityInfo {
 
 // No user with the specified credentials was found in the Amazon Connect instance.
 type UserNotFoundException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" type:"string"`
 }
@@ -8229,17 +8993,17 @@ func (s UserNotFoundException) GoString() string {
 
 func newErrorUserNotFoundException(v protocol.ResponseMetadata) error {
 	return &UserNotFoundException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s UserNotFoundException) Code() string {
+func (s *UserNotFoundException) Code() string {
 	return "UserNotFoundException"
 }
 
 // Message returns the exception's message.
-func (s UserNotFoundException) Message() string {
+func (s *UserNotFoundException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -8247,22 +9011,22 @@ func (s UserNotFoundException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s UserNotFoundException) OrigErr() error {
+func (s *UserNotFoundException) OrigErr() error {
 	return nil
 }
 
-func (s UserNotFoundException) Error() string {
+func (s *UserNotFoundException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s UserNotFoundException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *UserNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s UserNotFoundException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *UserNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Contains information about the phone configuration settings for a user.
@@ -8373,6 +9137,30 @@ func (s *UserSummary) SetUsername(v string) *UserSummary {
 	return s
 }
 
+// Contains information about the recording configuration settings.
+type VoiceRecordingConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Identifies which track is being recorded.
+	VoiceRecordingTrack *string `type:"string" enum:"VoiceRecordingTrack"`
+}
+
+// String returns the string representation
+func (s VoiceRecordingConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VoiceRecordingConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetVoiceRecordingTrack sets the VoiceRecordingTrack field's value.
+func (s *VoiceRecordingConfiguration) SetVoiceRecordingTrack(v string) *VoiceRecordingConfiguration {
+	s.VoiceRecordingTrack = &v
+	return s
+}
+
 const (
 	// ChannelVoice is a Channel enum value
 	ChannelVoice = "VOICE"
@@ -8381,10 +9169,25 @@ const (
 	ChannelChat = "CHAT"
 )
 
+// Channel_Values returns all elements of the Channel enum
+func Channel_Values() []string {
+	return []string{
+		ChannelVoice,
+		ChannelChat,
+	}
+}
+
 const (
 	// ComparisonLt is a Comparison enum value
 	ComparisonLt = "LT"
 )
+
+// Comparison_Values returns all elements of the Comparison enum
+func Comparison_Values() []string {
+	return []string{
+		ComparisonLt,
+	}
+}
 
 const (
 	// ContactFlowTypeContactFlow is a ContactFlowType enum value
@@ -8414,6 +9217,21 @@ const (
 	// ContactFlowTypeQueueTransfer is a ContactFlowType enum value
 	ContactFlowTypeQueueTransfer = "QUEUE_TRANSFER"
 )
+
+// ContactFlowType_Values returns all elements of the ContactFlowType enum
+func ContactFlowType_Values() []string {
+	return []string{
+		ContactFlowTypeContactFlow,
+		ContactFlowTypeCustomerQueue,
+		ContactFlowTypeCustomerHold,
+		ContactFlowTypeCustomerWhisper,
+		ContactFlowTypeAgentHold,
+		ContactFlowTypeAgentWhisper,
+		ContactFlowTypeOutboundWhisper,
+		ContactFlowTypeAgentTransfer,
+		ContactFlowTypeQueueTransfer,
+	}
+}
 
 // The current metric names.
 const (
@@ -8457,6 +9275,25 @@ const (
 	CurrentMetricNameSlotsAvailable = "SLOTS_AVAILABLE"
 )
 
+// CurrentMetricName_Values returns all elements of the CurrentMetricName enum
+func CurrentMetricName_Values() []string {
+	return []string{
+		CurrentMetricNameAgentsOnline,
+		CurrentMetricNameAgentsAvailable,
+		CurrentMetricNameAgentsOnCall,
+		CurrentMetricNameAgentsNonProductive,
+		CurrentMetricNameAgentsAfterContactWork,
+		CurrentMetricNameAgentsError,
+		CurrentMetricNameAgentsStaffed,
+		CurrentMetricNameContactsInQueue,
+		CurrentMetricNameOldestContactAge,
+		CurrentMetricNameContactsScheduled,
+		CurrentMetricNameAgentsOnContact,
+		CurrentMetricNameSlotsActive,
+		CurrentMetricNameSlotsAvailable,
+	}
+}
+
 const (
 	// GroupingQueue is a Grouping enum value
 	GroupingQueue = "QUEUE"
@@ -8464,6 +9301,14 @@ const (
 	// GroupingChannel is a Grouping enum value
 	GroupingChannel = "CHANNEL"
 )
+
+// Grouping_Values returns all elements of the Grouping enum
+func Grouping_Values() []string {
+	return []string{
+		GroupingQueue,
+		GroupingChannel,
+	}
+}
 
 // The historical metric names.
 const (
@@ -8542,6 +9387,37 @@ const (
 	// HistoricalMetricNameServiceLevel is a HistoricalMetricName enum value
 	HistoricalMetricNameServiceLevel = "SERVICE_LEVEL"
 )
+
+// HistoricalMetricName_Values returns all elements of the HistoricalMetricName enum
+func HistoricalMetricName_Values() []string {
+	return []string{
+		HistoricalMetricNameContactsQueued,
+		HistoricalMetricNameContactsHandled,
+		HistoricalMetricNameContactsAbandoned,
+		HistoricalMetricNameContactsConsulted,
+		HistoricalMetricNameContactsAgentHungUpFirst,
+		HistoricalMetricNameContactsHandledIncoming,
+		HistoricalMetricNameContactsHandledOutbound,
+		HistoricalMetricNameContactsHoldAbandons,
+		HistoricalMetricNameContactsTransferredIn,
+		HistoricalMetricNameContactsTransferredOut,
+		HistoricalMetricNameContactsTransferredInFromQueue,
+		HistoricalMetricNameContactsTransferredOutFromQueue,
+		HistoricalMetricNameContactsMissed,
+		HistoricalMetricNameCallbackContactsHandled,
+		HistoricalMetricNameApiContactsHandled,
+		HistoricalMetricNameOccupancy,
+		HistoricalMetricNameHandleTime,
+		HistoricalMetricNameAfterContactWorkTime,
+		HistoricalMetricNameQueuedTime,
+		HistoricalMetricNameAbandonTime,
+		HistoricalMetricNameQueueAnswerTime,
+		HistoricalMetricNameHoldTime,
+		HistoricalMetricNameInteractionTime,
+		HistoricalMetricNameInteractionAndHoldTime,
+		HistoricalMetricNameServiceLevel,
+	}
+}
 
 const (
 	// PhoneNumberCountryCodeAf is a PhoneNumberCountryCode enum value
@@ -9256,6 +10132,249 @@ const (
 	PhoneNumberCountryCodeZw = "ZW"
 )
 
+// PhoneNumberCountryCode_Values returns all elements of the PhoneNumberCountryCode enum
+func PhoneNumberCountryCode_Values() []string {
+	return []string{
+		PhoneNumberCountryCodeAf,
+		PhoneNumberCountryCodeAl,
+		PhoneNumberCountryCodeDz,
+		PhoneNumberCountryCodeAs,
+		PhoneNumberCountryCodeAd,
+		PhoneNumberCountryCodeAo,
+		PhoneNumberCountryCodeAi,
+		PhoneNumberCountryCodeAq,
+		PhoneNumberCountryCodeAg,
+		PhoneNumberCountryCodeAr,
+		PhoneNumberCountryCodeAm,
+		PhoneNumberCountryCodeAw,
+		PhoneNumberCountryCodeAu,
+		PhoneNumberCountryCodeAt,
+		PhoneNumberCountryCodeAz,
+		PhoneNumberCountryCodeBs,
+		PhoneNumberCountryCodeBh,
+		PhoneNumberCountryCodeBd,
+		PhoneNumberCountryCodeBb,
+		PhoneNumberCountryCodeBy,
+		PhoneNumberCountryCodeBe,
+		PhoneNumberCountryCodeBz,
+		PhoneNumberCountryCodeBj,
+		PhoneNumberCountryCodeBm,
+		PhoneNumberCountryCodeBt,
+		PhoneNumberCountryCodeBo,
+		PhoneNumberCountryCodeBa,
+		PhoneNumberCountryCodeBw,
+		PhoneNumberCountryCodeBr,
+		PhoneNumberCountryCodeIo,
+		PhoneNumberCountryCodeVg,
+		PhoneNumberCountryCodeBn,
+		PhoneNumberCountryCodeBg,
+		PhoneNumberCountryCodeBf,
+		PhoneNumberCountryCodeBi,
+		PhoneNumberCountryCodeKh,
+		PhoneNumberCountryCodeCm,
+		PhoneNumberCountryCodeCa,
+		PhoneNumberCountryCodeCv,
+		PhoneNumberCountryCodeKy,
+		PhoneNumberCountryCodeCf,
+		PhoneNumberCountryCodeTd,
+		PhoneNumberCountryCodeCl,
+		PhoneNumberCountryCodeCn,
+		PhoneNumberCountryCodeCx,
+		PhoneNumberCountryCodeCc,
+		PhoneNumberCountryCodeCo,
+		PhoneNumberCountryCodeKm,
+		PhoneNumberCountryCodeCk,
+		PhoneNumberCountryCodeCr,
+		PhoneNumberCountryCodeHr,
+		PhoneNumberCountryCodeCu,
+		PhoneNumberCountryCodeCw,
+		PhoneNumberCountryCodeCy,
+		PhoneNumberCountryCodeCz,
+		PhoneNumberCountryCodeCd,
+		PhoneNumberCountryCodeDk,
+		PhoneNumberCountryCodeDj,
+		PhoneNumberCountryCodeDm,
+		PhoneNumberCountryCodeDo,
+		PhoneNumberCountryCodeTl,
+		PhoneNumberCountryCodeEc,
+		PhoneNumberCountryCodeEg,
+		PhoneNumberCountryCodeSv,
+		PhoneNumberCountryCodeGq,
+		PhoneNumberCountryCodeEr,
+		PhoneNumberCountryCodeEe,
+		PhoneNumberCountryCodeEt,
+		PhoneNumberCountryCodeFk,
+		PhoneNumberCountryCodeFo,
+		PhoneNumberCountryCodeFj,
+		PhoneNumberCountryCodeFi,
+		PhoneNumberCountryCodeFr,
+		PhoneNumberCountryCodePf,
+		PhoneNumberCountryCodeGa,
+		PhoneNumberCountryCodeGm,
+		PhoneNumberCountryCodeGe,
+		PhoneNumberCountryCodeDe,
+		PhoneNumberCountryCodeGh,
+		PhoneNumberCountryCodeGi,
+		PhoneNumberCountryCodeGr,
+		PhoneNumberCountryCodeGl,
+		PhoneNumberCountryCodeGd,
+		PhoneNumberCountryCodeGu,
+		PhoneNumberCountryCodeGt,
+		PhoneNumberCountryCodeGg,
+		PhoneNumberCountryCodeGn,
+		PhoneNumberCountryCodeGw,
+		PhoneNumberCountryCodeGy,
+		PhoneNumberCountryCodeHt,
+		PhoneNumberCountryCodeHn,
+		PhoneNumberCountryCodeHk,
+		PhoneNumberCountryCodeHu,
+		PhoneNumberCountryCodeIs,
+		PhoneNumberCountryCodeIn,
+		PhoneNumberCountryCodeId,
+		PhoneNumberCountryCodeIr,
+		PhoneNumberCountryCodeIq,
+		PhoneNumberCountryCodeIe,
+		PhoneNumberCountryCodeIm,
+		PhoneNumberCountryCodeIl,
+		PhoneNumberCountryCodeIt,
+		PhoneNumberCountryCodeCi,
+		PhoneNumberCountryCodeJm,
+		PhoneNumberCountryCodeJp,
+		PhoneNumberCountryCodeJe,
+		PhoneNumberCountryCodeJo,
+		PhoneNumberCountryCodeKz,
+		PhoneNumberCountryCodeKe,
+		PhoneNumberCountryCodeKi,
+		PhoneNumberCountryCodeKw,
+		PhoneNumberCountryCodeKg,
+		PhoneNumberCountryCodeLa,
+		PhoneNumberCountryCodeLv,
+		PhoneNumberCountryCodeLb,
+		PhoneNumberCountryCodeLs,
+		PhoneNumberCountryCodeLr,
+		PhoneNumberCountryCodeLy,
+		PhoneNumberCountryCodeLi,
+		PhoneNumberCountryCodeLt,
+		PhoneNumberCountryCodeLu,
+		PhoneNumberCountryCodeMo,
+		PhoneNumberCountryCodeMk,
+		PhoneNumberCountryCodeMg,
+		PhoneNumberCountryCodeMw,
+		PhoneNumberCountryCodeMy,
+		PhoneNumberCountryCodeMv,
+		PhoneNumberCountryCodeMl,
+		PhoneNumberCountryCodeMt,
+		PhoneNumberCountryCodeMh,
+		PhoneNumberCountryCodeMr,
+		PhoneNumberCountryCodeMu,
+		PhoneNumberCountryCodeYt,
+		PhoneNumberCountryCodeMx,
+		PhoneNumberCountryCodeFm,
+		PhoneNumberCountryCodeMd,
+		PhoneNumberCountryCodeMc,
+		PhoneNumberCountryCodeMn,
+		PhoneNumberCountryCodeMe,
+		PhoneNumberCountryCodeMs,
+		PhoneNumberCountryCodeMa,
+		PhoneNumberCountryCodeMz,
+		PhoneNumberCountryCodeMm,
+		PhoneNumberCountryCodeNa,
+		PhoneNumberCountryCodeNr,
+		PhoneNumberCountryCodeNp,
+		PhoneNumberCountryCodeNl,
+		PhoneNumberCountryCodeAn,
+		PhoneNumberCountryCodeNc,
+		PhoneNumberCountryCodeNz,
+		PhoneNumberCountryCodeNi,
+		PhoneNumberCountryCodeNe,
+		PhoneNumberCountryCodeNg,
+		PhoneNumberCountryCodeNu,
+		PhoneNumberCountryCodeKp,
+		PhoneNumberCountryCodeMp,
+		PhoneNumberCountryCodeNo,
+		PhoneNumberCountryCodeOm,
+		PhoneNumberCountryCodePk,
+		PhoneNumberCountryCodePw,
+		PhoneNumberCountryCodePa,
+		PhoneNumberCountryCodePg,
+		PhoneNumberCountryCodePy,
+		PhoneNumberCountryCodePe,
+		PhoneNumberCountryCodePh,
+		PhoneNumberCountryCodePn,
+		PhoneNumberCountryCodePl,
+		PhoneNumberCountryCodePt,
+		PhoneNumberCountryCodePr,
+		PhoneNumberCountryCodeQa,
+		PhoneNumberCountryCodeCg,
+		PhoneNumberCountryCodeRe,
+		PhoneNumberCountryCodeRo,
+		PhoneNumberCountryCodeRu,
+		PhoneNumberCountryCodeRw,
+		PhoneNumberCountryCodeBl,
+		PhoneNumberCountryCodeSh,
+		PhoneNumberCountryCodeKn,
+		PhoneNumberCountryCodeLc,
+		PhoneNumberCountryCodeMf,
+		PhoneNumberCountryCodePm,
+		PhoneNumberCountryCodeVc,
+		PhoneNumberCountryCodeWs,
+		PhoneNumberCountryCodeSm,
+		PhoneNumberCountryCodeSt,
+		PhoneNumberCountryCodeSa,
+		PhoneNumberCountryCodeSn,
+		PhoneNumberCountryCodeRs,
+		PhoneNumberCountryCodeSc,
+		PhoneNumberCountryCodeSl,
+		PhoneNumberCountryCodeSg,
+		PhoneNumberCountryCodeSx,
+		PhoneNumberCountryCodeSk,
+		PhoneNumberCountryCodeSi,
+		PhoneNumberCountryCodeSb,
+		PhoneNumberCountryCodeSo,
+		PhoneNumberCountryCodeZa,
+		PhoneNumberCountryCodeKr,
+		PhoneNumberCountryCodeEs,
+		PhoneNumberCountryCodeLk,
+		PhoneNumberCountryCodeSd,
+		PhoneNumberCountryCodeSr,
+		PhoneNumberCountryCodeSj,
+		PhoneNumberCountryCodeSz,
+		PhoneNumberCountryCodeSe,
+		PhoneNumberCountryCodeCh,
+		PhoneNumberCountryCodeSy,
+		PhoneNumberCountryCodeTw,
+		PhoneNumberCountryCodeTj,
+		PhoneNumberCountryCodeTz,
+		PhoneNumberCountryCodeTh,
+		PhoneNumberCountryCodeTg,
+		PhoneNumberCountryCodeTk,
+		PhoneNumberCountryCodeTo,
+		PhoneNumberCountryCodeTt,
+		PhoneNumberCountryCodeTn,
+		PhoneNumberCountryCodeTr,
+		PhoneNumberCountryCodeTm,
+		PhoneNumberCountryCodeTc,
+		PhoneNumberCountryCodeTv,
+		PhoneNumberCountryCodeVi,
+		PhoneNumberCountryCodeUg,
+		PhoneNumberCountryCodeUa,
+		PhoneNumberCountryCodeAe,
+		PhoneNumberCountryCodeGb,
+		PhoneNumberCountryCodeUs,
+		PhoneNumberCountryCodeUy,
+		PhoneNumberCountryCodeUz,
+		PhoneNumberCountryCodeVu,
+		PhoneNumberCountryCodeVa,
+		PhoneNumberCountryCodeVe,
+		PhoneNumberCountryCodeVn,
+		PhoneNumberCountryCodeWf,
+		PhoneNumberCountryCodeEh,
+		PhoneNumberCountryCodeYe,
+		PhoneNumberCountryCodeZm,
+		PhoneNumberCountryCodeZw,
+	}
+}
+
 const (
 	// PhoneNumberTypeTollFree is a PhoneNumberType enum value
 	PhoneNumberTypeTollFree = "TOLL_FREE"
@@ -9263,6 +10382,14 @@ const (
 	// PhoneNumberTypeDid is a PhoneNumberType enum value
 	PhoneNumberTypeDid = "DID"
 )
+
+// PhoneNumberType_Values returns all elements of the PhoneNumberType enum
+func PhoneNumberType_Values() []string {
+	return []string{
+		PhoneNumberTypeTollFree,
+		PhoneNumberTypeDid,
+	}
+}
 
 const (
 	// PhoneTypeSoftPhone is a PhoneType enum value
@@ -9272,6 +10399,14 @@ const (
 	PhoneTypeDeskPhone = "DESK_PHONE"
 )
 
+// PhoneType_Values returns all elements of the PhoneType enum
+func PhoneType_Values() []string {
+	return []string{
+		PhoneTypeSoftPhone,
+		PhoneTypeDeskPhone,
+	}
+}
+
 const (
 	// QueueTypeStandard is a QueueType enum value
 	QueueTypeStandard = "STANDARD"
@@ -9279,6 +10414,14 @@ const (
 	// QueueTypeAgent is a QueueType enum value
 	QueueTypeAgent = "AGENT"
 )
+
+// QueueType_Values returns all elements of the QueueType enum
+func QueueType_Values() []string {
+	return []string{
+		QueueTypeStandard,
+		QueueTypeAgent,
+	}
+}
 
 const (
 	// StatisticSum is a Statistic enum value
@@ -9291,6 +10434,15 @@ const (
 	StatisticAvg = "AVG"
 )
 
+// Statistic_Values returns all elements of the Statistic enum
+func Statistic_Values() []string {
+	return []string{
+		StatisticSum,
+		StatisticMax,
+		StatisticAvg,
+	}
+}
+
 const (
 	// UnitSeconds is a Unit enum value
 	UnitSeconds = "SECONDS"
@@ -9301,3 +10453,32 @@ const (
 	// UnitPercent is a Unit enum value
 	UnitPercent = "PERCENT"
 )
+
+// Unit_Values returns all elements of the Unit enum
+func Unit_Values() []string {
+	return []string{
+		UnitSeconds,
+		UnitCount,
+		UnitPercent,
+	}
+}
+
+const (
+	// VoiceRecordingTrackFromAgent is a VoiceRecordingTrack enum value
+	VoiceRecordingTrackFromAgent = "FROM_AGENT"
+
+	// VoiceRecordingTrackToAgent is a VoiceRecordingTrack enum value
+	VoiceRecordingTrackToAgent = "TO_AGENT"
+
+	// VoiceRecordingTrackAll is a VoiceRecordingTrack enum value
+	VoiceRecordingTrackAll = "ALL"
+)
+
+// VoiceRecordingTrack_Values returns all elements of the VoiceRecordingTrack enum
+func VoiceRecordingTrack_Values() []string {
+	return []string{
+		VoiceRecordingTrackFromAgent,
+		VoiceRecordingTrackToAgent,
+		VoiceRecordingTrackAll,
+	}
+}

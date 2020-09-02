@@ -348,7 +348,7 @@ func (c *Snowball) CreateClusterRequest(input *CreateClusterInput) (req *request
 //   the specified CreateJob or UpdateJob action.
 //
 //   * InvalidInputCombinationException
-//   Job or cluster creation failed. One ore more inputs were invalid. Confirm
+//   Job or cluster creation failed. One or more inputs were invalid. Confirm
 //   that the CreateClusterRequest$SnowballType value supports your CreateJobRequest$JobType,
 //   and try again.
 //
@@ -445,7 +445,7 @@ func (c *Snowball) CreateJobRequest(input *CreateJobInput) (req *request.Request
 //   the specified CreateJob or UpdateJob action.
 //
 //   * InvalidInputCombinationException
-//   Job or cluster creation failed. One ore more inputs were invalid. Confirm
+//   Job or cluster creation failed. One or more inputs were invalid. Confirm
 //   that the CreateClusterRequest$SnowballType value supports your CreateJobRequest$JobType,
 //   and try again.
 //
@@ -1697,7 +1697,7 @@ func (c *Snowball) UpdateClusterRequest(input *UpdateClusterInput) (req *request
 //   the specified CreateJob or UpdateJob action.
 //
 //   * InvalidInputCombinationException
-//   Job or cluster creation failed. One ore more inputs were invalid. Confirm
+//   Job or cluster creation failed. One or more inputs were invalid. Confirm
 //   that the CreateClusterRequest$SnowballType value supports your CreateJobRequest$JobType,
 //   and try again.
 //
@@ -1797,7 +1797,7 @@ func (c *Snowball) UpdateJobRequest(input *UpdateJobInput) (req *request.Request
 //   the specified CreateJob or UpdateJob action.
 //
 //   * InvalidInputCombinationException
-//   Job or cluster creation failed. One ore more inputs were invalid. Confirm
+//   Job or cluster creation failed. One or more inputs were invalid. Confirm
 //   that the CreateClusterRequest$SnowballType value supports your CreateJobRequest$JobType,
 //   and try again.
 //
@@ -2146,8 +2146,8 @@ func (s CancelJobOutput) GoString() string {
 // this cluster, try again and create jobs until your cluster has exactly five
 // notes.
 type ClusterLimitExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -2164,17 +2164,17 @@ func (s ClusterLimitExceededException) GoString() string {
 
 func newErrorClusterLimitExceededException(v protocol.ResponseMetadata) error {
 	return &ClusterLimitExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ClusterLimitExceededException) Code() string {
+func (s *ClusterLimitExceededException) Code() string {
 	return "ClusterLimitExceededException"
 }
 
 // Message returns the exception's message.
-func (s ClusterLimitExceededException) Message() string {
+func (s *ClusterLimitExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -2182,22 +2182,22 @@ func (s ClusterLimitExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ClusterLimitExceededException) OrigErr() error {
+func (s *ClusterLimitExceededException) OrigErr() error {
 	return nil
 }
 
-func (s ClusterLimitExceededException) Error() string {
+func (s *ClusterLimitExceededException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ClusterLimitExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ClusterLimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ClusterLimitExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ClusterLimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Contains a cluster's state, a cluster's ID, and other important information.
@@ -2316,9 +2316,13 @@ type ClusterMetadata struct {
 	//    * In the US, you have access to one-day shipping and two-day shipping.
 	ShippingOption *string `type:"string" enum:"ShippingOption"`
 
-	// The type of AWS Snowball device to use for this cluster. Currently, the only
-	// supported device type for cluster jobs is EDGE.
+	// The type of AWS Snowball device to use for this cluster.
+	//
+	// For cluster jobs, AWS Snowball currently supports only the EDGE device type.
 	SnowballType *string `type:"string" enum:"Type"`
+
+	// The tax documents required in your AWS Region.
+	TaxDocuments *TaxDocuments `type:"structure"`
 }
 
 // String returns the string representation
@@ -2406,6 +2410,12 @@ func (s *ClusterMetadata) SetShippingOption(v string) *ClusterMetadata {
 // SetSnowballType sets the SnowballType field's value.
 func (s *ClusterMetadata) SetSnowballType(v string) *ClusterMetadata {
 	s.SnowballType = &v
+	return s
+}
+
+// SetTaxDocuments sets the TaxDocuments field's value.
+func (s *ClusterMetadata) SetTaxDocuments(v *TaxDocuments) *ClusterMetadata {
+	s.TaxDocuments = v
 	return s
 }
 
@@ -2562,6 +2572,19 @@ type CreateClusterInput struct {
 	// each device moves to its destination while in transit. Regional shipping
 	// speeds are as follows:
 	//
+	//    * In Australia, you have access to express shipping. Typically, Snowballs
+	//    shipped express are delivered in about a day.
+	//
+	//    * In the European Union (EU), you have access to express shipping. Typically,
+	//    Snowballs shipped express are delivered in about a day. In addition, most
+	//    countries in the EU have access to standard shipping, which typically
+	//    takes less than a week, one way.
+	//
+	//    * In India, Snowballs are delivered in one to seven days.
+	//
+	//    * In the United States of America (US), you have access to one-day shipping
+	//    and two-day shipping.
+	//
 	//    * In Australia, you have access to express shipping. Typically, devices
 	//    shipped express are delivered in about a day.
 	//
@@ -2577,9 +2600,13 @@ type CreateClusterInput struct {
 	// ShippingOption is a required field
 	ShippingOption *string `type:"string" required:"true" enum:"ShippingOption"`
 
-	// The type of AWS Snowball device to use for this cluster. Currently, the only
-	// supported device type for cluster jobs is EDGE.
+	// The type of AWS Snowball device to use for this cluster.
+	//
+	// For cluster jobs, AWS Snowball currently supports only the EDGE device type.
 	SnowballType *string `type:"string" enum:"Type"`
+
+	// The tax documents required in your AWS Region.
+	TaxDocuments *TaxDocuments `type:"structure"`
 }
 
 // String returns the string representation
@@ -2691,6 +2718,12 @@ func (s *CreateClusterInput) SetSnowballType(v string) *CreateClusterInput {
 	return s
 }
 
+// SetTaxDocuments sets the TaxDocuments field's value.
+func (s *CreateClusterInput) SetTaxDocuments(v *TaxDocuments) *CreateClusterInput {
+	s.TaxDocuments = v
+	return s
+}
+
 type CreateClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2728,6 +2761,9 @@ type CreateJobInput struct {
 	// Defines an optional description of this specific job, for example Important
 	// Photos 2016-08-11.
 	Description *string `min:"1" type:"string"`
+
+	// Defines the device configuration for an AWS Snowcone job.
+	DeviceConfiguration *DeviceConfiguration `type:"structure"`
 
 	// The forwarding address ID for a job. This field is not supported in most
 	// regions.
@@ -2784,9 +2820,19 @@ type CreateJobInput struct {
 	// Snowballs come with 80 TB in storage capacity.
 	SnowballCapacityPreference *string `type:"string" enum:"Capacity"`
 
+	// The type of AWS Snowball device to use for this job.
+	//
+	// For cluster jobs, AWS Snowball currently supports only the EDGE device type.
+	//
 	// The type of AWS Snowball device to use for this job. Currently, the only
 	// supported device type for cluster jobs is EDGE.
+	//
+	// For more information, see Snowball Edge Device Options (https://docs.aws.amazon.com/snowball/latest/developer-guide/device-differences.html)
+	// in the Snowball Edge Developer Guide.
 	SnowballType *string `type:"string" enum:"Type"`
+
+	// The tax documents required in your AWS Region.
+	TaxDocuments *TaxDocuments `type:"structure"`
 }
 
 // String returns the string representation
@@ -2844,6 +2890,12 @@ func (s *CreateJobInput) SetDescription(v string) *CreateJobInput {
 	return s
 }
 
+// SetDeviceConfiguration sets the DeviceConfiguration field's value.
+func (s *CreateJobInput) SetDeviceConfiguration(v *DeviceConfiguration) *CreateJobInput {
+	s.DeviceConfiguration = v
+	return s
+}
+
 // SetForwardingAddressId sets the ForwardingAddressId field's value.
 func (s *CreateJobInput) SetForwardingAddressId(v string) *CreateJobInput {
 	s.ForwardingAddressId = &v
@@ -2895,6 +2947,12 @@ func (s *CreateJobInput) SetSnowballCapacityPreference(v string) *CreateJobInput
 // SetSnowballType sets the SnowballType field's value.
 func (s *CreateJobInput) SetSnowballType(v string) *CreateJobInput {
 	s.SnowballType = &v
+	return s
+}
+
+// SetTaxDocuments sets the TaxDocuments field's value.
+func (s *CreateJobInput) SetTaxDocuments(v *TaxDocuments) *CreateJobInput {
+	s.TaxDocuments = v
 	return s
 }
 
@@ -3264,6 +3322,30 @@ func (s *DescribeJobOutput) SetSubJobMetadata(v []*JobMetadata) *DescribeJobOutp
 	return s
 }
 
+// The container for SnowconeDeviceConfiguration.
+type DeviceConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Returns information about the device configuration for an AWS Snowcone job.
+	SnowconeDeviceConfiguration *SnowconeDeviceConfiguration `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeviceConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeviceConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetSnowconeDeviceConfiguration sets the SnowconeDeviceConfiguration field's value.
+func (s *DeviceConfiguration) SetSnowconeDeviceConfiguration(v *SnowconeDeviceConfiguration) *DeviceConfiguration {
+	s.SnowconeDeviceConfiguration = v
+	return s
+}
+
 // A JSON-formatted object that contains the IDs for an Amazon Machine Image
 // (AMI), including the Amazon EC2 AMI ID and the Snowball Edge AMI ID. Each
 // AMI has these two IDs to simplify identifying the AMI in both the AWS Cloud
@@ -3324,8 +3406,8 @@ func (s *Ec2AmiResource) SetSnowballAmiId(v string) *Ec2AmiResource {
 // Your IAM user lacks the necessary Amazon EC2 permissions to perform the attempted
 // action.
 type Ec2RequestFailedException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -3342,17 +3424,17 @@ func (s Ec2RequestFailedException) GoString() string {
 
 func newErrorEc2RequestFailedException(v protocol.ResponseMetadata) error {
 	return &Ec2RequestFailedException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s Ec2RequestFailedException) Code() string {
+func (s *Ec2RequestFailedException) Code() string {
 	return "Ec2RequestFailedException"
 }
 
 // Message returns the exception's message.
-func (s Ec2RequestFailedException) Message() string {
+func (s *Ec2RequestFailedException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -3360,22 +3442,22 @@ func (s Ec2RequestFailedException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s Ec2RequestFailedException) OrigErr() error {
+func (s *Ec2RequestFailedException) OrigErr() error {
 	return nil
 }
 
-func (s Ec2RequestFailedException) Error() string {
+func (s *Ec2RequestFailedException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s Ec2RequestFailedException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *Ec2RequestFailedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s Ec2RequestFailedException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *Ec2RequestFailedException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The container for the EventTriggerDefinition$EventResourceARN.
@@ -3650,11 +3732,35 @@ func (s *GetSoftwareUpdatesOutput) SetUpdatesURI(v string) *GetSoftwareUpdatesOu
 	return s
 }
 
+// The tax documents required in AWS Regions in India.
+type INDTaxDocuments struct {
+	_ struct{} `type:"structure"`
+
+	// The Goods and Services Tax (GST) documents required in AWS Regions in India.
+	GSTIN *string `type:"string"`
+}
+
+// String returns the string representation
+func (s INDTaxDocuments) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s INDTaxDocuments) GoString() string {
+	return s.String()
+}
+
+// SetGSTIN sets the GSTIN field's value.
+func (s *INDTaxDocuments) SetGSTIN(v string) *INDTaxDocuments {
+	s.GSTIN = &v
+	return s
+}
+
 // The address provided was invalid. Check the address with your region's carrier,
 // and try again.
 type InvalidAddressException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -3671,17 +3777,17 @@ func (s InvalidAddressException) GoString() string {
 
 func newErrorInvalidAddressException(v protocol.ResponseMetadata) error {
 	return &InvalidAddressException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidAddressException) Code() string {
+func (s *InvalidAddressException) Code() string {
 	return "InvalidAddressException"
 }
 
 // Message returns the exception's message.
-func (s InvalidAddressException) Message() string {
+func (s *InvalidAddressException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -3689,30 +3795,30 @@ func (s InvalidAddressException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidAddressException) OrigErr() error {
+func (s *InvalidAddressException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidAddressException) Error() string {
+func (s *InvalidAddressException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidAddressException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidAddressException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidAddressException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidAddressException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
-// Job or cluster creation failed. One ore more inputs were invalid. Confirm
+// Job or cluster creation failed. One or more inputs were invalid. Confirm
 // that the CreateClusterRequest$SnowballType value supports your CreateJobRequest$JobType,
 // and try again.
 type InvalidInputCombinationException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -3729,17 +3835,17 @@ func (s InvalidInputCombinationException) GoString() string {
 
 func newErrorInvalidInputCombinationException(v protocol.ResponseMetadata) error {
 	return &InvalidInputCombinationException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidInputCombinationException) Code() string {
+func (s *InvalidInputCombinationException) Code() string {
 	return "InvalidInputCombinationException"
 }
 
 // Message returns the exception's message.
-func (s InvalidInputCombinationException) Message() string {
+func (s *InvalidInputCombinationException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -3747,29 +3853,29 @@ func (s InvalidInputCombinationException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidInputCombinationException) OrigErr() error {
+func (s *InvalidInputCombinationException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidInputCombinationException) Error() string {
+func (s *InvalidInputCombinationException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidInputCombinationException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidInputCombinationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidInputCombinationException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidInputCombinationException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The action can't be performed because the job's current state doesn't allow
 // that action to be performed.
 type InvalidJobStateException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -3786,17 +3892,17 @@ func (s InvalidJobStateException) GoString() string {
 
 func newErrorInvalidJobStateException(v protocol.ResponseMetadata) error {
 	return &InvalidJobStateException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidJobStateException) Code() string {
+func (s *InvalidJobStateException) Code() string {
 	return "InvalidJobStateException"
 }
 
 // Message returns the exception's message.
-func (s InvalidJobStateException) Message() string {
+func (s *InvalidJobStateException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -3804,29 +3910,29 @@ func (s InvalidJobStateException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidJobStateException) OrigErr() error {
+func (s *InvalidJobStateException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidJobStateException) Error() string {
+func (s *InvalidJobStateException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidJobStateException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidJobStateException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidJobStateException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidJobStateException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The NextToken string was altered unexpectedly, and the operation has stopped.
 // Run the operation without changing the NextToken string, and try again.
 type InvalidNextTokenException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -3843,17 +3949,17 @@ func (s InvalidNextTokenException) GoString() string {
 
 func newErrorInvalidNextTokenException(v protocol.ResponseMetadata) error {
 	return &InvalidNextTokenException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidNextTokenException) Code() string {
+func (s *InvalidNextTokenException) Code() string {
 	return "InvalidNextTokenException"
 }
 
 // Message returns the exception's message.
-func (s InvalidNextTokenException) Message() string {
+func (s *InvalidNextTokenException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -3861,29 +3967,29 @@ func (s InvalidNextTokenException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidNextTokenException) OrigErr() error {
+func (s *InvalidNextTokenException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidNextTokenException) Error() string {
+func (s *InvalidNextTokenException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidNextTokenException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidNextTokenException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidNextTokenException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidNextTokenException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The specified resource can't be found. Check the information you provided
 // in your last request, and try again.
 type InvalidResourceException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 
@@ -3903,17 +4009,17 @@ func (s InvalidResourceException) GoString() string {
 
 func newErrorInvalidResourceException(v protocol.ResponseMetadata) error {
 	return &InvalidResourceException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidResourceException) Code() string {
+func (s *InvalidResourceException) Code() string {
 	return "InvalidResourceException"
 }
 
 // Message returns the exception's message.
-func (s InvalidResourceException) Message() string {
+func (s *InvalidResourceException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -3921,22 +4027,22 @@ func (s InvalidResourceException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidResourceException) OrigErr() error {
+func (s *InvalidResourceException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidResourceException) Error() string {
+func (s *InvalidResourceException) Error() string {
 	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidResourceException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidResourceException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidResourceException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidResourceException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Each JobListEntry object contains a job's state, a job's ID, and a value
@@ -4108,6 +4214,9 @@ type JobMetadata struct {
 	// The description of the job, provided at job creation.
 	Description *string `min:"1" type:"string"`
 
+	// The container for SnowconeDeviceConfiguration.
+	DeviceConfiguration *DeviceConfiguration `type:"structure"`
+
 	// The ID of the address that you want a job shipped to, after it will be shipped
 	// to its primary address. This field is not supported in most regions.
 	ForwardingAddressId *string `min:"40" type:"string"`
@@ -4158,6 +4267,9 @@ type JobMetadata struct {
 
 	// The type of device used with this job.
 	SnowballType *string `type:"string" enum:"Type"`
+
+	// The metadata associated with the tax documents required in your AWS Region.
+	TaxDocuments *TaxDocuments `type:"structure"`
 }
 
 // String returns the string representation
@@ -4197,6 +4309,12 @@ func (s *JobMetadata) SetDataTransferProgress(v *DataTransfer) *JobMetadata {
 // SetDescription sets the Description field's value.
 func (s *JobMetadata) SetDescription(v string) *JobMetadata {
 	s.Description = &v
+	return s
+}
+
+// SetDeviceConfiguration sets the DeviceConfiguration field's value.
+func (s *JobMetadata) SetDeviceConfiguration(v *DeviceConfiguration) *JobMetadata {
+	s.DeviceConfiguration = v
 	return s
 }
 
@@ -4269,6 +4387,12 @@ func (s *JobMetadata) SetSnowballCapacityPreference(v string) *JobMetadata {
 // SetSnowballType sets the SnowballType field's value.
 func (s *JobMetadata) SetSnowballType(v string) *JobMetadata {
 	s.SnowballType = &v
+	return s
+}
+
+// SetTaxDocuments sets the TaxDocuments field's value.
+func (s *JobMetadata) SetTaxDocuments(v *TaxDocuments) *JobMetadata {
+	s.TaxDocuments = v
 	return s
 }
 
@@ -4349,8 +4473,8 @@ func (s *JobResource) SetS3Resources(v []*S3Resource) *JobResource {
 // The provided AWS Key Management Service key lacks the permissions to perform
 // the specified CreateJob or UpdateJob action.
 type KMSRequestFailedException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -4367,17 +4491,17 @@ func (s KMSRequestFailedException) GoString() string {
 
 func newErrorKMSRequestFailedException(v protocol.ResponseMetadata) error {
 	return &KMSRequestFailedException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s KMSRequestFailedException) Code() string {
+func (s *KMSRequestFailedException) Code() string {
 	return "KMSRequestFailedException"
 }
 
 // Message returns the exception's message.
-func (s KMSRequestFailedException) Message() string {
+func (s *KMSRequestFailedException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -4385,22 +4509,22 @@ func (s KMSRequestFailedException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s KMSRequestFailedException) OrigErr() error {
+func (s *KMSRequestFailedException) OrigErr() error {
 	return nil
 }
 
-func (s KMSRequestFailedException) Error() string {
+func (s *KMSRequestFailedException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s KMSRequestFailedException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *KMSRequestFailedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s KMSRequestFailedException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *KMSRequestFailedException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Contains a key range. For export jobs, a S3Resource object can have an optional
@@ -5046,12 +5170,60 @@ func (s *ShippingDetails) SetShippingOption(v string) *ShippingDetails {
 	return s
 }
 
+// Specifies the device configuration for an AWS Snowcone job.
+type SnowconeDeviceConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Configures the wireless connection for the AWS Snowcone device.
+	WirelessConnection *WirelessConnection `type:"structure"`
+}
+
+// String returns the string representation
+func (s SnowconeDeviceConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SnowconeDeviceConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetWirelessConnection sets the WirelessConnection field's value.
+func (s *SnowconeDeviceConfiguration) SetWirelessConnection(v *WirelessConnection) *SnowconeDeviceConfiguration {
+	s.WirelessConnection = v
+	return s
+}
+
+// The tax documents required in your AWS Region.
+type TaxDocuments struct {
+	_ struct{} `type:"structure"`
+
+	// The tax documents required in AWS Regions in India.
+	IND *INDTaxDocuments `type:"structure"`
+}
+
+// String returns the string representation
+func (s TaxDocuments) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TaxDocuments) GoString() string {
+	return s.String()
+}
+
+// SetIND sets the IND field's value.
+func (s *TaxDocuments) SetIND(v *INDTaxDocuments) *TaxDocuments {
+	s.IND = v
+	return s
+}
+
 // The address is either outside the serviceable area for your region, or an
 // error occurred. Check the address with your region's carrier and try again.
 // If the issue persists, contact AWS Support.
 type UnsupportedAddressException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -5068,17 +5240,17 @@ func (s UnsupportedAddressException) GoString() string {
 
 func newErrorUnsupportedAddressException(v protocol.ResponseMetadata) error {
 	return &UnsupportedAddressException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s UnsupportedAddressException) Code() string {
+func (s *UnsupportedAddressException) Code() string {
 	return "UnsupportedAddressException"
 }
 
 // Message returns the exception's message.
-func (s UnsupportedAddressException) Message() string {
+func (s *UnsupportedAddressException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -5086,22 +5258,22 @@ func (s UnsupportedAddressException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s UnsupportedAddressException) OrigErr() error {
+func (s *UnsupportedAddressException) OrigErr() error {
 	return nil
 }
 
-func (s UnsupportedAddressException) Error() string {
+func (s *UnsupportedAddressException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s UnsupportedAddressException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *UnsupportedAddressException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s UnsupportedAddressException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *UnsupportedAddressException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type UpdateClusterInput struct {
@@ -5385,6 +5557,30 @@ func (s UpdateJobOutput) GoString() string {
 	return s.String()
 }
 
+// Configures the wireless connection on an AWS Snowcone device.
+type WirelessConnection struct {
+	_ struct{} `type:"structure"`
+
+	// Enables the Wi-Fi adapter on an AWS Snowcone device.
+	IsWifiEnabled *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s WirelessConnection) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s WirelessConnection) GoString() string {
+	return s.String()
+}
+
+// SetIsWifiEnabled sets the IsWifiEnabled field's value.
+func (s *WirelessConnection) SetIsWifiEnabled(v bool) *WirelessConnection {
+	s.IsWifiEnabled = &v
+	return s
+}
+
 const (
 	// CapacityT50 is a Capacity enum value
 	CapacityT50 = "T50"
@@ -5398,9 +5594,28 @@ const (
 	// CapacityT42 is a Capacity enum value
 	CapacityT42 = "T42"
 
+	// CapacityT98 is a Capacity enum value
+	CapacityT98 = "T98"
+
+	// CapacityT8 is a Capacity enum value
+	CapacityT8 = "T8"
+
 	// CapacityNoPreference is a Capacity enum value
 	CapacityNoPreference = "NoPreference"
 )
+
+// Capacity_Values returns all elements of the Capacity enum
+func Capacity_Values() []string {
+	return []string{
+		CapacityT50,
+		CapacityT80,
+		CapacityT100,
+		CapacityT42,
+		CapacityT98,
+		CapacityT8,
+		CapacityNoPreference,
+	}
+}
 
 const (
 	// ClusterStateAwaitingQuorum is a ClusterState enum value
@@ -5418,6 +5633,17 @@ const (
 	// ClusterStateCancelled is a ClusterState enum value
 	ClusterStateCancelled = "Cancelled"
 )
+
+// ClusterState_Values returns all elements of the ClusterState enum
+func ClusterState_Values() []string {
+	return []string{
+		ClusterStateAwaitingQuorum,
+		ClusterStatePending,
+		ClusterStateInUse,
+		ClusterStateComplete,
+		ClusterStateCancelled,
+	}
+}
 
 const (
 	// JobStateNew is a JobState enum value
@@ -5460,6 +5686,25 @@ const (
 	JobStatePending = "Pending"
 )
 
+// JobState_Values returns all elements of the JobState enum
+func JobState_Values() []string {
+	return []string{
+		JobStateNew,
+		JobStatePreparingAppliance,
+		JobStatePreparingShipment,
+		JobStateInTransitToCustomer,
+		JobStateWithCustomer,
+		JobStateInTransitToAws,
+		JobStateWithAwssortingFacility,
+		JobStateWithAws,
+		JobStateInProgress,
+		JobStateComplete,
+		JobStateCancelled,
+		JobStateListing,
+		JobStatePending,
+	}
+}
+
 const (
 	// JobTypeImport is a JobType enum value
 	JobTypeImport = "IMPORT"
@@ -5470,6 +5715,15 @@ const (
 	// JobTypeLocalUse is a JobType enum value
 	JobTypeLocalUse = "LOCAL_USE"
 )
+
+// JobType_Values returns all elements of the JobType enum
+func JobType_Values() []string {
+	return []string{
+		JobTypeImport,
+		JobTypeExport,
+		JobTypeLocalUse,
+	}
+}
 
 const (
 	// ShippingOptionSecondDay is a ShippingOption enum value
@@ -5485,6 +5739,16 @@ const (
 	ShippingOptionStandard = "STANDARD"
 )
 
+// ShippingOption_Values returns all elements of the ShippingOption enum
+func ShippingOption_Values() []string {
+	return []string{
+		ShippingOptionSecondDay,
+		ShippingOptionNextDay,
+		ShippingOptionExpress,
+		ShippingOptionStandard,
+	}
+}
+
 const (
 	// TypeStandard is a Type enum value
 	TypeStandard = "STANDARD"
@@ -5497,4 +5761,22 @@ const (
 
 	// TypeEdgeCg is a Type enum value
 	TypeEdgeCg = "EDGE_CG"
+
+	// TypeEdgeS is a Type enum value
+	TypeEdgeS = "EDGE_S"
+
+	// TypeSnc1Hdd is a Type enum value
+	TypeSnc1Hdd = "SNC1_HDD"
 )
+
+// Type_Values returns all elements of the Type enum
+func Type_Values() []string {
+	return []string{
+		TypeStandard,
+		TypeEdge,
+		TypeEdgeC,
+		TypeEdgeCg,
+		TypeEdgeS,
+		TypeSnc1Hdd,
+	}
+}

@@ -6846,8 +6846,8 @@ func (s *GetMLModelOutput) SetTrainingParameters(v map[string]*string) *GetMLMod
 // from retrying a request using a parameter that was not present in the original
 // request.
 type IdempotentParameterMismatchException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Code_ *int64 `locationName:"code" type:"integer"`
 
@@ -6866,17 +6866,17 @@ func (s IdempotentParameterMismatchException) GoString() string {
 
 func newErrorIdempotentParameterMismatchException(v protocol.ResponseMetadata) error {
 	return &IdempotentParameterMismatchException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s IdempotentParameterMismatchException) Code() string {
+func (s *IdempotentParameterMismatchException) Code() string {
 	return "IdempotentParameterMismatchException"
 }
 
 // Message returns the exception's message.
-func (s IdempotentParameterMismatchException) Message() string {
+func (s *IdempotentParameterMismatchException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -6884,28 +6884,28 @@ func (s IdempotentParameterMismatchException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s IdempotentParameterMismatchException) OrigErr() error {
+func (s *IdempotentParameterMismatchException) OrigErr() error {
 	return nil
 }
 
-func (s IdempotentParameterMismatchException) Error() string {
+func (s *IdempotentParameterMismatchException) Error() string {
 	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s IdempotentParameterMismatchException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *IdempotentParameterMismatchException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s IdempotentParameterMismatchException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *IdempotentParameterMismatchException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // An error on the server occurred when trying to process a request.
 type InternalServerException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Code_ *int64 `locationName:"code" type:"integer"`
 
@@ -6924,17 +6924,17 @@ func (s InternalServerException) GoString() string {
 
 func newErrorInternalServerException(v protocol.ResponseMetadata) error {
 	return &InternalServerException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InternalServerException) Code() string {
+func (s *InternalServerException) Code() string {
 	return "InternalServerException"
 }
 
 // Message returns the exception's message.
-func (s InternalServerException) Message() string {
+func (s *InternalServerException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -6942,29 +6942,29 @@ func (s InternalServerException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InternalServerException) OrigErr() error {
+func (s *InternalServerException) OrigErr() error {
 	return nil
 }
 
-func (s InternalServerException) Error() string {
+func (s *InternalServerException) Error() string {
 	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InternalServerException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InternalServerException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InternalServerException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InternalServerException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // An error on the client occurred. Typically, the cause is an invalid input
 // value.
 type InvalidInputException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Code_ *int64 `locationName:"code" type:"integer"`
 
@@ -6983,17 +6983,17 @@ func (s InvalidInputException) GoString() string {
 
 func newErrorInvalidInputException(v protocol.ResponseMetadata) error {
 	return &InvalidInputException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidInputException) Code() string {
+func (s *InvalidInputException) Code() string {
 	return "InvalidInputException"
 }
 
 // Message returns the exception's message.
-func (s InvalidInputException) Message() string {
+func (s *InvalidInputException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -7001,27 +7001,27 @@ func (s InvalidInputException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidInputException) OrigErr() error {
+func (s *InvalidInputException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidInputException) Error() string {
+func (s *InvalidInputException) Error() string {
 	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidInputException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidInputException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidInputException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidInputException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type InvalidTagException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"message" type:"string"`
 }
@@ -7038,17 +7038,17 @@ func (s InvalidTagException) GoString() string {
 
 func newErrorInvalidTagException(v protocol.ResponseMetadata) error {
 	return &InvalidTagException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidTagException) Code() string {
+func (s *InvalidTagException) Code() string {
 	return "InvalidTagException"
 }
 
 // Message returns the exception's message.
-func (s InvalidTagException) Message() string {
+func (s *InvalidTagException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -7056,29 +7056,29 @@ func (s InvalidTagException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidTagException) OrigErr() error {
+func (s *InvalidTagException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidTagException) Error() string {
+func (s *InvalidTagException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidTagException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidTagException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidTagException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidTagException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The subscriber exceeded the maximum number of operations. This exception
 // can occur when listing objects such as DataSource.
 type LimitExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Code_ *int64 `locationName:"code" type:"integer"`
 
@@ -7097,17 +7097,17 @@ func (s LimitExceededException) GoString() string {
 
 func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
 	return &LimitExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s LimitExceededException) Code() string {
+func (s *LimitExceededException) Code() string {
 	return "LimitExceededException"
 }
 
 // Message returns the exception's message.
-func (s LimitExceededException) Message() string {
+func (s *LimitExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -7115,22 +7115,22 @@ func (s LimitExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s LimitExceededException) OrigErr() error {
+func (s *LimitExceededException) OrigErr() error {
 	return nil
 }
 
-func (s LimitExceededException) Error() string {
+func (s *LimitExceededException) Error() string {
 	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s LimitExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *LimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s LimitExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *LimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Represents the output of a GetMLModel operation.
@@ -7588,8 +7588,8 @@ func (s *Prediction) SetPredictedValue(v float64) *Prediction {
 
 // The exception is thrown when a predict request is made to an unmounted MLModel.
 type PredictorNotMountedException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"message" type:"string"`
 }
@@ -7606,17 +7606,17 @@ func (s PredictorNotMountedException) GoString() string {
 
 func newErrorPredictorNotMountedException(v protocol.ResponseMetadata) error {
 	return &PredictorNotMountedException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s PredictorNotMountedException) Code() string {
+func (s *PredictorNotMountedException) Code() string {
 	return "PredictorNotMountedException"
 }
 
 // Message returns the exception's message.
-func (s PredictorNotMountedException) Message() string {
+func (s *PredictorNotMountedException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -7624,22 +7624,22 @@ func (s PredictorNotMountedException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s PredictorNotMountedException) OrigErr() error {
+func (s *PredictorNotMountedException) OrigErr() error {
 	return nil
 }
 
-func (s PredictorNotMountedException) Error() string {
+func (s *PredictorNotMountedException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s PredictorNotMountedException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *PredictorNotMountedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s PredictorNotMountedException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *PredictorNotMountedException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The data specification of an Amazon Relational Database Service (Amazon RDS)
@@ -8577,8 +8577,8 @@ func (s *RedshiftMetadata) SetSelectSqlQuery(v string) *RedshiftMetadata {
 
 // A specified resource cannot be located.
 type ResourceNotFoundException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Code_ *int64 `locationName:"code" type:"integer"`
 
@@ -8597,17 +8597,17 @@ func (s ResourceNotFoundException) GoString() string {
 
 func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
 	return &ResourceNotFoundException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ResourceNotFoundException) Code() string {
+func (s *ResourceNotFoundException) Code() string {
 	return "ResourceNotFoundException"
 }
 
 // Message returns the exception's message.
-func (s ResourceNotFoundException) Message() string {
+func (s *ResourceNotFoundException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -8615,22 +8615,22 @@ func (s ResourceNotFoundException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ResourceNotFoundException) OrigErr() error {
+func (s *ResourceNotFoundException) OrigErr() error {
 	return nil
 }
 
-func (s ResourceNotFoundException) Error() string {
+func (s *ResourceNotFoundException) Error() string {
 	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ResourceNotFoundException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ResourceNotFoundException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Describes the data specification of a DataSource.
@@ -8836,8 +8836,8 @@ func (s *Tag) SetValue(v string) *Tag {
 }
 
 type TagLimitExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"message" type:"string"`
 }
@@ -8854,17 +8854,17 @@ func (s TagLimitExceededException) GoString() string {
 
 func newErrorTagLimitExceededException(v protocol.ResponseMetadata) error {
 	return &TagLimitExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s TagLimitExceededException) Code() string {
+func (s *TagLimitExceededException) Code() string {
 	return "TagLimitExceededException"
 }
 
 // Message returns the exception's message.
-func (s TagLimitExceededException) Message() string {
+func (s *TagLimitExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -8872,22 +8872,22 @@ func (s TagLimitExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s TagLimitExceededException) OrigErr() error {
+func (s *TagLimitExceededException) OrigErr() error {
 	return nil
 }
 
-func (s TagLimitExceededException) Error() string {
+func (s *TagLimitExceededException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s TagLimitExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *TagLimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s TagLimitExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *TagLimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type UpdateBatchPredictionInput struct {
@@ -9240,6 +9240,13 @@ const (
 	AlgorithmSgd = "sgd"
 )
 
+// Algorithm_Values returns all elements of the Algorithm enum
+func Algorithm_Values() []string {
+	return []string{
+		AlgorithmSgd,
+	}
+}
+
 // A list of the variables to use in searching or filtering BatchPrediction.
 //
 //    * CreatedAt - Sets the search criteria to BatchPrediction creation date.
@@ -9285,6 +9292,20 @@ const (
 	BatchPredictionFilterVariableDataUri = "DataURI"
 )
 
+// BatchPredictionFilterVariable_Values returns all elements of the BatchPredictionFilterVariable enum
+func BatchPredictionFilterVariable_Values() []string {
+	return []string{
+		BatchPredictionFilterVariableCreatedAt,
+		BatchPredictionFilterVariableLastUpdatedAt,
+		BatchPredictionFilterVariableStatus,
+		BatchPredictionFilterVariableName,
+		BatchPredictionFilterVariableIamuser,
+		BatchPredictionFilterVariableMlmodelId,
+		BatchPredictionFilterVariableDataSourceId,
+		BatchPredictionFilterVariableDataUri,
+	}
+}
+
 // A list of the variables to use in searching or filtering DataSource.
 //
 //    * CreatedAt - Sets the search criteria to DataSource creation date.
@@ -9321,6 +9342,18 @@ const (
 	DataSourceFilterVariableIamuser = "IAMUser"
 )
 
+// DataSourceFilterVariable_Values returns all elements of the DataSourceFilterVariable enum
+func DataSourceFilterVariable_Values() []string {
+	return []string{
+		DataSourceFilterVariableCreatedAt,
+		DataSourceFilterVariableLastUpdatedAt,
+		DataSourceFilterVariableStatus,
+		DataSourceFilterVariableName,
+		DataSourceFilterVariableDataLocationS3,
+		DataSourceFilterVariableIamuser,
+	}
+}
+
 // Contains the key values of
 //    DetailsMap
 // :
@@ -9339,6 +9372,14 @@ const (
 	// DetailsAttributesAlgorithm is a DetailsAttributes enum value
 	DetailsAttributesAlgorithm = "Algorithm"
 )
+
+// DetailsAttributes_Values returns all elements of the DetailsAttributes enum
+func DetailsAttributes_Values() []string {
+	return []string{
+		DetailsAttributesPredictiveModelType,
+		DetailsAttributesAlgorithm,
+	}
+}
 
 // Object status with the following possible values:
 //
@@ -9367,6 +9408,17 @@ const (
 	// EntityStatusDeleted is a EntityStatus enum value
 	EntityStatusDeleted = "DELETED"
 )
+
+// EntityStatus_Values returns all elements of the EntityStatus enum
+func EntityStatus_Values() []string {
+	return []string{
+		EntityStatusPending,
+		EntityStatusInprogress,
+		EntityStatusFailed,
+		EntityStatusCompleted,
+		EntityStatusDeleted,
+	}
+}
 
 // A list of the variables to use in searching or filtering Evaluation.
 //
@@ -9412,6 +9464,20 @@ const (
 	EvaluationFilterVariableDataUri = "DataURI"
 )
 
+// EvaluationFilterVariable_Values returns all elements of the EvaluationFilterVariable enum
+func EvaluationFilterVariable_Values() []string {
+	return []string{
+		EvaluationFilterVariableCreatedAt,
+		EvaluationFilterVariableLastUpdatedAt,
+		EvaluationFilterVariableStatus,
+		EvaluationFilterVariableName,
+		EvaluationFilterVariableIamuser,
+		EvaluationFilterVariableMlmodelId,
+		EvaluationFilterVariableDataSourceId,
+		EvaluationFilterVariableDataUri,
+	}
+}
+
 const (
 	// MLModelFilterVariableCreatedAt is a MLModelFilterVariable enum value
 	MLModelFilterVariableCreatedAt = "CreatedAt"
@@ -9444,6 +9510,22 @@ const (
 	MLModelFilterVariableTrainingDataUri = "TrainingDataURI"
 )
 
+// MLModelFilterVariable_Values returns all elements of the MLModelFilterVariable enum
+func MLModelFilterVariable_Values() []string {
+	return []string{
+		MLModelFilterVariableCreatedAt,
+		MLModelFilterVariableLastUpdatedAt,
+		MLModelFilterVariableStatus,
+		MLModelFilterVariableName,
+		MLModelFilterVariableIamuser,
+		MLModelFilterVariableTrainingDataSourceId,
+		MLModelFilterVariableRealtimeEndpointStatus,
+		MLModelFilterVariableMlmodelType,
+		MLModelFilterVariableAlgorithm,
+		MLModelFilterVariableTrainingDataUri,
+	}
+}
+
 const (
 	// MLModelTypeRegression is a MLModelType enum value
 	MLModelTypeRegression = "REGRESSION"
@@ -9454,6 +9536,15 @@ const (
 	// MLModelTypeMulticlass is a MLModelType enum value
 	MLModelTypeMulticlass = "MULTICLASS"
 )
+
+// MLModelType_Values returns all elements of the MLModelType enum
+func MLModelType_Values() []string {
+	return []string{
+		MLModelTypeRegression,
+		MLModelTypeBinary,
+		MLModelTypeMulticlass,
+	}
+}
 
 const (
 	// RealtimeEndpointStatusNone is a RealtimeEndpointStatus enum value
@@ -9469,6 +9560,16 @@ const (
 	RealtimeEndpointStatusFailed = "FAILED"
 )
 
+// RealtimeEndpointStatus_Values returns all elements of the RealtimeEndpointStatus enum
+func RealtimeEndpointStatus_Values() []string {
+	return []string{
+		RealtimeEndpointStatusNone,
+		RealtimeEndpointStatusReady,
+		RealtimeEndpointStatusUpdating,
+		RealtimeEndpointStatusFailed,
+	}
+}
+
 // The sort order specified in a listing condition. Possible values include
 // the following:
 //
@@ -9483,6 +9584,14 @@ const (
 	SortOrderDsc = "dsc"
 )
 
+// SortOrder_Values returns all elements of the SortOrder enum
+func SortOrder_Values() []string {
+	return []string{
+		SortOrderAsc,
+		SortOrderDsc,
+	}
+}
+
 const (
 	// TaggableResourceTypeBatchPrediction is a TaggableResourceType enum value
 	TaggableResourceTypeBatchPrediction = "BatchPrediction"
@@ -9496,3 +9605,13 @@ const (
 	// TaggableResourceTypeMlmodel is a TaggableResourceType enum value
 	TaggableResourceTypeMlmodel = "MLModel"
 )
+
+// TaggableResourceType_Values returns all elements of the TaggableResourceType enum
+func TaggableResourceType_Values() []string {
+	return []string{
+		TaggableResourceTypeBatchPrediction,
+		TaggableResourceTypeDataSource,
+		TaggableResourceTypeEvaluation,
+		TaggableResourceTypeMlmodel,
+	}
+}

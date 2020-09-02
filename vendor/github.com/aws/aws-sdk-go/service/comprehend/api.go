@@ -167,10 +167,10 @@ func (c *Comprehend) BatchDetectEntitiesRequest(input *BatchDetectEntitiesInput)
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * BatchSizeLimitExceededException
 //   The number of documents in the request exceeds the limit of 25. Try your
@@ -263,10 +263,10 @@ func (c *Comprehend) BatchDetectKeyPhrasesRequest(input *BatchDetectKeyPhrasesIn
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * BatchSizeLimitExceededException
 //   The number of documents in the request exceeds the limit of 25. Try your
@@ -360,10 +360,10 @@ func (c *Comprehend) BatchDetectSentimentRequest(input *BatchDetectSentimentInpu
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * BatchSizeLimitExceededException
 //   The number of documents in the request exceeds the limit of 25. Try your
@@ -458,10 +458,10 @@ func (c *Comprehend) BatchDetectSyntaxRequest(input *BatchDetectSyntaxInput) (re
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * BatchSizeLimitExceededException
 //   The number of documents in the request exceeds the limit of 25. Try your
@@ -552,8 +552,8 @@ func (c *Comprehend) ClassifyDocumentRequest(input *ClassifyDocumentInput) (req 
 //   The request is invalid.
 //
 //   * ResourceUnavailableException
-//   The specified resource is not available. Check to see if the resource is
-//   in the TRAINED state and try your request again.
+//   The specified resource is not available. Check the resource and try your
+//   request again.
 //
 //   * TextSizeLimitExceededException
 //   The size of the input text exceeds the limit. Use a smaller document.
@@ -628,7 +628,7 @@ func (c *Comprehend) CreateDocumentClassifierRequest(input *CreateDocumentClassi
 // CreateDocumentClassifier API operation for Amazon Comprehend.
 //
 // Creates a new document classifier that you can use to categorize documents.
-// To create a classifier you provide a set of training documents that labeled
+// To create a classifier, you provide a set of training documents that labeled
 // with the categories that you want to use. After the classifier is trained
 // you can use it to categorize a set of labeled documents into the categories.
 // For more information, see how-document-classification.
@@ -645,8 +645,8 @@ func (c *Comprehend) CreateDocumentClassifierRequest(input *CreateDocumentClassi
 //   The request is invalid.
 //
 //   * ResourceInUseException
-//   The specified name is already in use. Use a different name and try your request
-//   again.
+//   The specified resource name is already in use. Use a different name and try
+//   your request again.
 //
 //   * TooManyTagsException
 //   The request contains more tags than can be associated with a resource (50
@@ -657,15 +657,15 @@ func (c *Comprehend) CreateDocumentClassifierRequest(input *CreateDocumentClassi
 //   The number of requests exceeds the limit. Resubmit your request later.
 //
 //   * ResourceLimitExceededException
-//   The maximum number of recognizers per account has been exceeded. Review the
-//   recognizers, perform cleanup, and then try your request again.
+//   The maximum number of resources per account has been exceeded. Review the
+//   resources, and then try your request again.
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * KmsKeyValidationException
 //   The KMS customer managed key (CMK) entered cannot be validated. Verify the
@@ -755,20 +755,20 @@ func (c *Comprehend) CreateEndpointRequest(input *CreateEndpointInput) (req *req
 //   The request is invalid.
 //
 //   * ResourceInUseException
-//   The specified name is already in use. Use a different name and try your request
-//   again.
+//   The specified resource name is already in use. Use a different name and try
+//   your request again.
 //
 //   * ResourceLimitExceededException
-//   The maximum number of recognizers per account has been exceeded. Review the
-//   recognizers, perform cleanup, and then try your request again.
+//   The maximum number of resources per account has been exceeded. Review the
+//   resources, and then try your request again.
 //
 //   * ResourceNotFoundException
 //   The specified resource ARN was not found. Check the ARN and try your request
 //   again.
 //
 //   * ResourceUnavailableException
-//   The specified resource is not available. Check to see if the resource is
-//   in the TRAINED state and try your request again.
+//   The specified resource is not available. Check the resource and try your
+//   request again.
 //
 //   * TooManyRequestsException
 //   The number of requests exceeds the limit. Resubmit your request later.
@@ -862,8 +862,8 @@ func (c *Comprehend) CreateEntityRecognizerRequest(input *CreateEntityRecognizer
 //   The request is invalid.
 //
 //   * ResourceInUseException
-//   The specified name is already in use. Use a different name and try your request
-//   again.
+//   The specified resource name is already in use. Use a different name and try
+//   your request again.
 //
 //   * TooManyTagsException
 //   The request contains more tags than can be associated with a resource (50
@@ -874,15 +874,15 @@ func (c *Comprehend) CreateEntityRecognizerRequest(input *CreateEntityRecognizer
 //   The number of requests exceeds the limit. Resubmit your request later.
 //
 //   * ResourceLimitExceededException
-//   The maximum number of recognizers per account has been exceeded. Review the
-//   recognizers, perform cleanup, and then try your request again.
+//   The maximum number of resources per account has been exceeded. Review the
+//   resources, and then try your request again.
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * KmsKeyValidationException
 //   The KMS customer managed key (CMK) entered cannot be validated. Verify the
@@ -987,12 +987,12 @@ func (c *Comprehend) DeleteDocumentClassifierRequest(input *DeleteDocumentClassi
 //   again.
 //
 //   * ResourceUnavailableException
-//   The specified resource is not available. Check to see if the resource is
-//   in the TRAINED state and try your request again.
+//   The specified resource is not available. Check the resource and try your
+//   request again.
 //
 //   * ResourceInUseException
-//   The specified name is already in use. Use a different name and try your request
-//   again.
+//   The specified resource name is already in use. Use a different name and try
+//   your request again.
 //
 //   * InternalServerException
 //   An internal server error occurred. Retry your request.
@@ -1079,8 +1079,8 @@ func (c *Comprehend) DeleteEndpointRequest(input *DeleteEndpointInput) (req *req
 //   The request is invalid.
 //
 //   * ResourceInUseException
-//   The specified name is already in use. Use a different name and try your request
-//   again.
+//   The specified resource name is already in use. Use a different name and try
+//   your request again.
 //
 //   * ResourceNotFoundException
 //   The specified resource ARN was not found. Check the ARN and try your request
@@ -1188,12 +1188,12 @@ func (c *Comprehend) DeleteEntityRecognizerRequest(input *DeleteEntityRecognizer
 //   again.
 //
 //   * ResourceUnavailableException
-//   The specified resource is not available. Check to see if the resource is
-//   in the TRAINED state and try your request again.
+//   The specified resource is not available. Check the resource and try your
+//   request again.
 //
 //   * ResourceInUseException
-//   The specified name is already in use. Use a different name and try your request
-//   again.
+//   The specified resource name is already in use. Use a different name and try
+//   your request again.
 //
 //   * InternalServerException
 //   An internal server error occurred. Retry your request.
@@ -2168,15 +2168,19 @@ func (c *Comprehend) DetectEntitiesRequest(input *DetectEntitiesInput) (req *req
 //   * InvalidRequestException
 //   The request is invalid.
 //
+//   * ResourceUnavailableException
+//   The specified resource is not available. Check the resource and try your
+//   request again.
+//
 //   * TextSizeLimitExceededException
 //   The size of the input text exceeds the limit. Use a smaller document.
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * InternalServerException
 //   An internal server error occurred. Retry your request.
@@ -2265,10 +2269,10 @@ func (c *Comprehend) DetectKeyPhrasesRequest(input *DetectKeyPhrasesInput) (req 
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * InternalServerException
 //   An internal server error occurred. Retry your request.
@@ -2358,10 +2362,10 @@ func (c *Comprehend) DetectSentimentRequest(input *DetectSentimentInput) (req *r
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * InternalServerException
 //   An internal server error occurred. Retry your request.
@@ -2451,10 +2455,10 @@ func (c *Comprehend) DetectSyntaxRequest(input *DetectSyntaxInput) (req *request
 //
 //   * UnsupportedLanguageException
 //   Amazon Comprehend can't process the language of the input text. For all custom
-//   entity recognition APIs (such as CreateEntityRecognizer), only English is
-//   accepted. For most other APIs, such as those for Custom Classification, Amazon
-//   Comprehend accepts text in all supported languages. For a list of supported
-//   languages, see supported-languages.
+//   entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+//   French, Italian, German, or Portuguese are accepted. For most other APIs,
+//   such as those for Custom Classification, Amazon Comprehend accepts text in
+//   all supported languages. For a list of supported languages, see supported-languages.
 //
 //   * InternalServerException
 //   An internal server error occurred. Retry your request.
@@ -3893,8 +3897,8 @@ func (c *Comprehend) StartDocumentClassificationJobRequest(input *StartDocumentC
 //   again.
 //
 //   * ResourceUnavailableException
-//   The specified resource is not available. Check to see if the resource is
-//   in the TRAINED state and try your request again.
+//   The specified resource is not available. Check the resource and try your
+//   request again.
 //
 //   * KmsKeyValidationException
 //   The KMS customer managed key (CMK) entered cannot be validated. Verify the
@@ -4086,8 +4090,8 @@ func (c *Comprehend) StartEntitiesDetectionJobRequest(input *StartEntitiesDetect
 //   again.
 //
 //   * ResourceUnavailableException
-//   The specified resource is not available. Check to see if the resource is
-//   in the TRAINED state and try your request again.
+//   The specified resource is not available. Check the resource and try your
+//   request again.
 //
 //   * KmsKeyValidationException
 //   The KMS customer managed key (CMK) entered cannot be validated. Verify the
@@ -5220,20 +5224,20 @@ func (c *Comprehend) UpdateEndpointRequest(input *UpdateEndpointInput) (req *req
 //   The number of requests exceeds the limit. Resubmit your request later.
 //
 //   * ResourceInUseException
-//   The specified name is already in use. Use a different name and try your request
-//   again.
+//   The specified resource name is already in use. Use a different name and try
+//   your request again.
 //
 //   * ResourceLimitExceededException
-//   The maximum number of recognizers per account has been exceeded. Review the
-//   recognizers, perform cleanup, and then try your request again.
+//   The maximum number of resources per account has been exceeded. Review the
+//   resources, and then try your request again.
 //
 //   * ResourceNotFoundException
 //   The specified resource ARN was not found. Check the ARN and try your request
 //   again.
 //
 //   * ResourceUnavailableException
-//   The specified resource is not available. Check to see if the resource is
-//   in the TRAINED state and try your request again.
+//   The specified resource is not available. Check the resource and try your
+//   request again.
 //
 //   * InternalServerException
 //   An internal server error occurred. Retry your request.
@@ -5268,7 +5272,7 @@ type BatchDetectDominantLanguageInput struct {
 	// and must contain fewer than 5,000 bytes of UTF-8 encoded characters.
 	//
 	// TextList is a required field
-	TextList []*string `type:"list" required:"true"`
+	TextList []*string `type:"list" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -5336,7 +5340,7 @@ func (s *BatchDetectDominantLanguageItemResult) SetLanguages(v []*DominantLangua
 }
 
 type BatchDetectDominantLanguageOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// A list containing one object for each document that contained an error. The
 	// results are sorted in ascending order by the Index field and match the order
@@ -5391,7 +5395,7 @@ type BatchDetectEntitiesInput struct {
 	// of UTF-8 encoded characters.
 	//
 	// TextList is a required field
-	TextList []*string `type:"list" required:"true"`
+	TextList []*string `type:"list" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -5467,7 +5471,7 @@ func (s *BatchDetectEntitiesItemResult) SetIndex(v int64) *BatchDetectEntitiesIt
 }
 
 type BatchDetectEntitiesOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// A list containing one object for each document that contained an error. The
 	// results are sorted in ascending order by the Index field and match the order
@@ -5522,7 +5526,7 @@ type BatchDetectKeyPhrasesInput struct {
 	// of UTF-8 encoded characters.
 	//
 	// TextList is a required field
-	TextList []*string `type:"list" required:"true"`
+	TextList []*string `type:"list" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -5598,7 +5602,7 @@ func (s *BatchDetectKeyPhrasesItemResult) SetKeyPhrases(v []*KeyPhrase) *BatchDe
 }
 
 type BatchDetectKeyPhrasesOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// A list containing one object for each document that contained an error. The
 	// results are sorted in ascending order by the Index field and match the order
@@ -5653,7 +5657,7 @@ type BatchDetectSentimentInput struct {
 	// of UTF-8 encoded characters.
 	//
 	// TextList is a required field
-	TextList []*string `type:"list" required:"true"`
+	TextList []*string `type:"list" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -5739,7 +5743,7 @@ func (s *BatchDetectSentimentItemResult) SetSentimentScore(v *SentimentScore) *B
 }
 
 type BatchDetectSentimentOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// A list containing one object for each document that contained an error. The
 	// results are sorted in ascending order by the Index field and match the order
@@ -5796,7 +5800,7 @@ type BatchDetectSyntaxInput struct {
 	// of UTF-8 encoded characters.
 	//
 	// TextList is a required field
-	TextList []*string `type:"list" required:"true"`
+	TextList []*string `type:"list" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -5872,7 +5876,7 @@ func (s *BatchDetectSyntaxItemResult) SetSyntaxTokens(v []*SyntaxToken) *BatchDe
 }
 
 type BatchDetectSyntaxOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// A list containing one object for each document that contained an error. The
 	// results are sorted in ascending order by the Index field and match the order
@@ -5960,8 +5964,8 @@ func (s *BatchItemError) SetIndex(v int64) *BatchItemError {
 // The number of documents in the request exceeds the limit of 25. Try your
 // request again with fewer documents.
 type BatchSizeLimitExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -5978,17 +5982,17 @@ func (s BatchSizeLimitExceededException) GoString() string {
 
 func newErrorBatchSizeLimitExceededException(v protocol.ResponseMetadata) error {
 	return &BatchSizeLimitExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s BatchSizeLimitExceededException) Code() string {
+func (s *BatchSizeLimitExceededException) Code() string {
 	return "BatchSizeLimitExceededException"
 }
 
 // Message returns the exception's message.
-func (s BatchSizeLimitExceededException) Message() string {
+func (s *BatchSizeLimitExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -5996,22 +6000,22 @@ func (s BatchSizeLimitExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s BatchSizeLimitExceededException) OrigErr() error {
+func (s *BatchSizeLimitExceededException) OrigErr() error {
 	return nil
 }
 
-func (s BatchSizeLimitExceededException) Error() string {
+func (s *BatchSizeLimitExceededException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s BatchSizeLimitExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *BatchSizeLimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s BatchSizeLimitExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *BatchSizeLimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Describes the result metrics for the test data associated with an documentation
@@ -6126,7 +6130,7 @@ func (s *ClassifierEvaluationMetrics) SetRecall(v float64) *ClassifierEvaluation
 
 // Provides information about a document classifier.
 type ClassifierMetadata struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// Describes the result metrics for the test data associated with an documentation
 	// classifier.
@@ -6136,7 +6140,7 @@ type ClassifierMetadata struct {
 	NumberOfLabels *int64 `type:"integer"`
 
 	// The number of documents in the input data that were used to test the classifier.
-	// Typically this is 10 to 20 percent of the input documents.
+	// Typically this is 10 to 20 percent of the input documents, up to 10,000 documents.
 	NumberOfTestDocuments *int64 `type:"integer"`
 
 	// The number of documents in the input data that were used to train the classifier.
@@ -6189,7 +6193,7 @@ type ClassifyDocumentInput struct {
 	// The document text to be analyzed.
 	//
 	// Text is a required field
-	Text *string `min:"1" type:"string" required:"true"`
+	Text *string `min:"1" type:"string" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -6234,7 +6238,7 @@ func (s *ClassifyDocumentInput) SetText(v string) *ClassifyDocumentInput {
 }
 
 type ClassifyDocumentOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// The classes used by the document being analyzed. These are used for multi-class
 	// trained models. Individual classes are mutually exclusive and each document
@@ -6275,8 +6279,8 @@ func (s *ClassifyDocumentOutput) SetLabels(v []*DocumentLabel) *ClassifyDocument
 // Concurrent modification of the tags associated with an Amazon Comprehend
 // resource is not supported.
 type ConcurrentModificationException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -6293,17 +6297,17 @@ func (s ConcurrentModificationException) GoString() string {
 
 func newErrorConcurrentModificationException(v protocol.ResponseMetadata) error {
 	return &ConcurrentModificationException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ConcurrentModificationException) Code() string {
+func (s *ConcurrentModificationException) Code() string {
 	return "ConcurrentModificationException"
 }
 
 // Message returns the exception's message.
-func (s ConcurrentModificationException) Message() string {
+func (s *ConcurrentModificationException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -6311,22 +6315,22 @@ func (s ConcurrentModificationException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ConcurrentModificationException) OrigErr() error {
+func (s *ConcurrentModificationException) OrigErr() error {
 	return nil
 }
 
-func (s ConcurrentModificationException) Error() string {
+func (s *ConcurrentModificationException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ConcurrentModificationException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ConcurrentModificationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ConcurrentModificationException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ConcurrentModificationException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type CreateDocumentClassifierInput struct {
@@ -6685,8 +6689,9 @@ type CreateEntityRecognizerInput struct {
 	// InputDataConfig is a required field
 	InputDataConfig *EntityRecognizerInputDataConfig `type:"structure" required:"true"`
 
-	// The language of the input documents. All documents must be in the same language.
-	// Only English ("en") is currently supported.
+	// You can specify any of the following languages supported by Amazon Comprehend:
+	// English ("en"), Spanish ("es"), French ("fr"), Italian ("it"), German ("de"),
+	// or Portuguese ("pt"). All documents must be in the same language.
 	//
 	// LanguageCode is a required field
 	LanguageCode *string `type:"string" required:"true" enum:"LanguageCode"`
@@ -7590,7 +7595,7 @@ type DetectDominantLanguageInput struct {
 	// must contain fewer that 5,000 bytes of UTF-8 encoded characters.
 	//
 	// Text is a required field
-	Text *string `min:"1" type:"string" required:"true"`
+	Text *string `min:"1" type:"string" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -7626,7 +7631,7 @@ func (s *DetectDominantLanguageInput) SetText(v string) *DetectDominantLanguageI
 }
 
 type DetectDominantLanguageOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// The languages that Amazon Comprehend detected in the input text. For each
 	// language, the response returns the RFC 5646 language code and the level of
@@ -7655,17 +7660,28 @@ func (s *DetectDominantLanguageOutput) SetLanguages(v []*DominantLanguage) *Dete
 type DetectEntitiesInput struct {
 	_ struct{} `type:"structure"`
 
+	// The Amazon Resource Name of an endpoint that is associated with a custom
+	// entity recognition model. Provide an endpoint if you want to detect entities
+	// by using your own custom model instead of the default model that is used
+	// by Amazon Comprehend.
+	//
+	// If you specify an endpoint, Amazon Comprehend uses the language of your custom
+	// model, and it ignores any language code that you provide in your request.
+	EndpointArn *string `type:"string"`
+
 	// The language of the input documents. You can specify any of the primary languages
 	// supported by Amazon Comprehend. All documents must be in the same language.
 	//
-	// LanguageCode is a required field
-	LanguageCode *string `type:"string" required:"true" enum:"LanguageCode"`
+	// If your request includes the endpoint for a custom entity recognition model,
+	// Amazon Comprehend uses the language of your custom model, and it ignores
+	// any language code that you specify here.
+	LanguageCode *string `type:"string" enum:"LanguageCode"`
 
 	// A UTF-8 text string. Each string must contain fewer that 5,000 bytes of UTF-8
 	// encoded characters.
 	//
 	// Text is a required field
-	Text *string `min:"1" type:"string" required:"true"`
+	Text *string `min:"1" type:"string" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -7681,9 +7697,6 @@ func (s DetectEntitiesInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DetectEntitiesInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DetectEntitiesInput"}
-	if s.LanguageCode == nil {
-		invalidParams.Add(request.NewErrParamRequired("LanguageCode"))
-	}
 	if s.Text == nil {
 		invalidParams.Add(request.NewErrParamRequired("Text"))
 	}
@@ -7695,6 +7708,12 @@ func (s *DetectEntitiesInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *DetectEntitiesInput) SetEndpointArn(v string) *DetectEntitiesInput {
+	s.EndpointArn = &v
+	return s
 }
 
 // SetLanguageCode sets the LanguageCode field's value.
@@ -7710,12 +7729,16 @@ func (s *DetectEntitiesInput) SetText(v string) *DetectEntitiesInput {
 }
 
 type DetectEntitiesOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// A collection of entities identified in the input text. For each entity, the
 	// response provides the entity text, entity type, where the entity text begins
 	// and ends, and the level of confidence that Amazon Comprehend has in the detection.
-	// For a list of entity types, see how-entities.
+	//
+	// If your request uses a custom entity recognition model, Amazon Comprehend
+	// detects the entities that the model is trained to recognize. Otherwise, it
+	// detects the default entity types. For a list of default entity types, see
+	// how-entities.
 	Entities []*Entity `type:"list"`
 }
 
@@ -7748,7 +7771,7 @@ type DetectKeyPhrasesInput struct {
 	// encoded characters.
 	//
 	// Text is a required field
-	Text *string `min:"1" type:"string" required:"true"`
+	Text *string `min:"1" type:"string" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -7793,7 +7816,7 @@ func (s *DetectKeyPhrasesInput) SetText(v string) *DetectKeyPhrasesInput {
 }
 
 type DetectKeyPhrasesOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// A collection of key phrases that Amazon Comprehend identified in the input
 	// text. For each key phrase, the response provides the text of the key phrase,
@@ -7831,7 +7854,7 @@ type DetectSentimentInput struct {
 	// encoded characters.
 	//
 	// Text is a required field
-	Text *string `min:"1" type:"string" required:"true"`
+	Text *string `min:"1" type:"string" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -7876,7 +7899,7 @@ func (s *DetectSentimentInput) SetText(v string) *DetectSentimentInput {
 }
 
 type DetectSentimentOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// The inferred sentiment that Amazon Comprehend has the highest level of confidence
 	// in.
@@ -7922,7 +7945,7 @@ type DetectSyntaxInput struct {
 	// characters.
 	//
 	// Text is a required field
-	Text *string `min:"1" type:"string" required:"true"`
+	Text *string `min:"1" type:"string" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -7967,7 +7990,7 @@ func (s *DetectSyntaxInput) SetText(v string) *DetectSyntaxInput {
 }
 
 type DetectSyntaxOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// A collection of syntax tokens describing the text. For each token, the response
 	// provides the text, the token type, where the text begins and ends, and the
@@ -8039,12 +8062,12 @@ type DocumentClassificationJobFilter struct {
 	JobStatus *string `type:"string" enum:"JobStatus"`
 
 	// Filters the list of jobs based on the time that the job was submitted for
-	// processing. Returns only jobs submitted before the specified time. Jobs are
+	// processing. Returns only jobs submitted after the specified time. Jobs are
 	// returned in descending order, newest to oldest.
 	SubmitTimeAfter *time.Time `type:"timestamp"`
 
 	// Filters the list of jobs based on the time that the job was submitted for
-	// processing. Returns only jobs submitted after the specified time. Jobs are
+	// processing. Returns only jobs submitted before the specified time. Jobs are
 	// returned in ascending order, oldest to newest.
 	SubmitTimeBefore *time.Time `type:"timestamp"`
 }
@@ -8403,7 +8426,7 @@ type DocumentClassifierProperties struct {
 	// Information about the document classifier, including the number of documents
 	// used for training the classifier, the number of documents used for test the
 	// classifier, and an accuracy rating.
-	ClassifierMetadata *ClassifierMetadata `type:"structure"`
+	ClassifierMetadata *ClassifierMetadata `type:"structure" sensitive:"true"`
 
 	// The Amazon Resource Name (ARN) of the AWS Identity and Management (IAM) role
 	// that grants Amazon Comprehend read access to your input data.
@@ -9497,7 +9520,7 @@ type EntityRecognizerInputDataConfig struct {
 	EntityList *EntityRecognizerEntityList `type:"structure"`
 
 	// The entity types in the input data for an entity recognizer. A maximum of
-	// 12 entity types can be used at one time to train an entity recognizer.
+	// 25 entity types can be used at one time to train an entity recognizer.
 	//
 	// EntityTypes is a required field
 	EntityTypes []*EntityTypesListItem `type:"list" required:"true"`
@@ -9580,7 +9603,7 @@ func (s *EntityRecognizerInputDataConfig) SetEntityTypes(v []*EntityTypesListIte
 
 // Detailed information about an entity recognizer.
 type EntityRecognizerMetadata struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `type:"structure" sensitive:"true"`
 
 	// Entity types from the metadata of an entity recognizer.
 	EntityTypes []*EntityRecognizerMetadataEntityTypesListItem `type:"list"`
@@ -9702,7 +9725,7 @@ type EntityRecognizerProperties struct {
 	Message *string `type:"string"`
 
 	// Provides information about an entity recognizer.
-	RecognizerMetadata *EntityRecognizerMetadata `type:"structure"`
+	RecognizerMetadata *EntityRecognizerMetadata `type:"structure" sensitive:"true"`
 
 	// Provides the status of the entity recognizer.
 	Status *string `type:"string" enum:"ModelStatus"`
@@ -9973,8 +9996,8 @@ func (s *InputDataConfig) SetS3Uri(v string) *InputDataConfig {
 
 // An internal server error occurred. Retry your request.
 type InternalServerException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -9991,17 +10014,17 @@ func (s InternalServerException) GoString() string {
 
 func newErrorInternalServerException(v protocol.ResponseMetadata) error {
 	return &InternalServerException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InternalServerException) Code() string {
+func (s *InternalServerException) Code() string {
 	return "InternalServerException"
 }
 
 // Message returns the exception's message.
-func (s InternalServerException) Message() string {
+func (s *InternalServerException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -10009,28 +10032,28 @@ func (s InternalServerException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InternalServerException) OrigErr() error {
+func (s *InternalServerException) OrigErr() error {
 	return nil
 }
 
-func (s InternalServerException) Error() string {
+func (s *InternalServerException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InternalServerException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InternalServerException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InternalServerException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InternalServerException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The filter specified for the operation is invalid. Specify a different filter.
 type InvalidFilterException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -10047,17 +10070,17 @@ func (s InvalidFilterException) GoString() string {
 
 func newErrorInvalidFilterException(v protocol.ResponseMetadata) error {
 	return &InvalidFilterException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidFilterException) Code() string {
+func (s *InvalidFilterException) Code() string {
 	return "InvalidFilterException"
 }
 
 // Message returns the exception's message.
-func (s InvalidFilterException) Message() string {
+func (s *InvalidFilterException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -10065,28 +10088,28 @@ func (s InvalidFilterException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidFilterException) OrigErr() error {
+func (s *InvalidFilterException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidFilterException) Error() string {
+func (s *InvalidFilterException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidFilterException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidFilterException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidFilterException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidFilterException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The request is invalid.
 type InvalidRequestException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -10103,17 +10126,17 @@ func (s InvalidRequestException) GoString() string {
 
 func newErrorInvalidRequestException(v protocol.ResponseMetadata) error {
 	return &InvalidRequestException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidRequestException) Code() string {
+func (s *InvalidRequestException) Code() string {
 	return "InvalidRequestException"
 }
 
 // Message returns the exception's message.
-func (s InvalidRequestException) Message() string {
+func (s *InvalidRequestException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -10121,28 +10144,28 @@ func (s InvalidRequestException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidRequestException) OrigErr() error {
+func (s *InvalidRequestException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidRequestException) Error() string {
+func (s *InvalidRequestException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidRequestException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidRequestException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidRequestException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidRequestException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The specified job was not found. Check the job ID and try again.
 type JobNotFoundException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -10159,17 +10182,17 @@ func (s JobNotFoundException) GoString() string {
 
 func newErrorJobNotFoundException(v protocol.ResponseMetadata) error {
 	return &JobNotFoundException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s JobNotFoundException) Code() string {
+func (s *JobNotFoundException) Code() string {
 	return "JobNotFoundException"
 }
 
 // Message returns the exception's message.
-func (s JobNotFoundException) Message() string {
+func (s *JobNotFoundException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -10177,22 +10200,22 @@ func (s JobNotFoundException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s JobNotFoundException) OrigErr() error {
+func (s *JobNotFoundException) OrigErr() error {
 	return nil
 }
 
-func (s JobNotFoundException) Error() string {
+func (s *JobNotFoundException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s JobNotFoundException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *JobNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s JobNotFoundException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *JobNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Describes a key noun phrase.
@@ -10463,8 +10486,8 @@ func (s *KeyPhrasesDetectionJobProperties) SetVpcConfig(v *VpcConfig) *KeyPhrase
 // The KMS customer managed key (CMK) entered cannot be validated. Verify the
 // key and re-enter it.
 type KmsKeyValidationException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -10481,17 +10504,17 @@ func (s KmsKeyValidationException) GoString() string {
 
 func newErrorKmsKeyValidationException(v protocol.ResponseMetadata) error {
 	return &KmsKeyValidationException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s KmsKeyValidationException) Code() string {
+func (s *KmsKeyValidationException) Code() string {
 	return "KmsKeyValidationException"
 }
 
 // Message returns the exception's message.
-func (s KmsKeyValidationException) Message() string {
+func (s *KmsKeyValidationException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -10499,22 +10522,22 @@ func (s KmsKeyValidationException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s KmsKeyValidationException) OrigErr() error {
+func (s *KmsKeyValidationException) OrigErr() error {
 	return nil
 }
 
-func (s KmsKeyValidationException) Error() string {
+func (s *KmsKeyValidationException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s KmsKeyValidationException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *KmsKeyValidationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s KmsKeyValidationException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *KmsKeyValidationException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type ListDocumentClassificationJobsInput struct {
@@ -11545,11 +11568,11 @@ func (s *PartOfSpeechTag) SetTag(v string) *PartOfSpeechTag {
 	return s
 }
 
-// The specified name is already in use. Use a different name and try your request
-// again.
+// The specified resource name is already in use. Use a different name and try
+// your request again.
 type ResourceInUseException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -11566,17 +11589,17 @@ func (s ResourceInUseException) GoString() string {
 
 func newErrorResourceInUseException(v protocol.ResponseMetadata) error {
 	return &ResourceInUseException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ResourceInUseException) Code() string {
+func (s *ResourceInUseException) Code() string {
 	return "ResourceInUseException"
 }
 
 // Message returns the exception's message.
-func (s ResourceInUseException) Message() string {
+func (s *ResourceInUseException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -11584,29 +11607,29 @@ func (s ResourceInUseException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ResourceInUseException) OrigErr() error {
+func (s *ResourceInUseException) OrigErr() error {
 	return nil
 }
 
-func (s ResourceInUseException) Error() string {
+func (s *ResourceInUseException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ResourceInUseException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ResourceInUseException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ResourceInUseException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ResourceInUseException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
-// The maximum number of recognizers per account has been exceeded. Review the
-// recognizers, perform cleanup, and then try your request again.
+// The maximum number of resources per account has been exceeded. Review the
+// resources, and then try your request again.
 type ResourceLimitExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -11623,17 +11646,17 @@ func (s ResourceLimitExceededException) GoString() string {
 
 func newErrorResourceLimitExceededException(v protocol.ResponseMetadata) error {
 	return &ResourceLimitExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ResourceLimitExceededException) Code() string {
+func (s *ResourceLimitExceededException) Code() string {
 	return "ResourceLimitExceededException"
 }
 
 // Message returns the exception's message.
-func (s ResourceLimitExceededException) Message() string {
+func (s *ResourceLimitExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -11641,29 +11664,29 @@ func (s ResourceLimitExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ResourceLimitExceededException) OrigErr() error {
+func (s *ResourceLimitExceededException) OrigErr() error {
 	return nil
 }
 
-func (s ResourceLimitExceededException) Error() string {
+func (s *ResourceLimitExceededException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ResourceLimitExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ResourceLimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ResourceLimitExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ResourceLimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The specified resource ARN was not found. Check the ARN and try your request
 // again.
 type ResourceNotFoundException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -11680,17 +11703,17 @@ func (s ResourceNotFoundException) GoString() string {
 
 func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
 	return &ResourceNotFoundException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ResourceNotFoundException) Code() string {
+func (s *ResourceNotFoundException) Code() string {
 	return "ResourceNotFoundException"
 }
 
 // Message returns the exception's message.
-func (s ResourceNotFoundException) Message() string {
+func (s *ResourceNotFoundException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -11698,29 +11721,29 @@ func (s ResourceNotFoundException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ResourceNotFoundException) OrigErr() error {
+func (s *ResourceNotFoundException) OrigErr() error {
 	return nil
 }
 
-func (s ResourceNotFoundException) Error() string {
+func (s *ResourceNotFoundException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ResourceNotFoundException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ResourceNotFoundException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
-// The specified resource is not available. Check to see if the resource is
-// in the TRAINED state and try your request again.
+// The specified resource is not available. Check the resource and try your
+// request again.
 type ResourceUnavailableException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -11737,17 +11760,17 @@ func (s ResourceUnavailableException) GoString() string {
 
 func newErrorResourceUnavailableException(v protocol.ResponseMetadata) error {
 	return &ResourceUnavailableException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ResourceUnavailableException) Code() string {
+func (s *ResourceUnavailableException) Code() string {
 	return "ResourceUnavailableException"
 }
 
 // Message returns the exception's message.
-func (s ResourceUnavailableException) Message() string {
+func (s *ResourceUnavailableException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -11755,22 +11778,22 @@ func (s ResourceUnavailableException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ResourceUnavailableException) OrigErr() error {
+func (s *ResourceUnavailableException) OrigErr() error {
 	return nil
 }
 
-func (s ResourceUnavailableException) Error() string {
+func (s *ResourceUnavailableException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ResourceUnavailableException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ResourceUnavailableException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ResourceUnavailableException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ResourceUnavailableException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Provides information for filtering a list of dominant language detection
@@ -13818,8 +13841,8 @@ func (s TagResourceOutput) GoString() string {
 
 // The size of the input text exceeds the limit. Use a smaller document.
 type TextSizeLimitExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -13836,17 +13859,17 @@ func (s TextSizeLimitExceededException) GoString() string {
 
 func newErrorTextSizeLimitExceededException(v protocol.ResponseMetadata) error {
 	return &TextSizeLimitExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s TextSizeLimitExceededException) Code() string {
+func (s *TextSizeLimitExceededException) Code() string {
 	return "TextSizeLimitExceededException"
 }
 
 // Message returns the exception's message.
-func (s TextSizeLimitExceededException) Message() string {
+func (s *TextSizeLimitExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -13854,28 +13877,28 @@ func (s TextSizeLimitExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s TextSizeLimitExceededException) OrigErr() error {
+func (s *TextSizeLimitExceededException) OrigErr() error {
 	return nil
 }
 
-func (s TextSizeLimitExceededException) Error() string {
+func (s *TextSizeLimitExceededException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s TextSizeLimitExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *TextSizeLimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s TextSizeLimitExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *TextSizeLimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The number of requests exceeds the limit. Resubmit your request later.
 type TooManyRequestsException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -13892,17 +13915,17 @@ func (s TooManyRequestsException) GoString() string {
 
 func newErrorTooManyRequestsException(v protocol.ResponseMetadata) error {
 	return &TooManyRequestsException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s TooManyRequestsException) Code() string {
+func (s *TooManyRequestsException) Code() string {
 	return "TooManyRequestsException"
 }
 
 // Message returns the exception's message.
-func (s TooManyRequestsException) Message() string {
+func (s *TooManyRequestsException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -13910,29 +13933,29 @@ func (s TooManyRequestsException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s TooManyRequestsException) OrigErr() error {
+func (s *TooManyRequestsException) OrigErr() error {
 	return nil
 }
 
-func (s TooManyRequestsException) Error() string {
+func (s *TooManyRequestsException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s TooManyRequestsException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *TooManyRequestsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s TooManyRequestsException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *TooManyRequestsException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The request contains more tag keys than can be associated with a resource
 // (50 tag keys per resource).
 type TooManyTagKeysException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -13949,17 +13972,17 @@ func (s TooManyTagKeysException) GoString() string {
 
 func newErrorTooManyTagKeysException(v protocol.ResponseMetadata) error {
 	return &TooManyTagKeysException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s TooManyTagKeysException) Code() string {
+func (s *TooManyTagKeysException) Code() string {
 	return "TooManyTagKeysException"
 }
 
 // Message returns the exception's message.
-func (s TooManyTagKeysException) Message() string {
+func (s *TooManyTagKeysException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -13967,30 +13990,30 @@ func (s TooManyTagKeysException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s TooManyTagKeysException) OrigErr() error {
+func (s *TooManyTagKeysException) OrigErr() error {
 	return nil
 }
 
-func (s TooManyTagKeysException) Error() string {
+func (s *TooManyTagKeysException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s TooManyTagKeysException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *TooManyTagKeysException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s TooManyTagKeysException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *TooManyTagKeysException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The request contains more tags than can be associated with a resource (50
 // tags per resource). The maximum number of tags includes both existing tags
 // and those included in your current request.
 type TooManyTagsException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -14007,17 +14030,17 @@ func (s TooManyTagsException) GoString() string {
 
 func newErrorTooManyTagsException(v protocol.ResponseMetadata) error {
 	return &TooManyTagsException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s TooManyTagsException) Code() string {
+func (s *TooManyTagsException) Code() string {
 	return "TooManyTagsException"
 }
 
 // Message returns the exception's message.
-func (s TooManyTagsException) Message() string {
+func (s *TooManyTagsException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -14025,22 +14048,22 @@ func (s TooManyTagsException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s TooManyTagsException) OrigErr() error {
+func (s *TooManyTagsException) OrigErr() error {
 	return nil
 }
 
-func (s TooManyTagsException) Error() string {
+func (s *TooManyTagsException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s TooManyTagsException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *TooManyTagsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s TooManyTagsException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *TooManyTagsException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Provides information for filtering topic detection jobs. For more information,
@@ -14250,13 +14273,13 @@ func (s *TopicsDetectionJobProperties) SetVpcConfig(v *VpcConfig) *TopicsDetecti
 }
 
 // Amazon Comprehend can't process the language of the input text. For all custom
-// entity recognition APIs (such as CreateEntityRecognizer), only English is
-// accepted. For most other APIs, such as those for Custom Classification, Amazon
-// Comprehend accepts text in all supported languages. For a list of supported
-// languages, see supported-languages.
+// entity recognition APIs (such as CreateEntityRecognizer), only English, Spanish,
+// French, Italian, German, or Portuguese are accepted. For most other APIs,
+// such as those for Custom Classification, Amazon Comprehend accepts text in
+// all supported languages. For a list of supported languages, see supported-languages.
 type UnsupportedLanguageException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -14273,17 +14296,17 @@ func (s UnsupportedLanguageException) GoString() string {
 
 func newErrorUnsupportedLanguageException(v protocol.ResponseMetadata) error {
 	return &UnsupportedLanguageException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s UnsupportedLanguageException) Code() string {
+func (s *UnsupportedLanguageException) Code() string {
 	return "UnsupportedLanguageException"
 }
 
 // Message returns the exception's message.
-func (s UnsupportedLanguageException) Message() string {
+func (s *UnsupportedLanguageException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -14291,22 +14314,22 @@ func (s UnsupportedLanguageException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s UnsupportedLanguageException) OrigErr() error {
+func (s *UnsupportedLanguageException) OrigErr() error {
 	return nil
 }
 
-func (s UnsupportedLanguageException) Error() string {
+func (s *UnsupportedLanguageException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s UnsupportedLanguageException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *UnsupportedLanguageException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s UnsupportedLanguageException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *UnsupportedLanguageException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type UntagResourceInput struct {
@@ -14528,6 +14551,14 @@ const (
 	DocumentClassifierModeMultiLabel = "MULTI_LABEL"
 )
 
+// DocumentClassifierMode_Values returns all elements of the DocumentClassifierMode enum
+func DocumentClassifierMode_Values() []string {
+	return []string{
+		DocumentClassifierModeMultiClass,
+		DocumentClassifierModeMultiLabel,
+	}
+}
+
 const (
 	// EndpointStatusCreating is a EndpointStatus enum value
 	EndpointStatusCreating = "CREATING"
@@ -14544,6 +14575,17 @@ const (
 	// EndpointStatusUpdating is a EndpointStatus enum value
 	EndpointStatusUpdating = "UPDATING"
 )
+
+// EndpointStatus_Values returns all elements of the EndpointStatus enum
+func EndpointStatus_Values() []string {
+	return []string{
+		EndpointStatusCreating,
+		EndpointStatusDeleting,
+		EndpointStatusFailed,
+		EndpointStatusInService,
+		EndpointStatusUpdating,
+	}
+}
 
 const (
 	// EntityTypePerson is a EntityType enum value
@@ -14574,6 +14616,21 @@ const (
 	EntityTypeOther = "OTHER"
 )
 
+// EntityType_Values returns all elements of the EntityType enum
+func EntityType_Values() []string {
+	return []string{
+		EntityTypePerson,
+		EntityTypeLocation,
+		EntityTypeOrganization,
+		EntityTypeCommercialItem,
+		EntityTypeEvent,
+		EntityTypeDate,
+		EntityTypeQuantity,
+		EntityTypeTitle,
+		EntityTypeOther,
+	}
+}
+
 const (
 	// InputFormatOneDocPerFile is a InputFormat enum value
 	InputFormatOneDocPerFile = "ONE_DOC_PER_FILE"
@@ -14581,6 +14638,14 @@ const (
 	// InputFormatOneDocPerLine is a InputFormat enum value
 	InputFormatOneDocPerLine = "ONE_DOC_PER_LINE"
 )
+
+// InputFormat_Values returns all elements of the InputFormat enum
+func InputFormat_Values() []string {
+	return []string{
+		InputFormatOneDocPerFile,
+		InputFormatOneDocPerLine,
+	}
+}
 
 const (
 	// JobStatusSubmitted is a JobStatus enum value
@@ -14601,6 +14666,18 @@ const (
 	// JobStatusStopped is a JobStatus enum value
 	JobStatusStopped = "STOPPED"
 )
+
+// JobStatus_Values returns all elements of the JobStatus enum
+func JobStatus_Values() []string {
+	return []string{
+		JobStatusSubmitted,
+		JobStatusInProgress,
+		JobStatusCompleted,
+		JobStatusFailed,
+		JobStatusStopRequested,
+		JobStatusStopped,
+	}
+}
 
 const (
 	// LanguageCodeEn is a LanguageCode enum value
@@ -14640,6 +14717,24 @@ const (
 	LanguageCodeZhTw = "zh-TW"
 )
 
+// LanguageCode_Values returns all elements of the LanguageCode enum
+func LanguageCode_Values() []string {
+	return []string{
+		LanguageCodeEn,
+		LanguageCodeEs,
+		LanguageCodeFr,
+		LanguageCodeDe,
+		LanguageCodeIt,
+		LanguageCodePt,
+		LanguageCodeAr,
+		LanguageCodeHi,
+		LanguageCodeJa,
+		LanguageCodeKo,
+		LanguageCodeZh,
+		LanguageCodeZhTw,
+	}
+}
+
 const (
 	// ModelStatusSubmitted is a ModelStatus enum value
 	ModelStatusSubmitted = "SUBMITTED"
@@ -14662,6 +14757,19 @@ const (
 	// ModelStatusTrained is a ModelStatus enum value
 	ModelStatusTrained = "TRAINED"
 )
+
+// ModelStatus_Values returns all elements of the ModelStatus enum
+func ModelStatus_Values() []string {
+	return []string{
+		ModelStatusSubmitted,
+		ModelStatusTraining,
+		ModelStatusDeleting,
+		ModelStatusStopRequested,
+		ModelStatusStopped,
+		ModelStatusInError,
+		ModelStatusTrained,
+	}
+}
 
 const (
 	// PartOfSpeechTagTypeAdj is a PartOfSpeechTagType enum value
@@ -14719,6 +14827,30 @@ const (
 	PartOfSpeechTagTypeVerb = "VERB"
 )
 
+// PartOfSpeechTagType_Values returns all elements of the PartOfSpeechTagType enum
+func PartOfSpeechTagType_Values() []string {
+	return []string{
+		PartOfSpeechTagTypeAdj,
+		PartOfSpeechTagTypeAdp,
+		PartOfSpeechTagTypeAdv,
+		PartOfSpeechTagTypeAux,
+		PartOfSpeechTagTypeConj,
+		PartOfSpeechTagTypeCconj,
+		PartOfSpeechTagTypeDet,
+		PartOfSpeechTagTypeIntj,
+		PartOfSpeechTagTypeNoun,
+		PartOfSpeechTagTypeNum,
+		PartOfSpeechTagTypeO,
+		PartOfSpeechTagTypePart,
+		PartOfSpeechTagTypePron,
+		PartOfSpeechTagTypePropn,
+		PartOfSpeechTagTypePunct,
+		PartOfSpeechTagTypeSconj,
+		PartOfSpeechTagTypeSym,
+		PartOfSpeechTagTypeVerb,
+	}
+}
+
 const (
 	// SentimentTypePositive is a SentimentType enum value
 	SentimentTypePositive = "POSITIVE"
@@ -14732,6 +14864,16 @@ const (
 	// SentimentTypeMixed is a SentimentType enum value
 	SentimentTypeMixed = "MIXED"
 )
+
+// SentimentType_Values returns all elements of the SentimentType enum
+func SentimentType_Values() []string {
+	return []string{
+		SentimentTypePositive,
+		SentimentTypeNegative,
+		SentimentTypeNeutral,
+		SentimentTypeMixed,
+	}
+}
 
 const (
 	// SyntaxLanguageCodeEn is a SyntaxLanguageCode enum value
@@ -14752,3 +14894,15 @@ const (
 	// SyntaxLanguageCodePt is a SyntaxLanguageCode enum value
 	SyntaxLanguageCodePt = "pt"
 )
+
+// SyntaxLanguageCode_Values returns all elements of the SyntaxLanguageCode enum
+func SyntaxLanguageCode_Values() []string {
+	return []string{
+		SyntaxLanguageCodeEn,
+		SyntaxLanguageCodeEs,
+		SyntaxLanguageCodeFr,
+		SyntaxLanguageCodeDe,
+		SyntaxLanguageCodeIt,
+		SyntaxLanguageCodePt,
+	}
+}

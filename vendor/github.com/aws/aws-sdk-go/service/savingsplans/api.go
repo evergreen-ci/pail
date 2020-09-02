@@ -1325,8 +1325,8 @@ func (s *DescribeSavingsPlansOutput) SetSavingsPlans(v []*SavingsPlan) *Describe
 
 // An unexpected error occurred.
 type InternalServerException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"message" type:"string"`
 }
@@ -1343,17 +1343,17 @@ func (s InternalServerException) GoString() string {
 
 func newErrorInternalServerException(v protocol.ResponseMetadata) error {
 	return &InternalServerException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InternalServerException) Code() string {
+func (s *InternalServerException) Code() string {
 	return "InternalServerException"
 }
 
 // Message returns the exception's message.
-func (s InternalServerException) Message() string {
+func (s *InternalServerException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -1361,22 +1361,22 @@ func (s InternalServerException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InternalServerException) OrigErr() error {
+func (s *InternalServerException) OrigErr() error {
 	return nil
 }
 
-func (s InternalServerException) Error() string {
+func (s *InternalServerException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InternalServerException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InternalServerException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InternalServerException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InternalServerException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type ListTagsForResourceInput struct {
@@ -1511,8 +1511,8 @@ func (s *ParentSavingsPlanOffering) SetPlanType(v string) *ParentSavingsPlanOffe
 
 // The specified resource was not found.
 type ResourceNotFoundException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"message" type:"string"`
 }
@@ -1529,17 +1529,17 @@ func (s ResourceNotFoundException) GoString() string {
 
 func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
 	return &ResourceNotFoundException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ResourceNotFoundException) Code() string {
+func (s *ResourceNotFoundException) Code() string {
 	return "ResourceNotFoundException"
 }
 
 // Message returns the exception's message.
-func (s ResourceNotFoundException) Message() string {
+func (s *ResourceNotFoundException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -1547,22 +1547,22 @@ func (s ResourceNotFoundException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ResourceNotFoundException) OrigErr() error {
+func (s *ResourceNotFoundException) OrigErr() error {
 	return nil
 }
 
-func (s ResourceNotFoundException) Error() string {
+func (s *ResourceNotFoundException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ResourceNotFoundException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ResourceNotFoundException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Information about a Savings Plan.
@@ -2263,8 +2263,8 @@ func (s *SavingsPlanRateProperty) SetValue(v string) *SavingsPlanRateProperty {
 
 // A service quota has been exceeded.
 type ServiceQuotaExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"message" type:"string"`
 }
@@ -2281,17 +2281,17 @@ func (s ServiceQuotaExceededException) GoString() string {
 
 func newErrorServiceQuotaExceededException(v protocol.ResponseMetadata) error {
 	return &ServiceQuotaExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ServiceQuotaExceededException) Code() string {
+func (s *ServiceQuotaExceededException) Code() string {
 	return "ServiceQuotaExceededException"
 }
 
 // Message returns the exception's message.
-func (s ServiceQuotaExceededException) Message() string {
+func (s *ServiceQuotaExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -2299,22 +2299,22 @@ func (s ServiceQuotaExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ServiceQuotaExceededException) OrigErr() error {
+func (s *ServiceQuotaExceededException) OrigErr() error {
 	return nil
 }
 
-func (s ServiceQuotaExceededException) Error() string {
+func (s *ServiceQuotaExceededException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ServiceQuotaExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ServiceQuotaExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ServiceQuotaExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ServiceQuotaExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type TagResourceInput struct {
@@ -2452,8 +2452,8 @@ func (s UntagResourceOutput) GoString() string {
 
 // One of the input parameters is not valid.
 type ValidationException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"message" type:"string"`
 }
@@ -2470,17 +2470,17 @@ func (s ValidationException) GoString() string {
 
 func newErrorValidationException(v protocol.ResponseMetadata) error {
 	return &ValidationException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ValidationException) Code() string {
+func (s *ValidationException) Code() string {
 	return "ValidationException"
 }
 
 // Message returns the exception's message.
-func (s ValidationException) Message() string {
+func (s *ValidationException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -2488,22 +2488,22 @@ func (s ValidationException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ValidationException) OrigErr() error {
+func (s *ValidationException) OrigErr() error {
 	return nil
 }
 
-func (s ValidationException) Error() string {
+func (s *ValidationException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ValidationException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ValidationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ValidationException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ValidationException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 const (
@@ -2514,6 +2514,14 @@ const (
 	CurrencyCodeUsd = "USD"
 )
 
+// CurrencyCode_Values returns all elements of the CurrencyCode enum
+func CurrencyCode_Values() []string {
+	return []string{
+		CurrencyCodeCny,
+		CurrencyCodeUsd,
+	}
+}
+
 const (
 	// SavingsPlanOfferingFilterAttributeRegion is a SavingsPlanOfferingFilterAttribute enum value
 	SavingsPlanOfferingFilterAttributeRegion = "region"
@@ -2522,6 +2530,14 @@ const (
 	SavingsPlanOfferingFilterAttributeInstanceFamily = "instanceFamily"
 )
 
+// SavingsPlanOfferingFilterAttribute_Values returns all elements of the SavingsPlanOfferingFilterAttribute enum
+func SavingsPlanOfferingFilterAttribute_Values() []string {
+	return []string{
+		SavingsPlanOfferingFilterAttributeRegion,
+		SavingsPlanOfferingFilterAttributeInstanceFamily,
+	}
+}
+
 const (
 	// SavingsPlanOfferingPropertyKeyRegion is a SavingsPlanOfferingPropertyKey enum value
 	SavingsPlanOfferingPropertyKeyRegion = "region"
@@ -2529,6 +2545,14 @@ const (
 	// SavingsPlanOfferingPropertyKeyInstanceFamily is a SavingsPlanOfferingPropertyKey enum value
 	SavingsPlanOfferingPropertyKeyInstanceFamily = "instanceFamily"
 )
+
+// SavingsPlanOfferingPropertyKey_Values returns all elements of the SavingsPlanOfferingPropertyKey enum
+func SavingsPlanOfferingPropertyKey_Values() []string {
+	return []string{
+		SavingsPlanOfferingPropertyKeyRegion,
+		SavingsPlanOfferingPropertyKeyInstanceFamily,
+	}
+}
 
 const (
 	// SavingsPlanPaymentOptionAllUpfront is a SavingsPlanPaymentOption enum value
@@ -2541,13 +2565,34 @@ const (
 	SavingsPlanPaymentOptionNoUpfront = "No Upfront"
 )
 
+// SavingsPlanPaymentOption_Values returns all elements of the SavingsPlanPaymentOption enum
+func SavingsPlanPaymentOption_Values() []string {
+	return []string{
+		SavingsPlanPaymentOptionAllUpfront,
+		SavingsPlanPaymentOptionPartialUpfront,
+		SavingsPlanPaymentOptionNoUpfront,
+	}
+}
+
 const (
 	// SavingsPlanProductTypeEc2 is a SavingsPlanProductType enum value
 	SavingsPlanProductTypeEc2 = "EC2"
 
 	// SavingsPlanProductTypeFargate is a SavingsPlanProductType enum value
 	SavingsPlanProductTypeFargate = "Fargate"
+
+	// SavingsPlanProductTypeLambda is a SavingsPlanProductType enum value
+	SavingsPlanProductTypeLambda = "Lambda"
 )
+
+// SavingsPlanProductType_Values returns all elements of the SavingsPlanProductType enum
+func SavingsPlanProductType_Values() []string {
+	return []string{
+		SavingsPlanProductTypeEc2,
+		SavingsPlanProductTypeFargate,
+		SavingsPlanProductTypeLambda,
+	}
+}
 
 const (
 	// SavingsPlanRateFilterAttributeRegion is a SavingsPlanRateFilterAttribute enum value
@@ -2568,6 +2613,18 @@ const (
 	// SavingsPlanRateFilterAttributeProductId is a SavingsPlanRateFilterAttribute enum value
 	SavingsPlanRateFilterAttributeProductId = "productId"
 )
+
+// SavingsPlanRateFilterAttribute_Values returns all elements of the SavingsPlanRateFilterAttribute enum
+func SavingsPlanRateFilterAttribute_Values() []string {
+	return []string{
+		SavingsPlanRateFilterAttributeRegion,
+		SavingsPlanRateFilterAttributeInstanceFamily,
+		SavingsPlanRateFilterAttributeInstanceType,
+		SavingsPlanRateFilterAttributeProductDescription,
+		SavingsPlanRateFilterAttributeTenancy,
+		SavingsPlanRateFilterAttributeProductId,
+	}
+}
 
 const (
 	// SavingsPlanRateFilterNameRegion is a SavingsPlanRateFilterName enum value
@@ -2595,6 +2652,20 @@ const (
 	SavingsPlanRateFilterNameOperation = "operation"
 )
 
+// SavingsPlanRateFilterName_Values returns all elements of the SavingsPlanRateFilterName enum
+func SavingsPlanRateFilterName_Values() []string {
+	return []string{
+		SavingsPlanRateFilterNameRegion,
+		SavingsPlanRateFilterNameInstanceType,
+		SavingsPlanRateFilterNameProductDescription,
+		SavingsPlanRateFilterNameTenancy,
+		SavingsPlanRateFilterNameProductType,
+		SavingsPlanRateFilterNameServiceCode,
+		SavingsPlanRateFilterNameUsageType,
+		SavingsPlanRateFilterNameOperation,
+	}
+}
+
 const (
 	// SavingsPlanRatePropertyKeyRegion is a SavingsPlanRatePropertyKey enum value
 	SavingsPlanRatePropertyKeyRegion = "region"
@@ -2612,18 +2683,60 @@ const (
 	SavingsPlanRatePropertyKeyTenancy = "tenancy"
 )
 
+// SavingsPlanRatePropertyKey_Values returns all elements of the SavingsPlanRatePropertyKey enum
+func SavingsPlanRatePropertyKey_Values() []string {
+	return []string{
+		SavingsPlanRatePropertyKeyRegion,
+		SavingsPlanRatePropertyKeyInstanceType,
+		SavingsPlanRatePropertyKeyInstanceFamily,
+		SavingsPlanRatePropertyKeyProductDescription,
+		SavingsPlanRatePropertyKeyTenancy,
+	}
+}
+
 const (
 	// SavingsPlanRateServiceCodeAmazonEc2 is a SavingsPlanRateServiceCode enum value
 	SavingsPlanRateServiceCodeAmazonEc2 = "AmazonEC2"
 
 	// SavingsPlanRateServiceCodeAmazonEcs is a SavingsPlanRateServiceCode enum value
 	SavingsPlanRateServiceCodeAmazonEcs = "AmazonECS"
+
+	// SavingsPlanRateServiceCodeAmazonEks is a SavingsPlanRateServiceCode enum value
+	SavingsPlanRateServiceCodeAmazonEks = "AmazonEKS"
+
+	// SavingsPlanRateServiceCodeAwslambda is a SavingsPlanRateServiceCode enum value
+	SavingsPlanRateServiceCodeAwslambda = "AWSLambda"
 )
+
+// SavingsPlanRateServiceCode_Values returns all elements of the SavingsPlanRateServiceCode enum
+func SavingsPlanRateServiceCode_Values() []string {
+	return []string{
+		SavingsPlanRateServiceCodeAmazonEc2,
+		SavingsPlanRateServiceCodeAmazonEcs,
+		SavingsPlanRateServiceCodeAmazonEks,
+		SavingsPlanRateServiceCodeAwslambda,
+	}
+}
 
 const (
 	// SavingsPlanRateUnitHrs is a SavingsPlanRateUnit enum value
 	SavingsPlanRateUnitHrs = "Hrs"
+
+	// SavingsPlanRateUnitLambdaGbSecond is a SavingsPlanRateUnit enum value
+	SavingsPlanRateUnitLambdaGbSecond = "Lambda-GB-Second"
+
+	// SavingsPlanRateUnitRequest is a SavingsPlanRateUnit enum value
+	SavingsPlanRateUnitRequest = "Request"
 )
+
+// SavingsPlanRateUnit_Values returns all elements of the SavingsPlanRateUnit enum
+func SavingsPlanRateUnit_Values() []string {
+	return []string{
+		SavingsPlanRateUnitHrs,
+		SavingsPlanRateUnitLambdaGbSecond,
+		SavingsPlanRateUnitRequest,
+	}
+}
 
 const (
 	// SavingsPlanStatePaymentPending is a SavingsPlanState enum value
@@ -2639,6 +2752,16 @@ const (
 	SavingsPlanStateRetired = "retired"
 )
 
+// SavingsPlanState_Values returns all elements of the SavingsPlanState enum
+func SavingsPlanState_Values() []string {
+	return []string{
+		SavingsPlanStatePaymentPending,
+		SavingsPlanStatePaymentFailed,
+		SavingsPlanStateActive,
+		SavingsPlanStateRetired,
+	}
+}
+
 const (
 	// SavingsPlanTypeCompute is a SavingsPlanType enum value
 	SavingsPlanTypeCompute = "Compute"
@@ -2646,6 +2769,14 @@ const (
 	// SavingsPlanTypeEc2instance is a SavingsPlanType enum value
 	SavingsPlanTypeEc2instance = "EC2Instance"
 )
+
+// SavingsPlanType_Values returns all elements of the SavingsPlanType enum
+func SavingsPlanType_Values() []string {
+	return []string{
+		SavingsPlanTypeCompute,
+		SavingsPlanTypeEc2instance,
+	}
+}
 
 const (
 	// SavingsPlansFilterNameRegion is a SavingsPlansFilterName enum value
@@ -2675,3 +2806,18 @@ const (
 	// SavingsPlansFilterNameEnd is a SavingsPlansFilterName enum value
 	SavingsPlansFilterNameEnd = "end"
 )
+
+// SavingsPlansFilterName_Values returns all elements of the SavingsPlansFilterName enum
+func SavingsPlansFilterName_Values() []string {
+	return []string{
+		SavingsPlansFilterNameRegion,
+		SavingsPlansFilterNameEc2InstanceFamily,
+		SavingsPlansFilterNameCommitment,
+		SavingsPlansFilterNameUpfront,
+		SavingsPlansFilterNameTerm,
+		SavingsPlansFilterNameSavingsPlanType,
+		SavingsPlansFilterNamePaymentOption,
+		SavingsPlansFilterNameStart,
+		SavingsPlansFilterNameEnd,
+	}
+}

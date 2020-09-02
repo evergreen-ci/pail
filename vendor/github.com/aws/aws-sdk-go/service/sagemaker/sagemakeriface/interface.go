@@ -172,6 +172,10 @@ type SageMakerAPI interface {
 	CreateUserProfileWithContext(aws.Context, *sagemaker.CreateUserProfileInput, ...request.Option) (*sagemaker.CreateUserProfileOutput, error)
 	CreateUserProfileRequest(*sagemaker.CreateUserProfileInput) (*request.Request, *sagemaker.CreateUserProfileOutput)
 
+	CreateWorkforce(*sagemaker.CreateWorkforceInput) (*sagemaker.CreateWorkforceOutput, error)
+	CreateWorkforceWithContext(aws.Context, *sagemaker.CreateWorkforceInput, ...request.Option) (*sagemaker.CreateWorkforceOutput, error)
+	CreateWorkforceRequest(*sagemaker.CreateWorkforceInput) (*request.Request, *sagemaker.CreateWorkforceOutput)
+
 	CreateWorkteam(*sagemaker.CreateWorkteamInput) (*sagemaker.CreateWorkteamOutput, error)
 	CreateWorkteamWithContext(aws.Context, *sagemaker.CreateWorkteamInput, ...request.Option) (*sagemaker.CreateWorkteamOutput, error)
 	CreateWorkteamRequest(*sagemaker.CreateWorkteamInput) (*request.Request, *sagemaker.CreateWorkteamOutput)
@@ -208,6 +212,10 @@ type SageMakerAPI interface {
 	DeleteFlowDefinitionWithContext(aws.Context, *sagemaker.DeleteFlowDefinitionInput, ...request.Option) (*sagemaker.DeleteFlowDefinitionOutput, error)
 	DeleteFlowDefinitionRequest(*sagemaker.DeleteFlowDefinitionInput) (*request.Request, *sagemaker.DeleteFlowDefinitionOutput)
 
+	DeleteHumanTaskUi(*sagemaker.DeleteHumanTaskUiInput) (*sagemaker.DeleteHumanTaskUiOutput, error)
+	DeleteHumanTaskUiWithContext(aws.Context, *sagemaker.DeleteHumanTaskUiInput, ...request.Option) (*sagemaker.DeleteHumanTaskUiOutput, error)
+	DeleteHumanTaskUiRequest(*sagemaker.DeleteHumanTaskUiInput) (*request.Request, *sagemaker.DeleteHumanTaskUiOutput)
+
 	DeleteModel(*sagemaker.DeleteModelInput) (*sagemaker.DeleteModelOutput, error)
 	DeleteModelWithContext(aws.Context, *sagemaker.DeleteModelInput, ...request.Option) (*sagemaker.DeleteModelOutput, error)
 	DeleteModelRequest(*sagemaker.DeleteModelInput) (*request.Request, *sagemaker.DeleteModelOutput)
@@ -243,6 +251,10 @@ type SageMakerAPI interface {
 	DeleteUserProfile(*sagemaker.DeleteUserProfileInput) (*sagemaker.DeleteUserProfileOutput, error)
 	DeleteUserProfileWithContext(aws.Context, *sagemaker.DeleteUserProfileInput, ...request.Option) (*sagemaker.DeleteUserProfileOutput, error)
 	DeleteUserProfileRequest(*sagemaker.DeleteUserProfileInput) (*request.Request, *sagemaker.DeleteUserProfileOutput)
+
+	DeleteWorkforce(*sagemaker.DeleteWorkforceInput) (*sagemaker.DeleteWorkforceOutput, error)
+	DeleteWorkforceWithContext(aws.Context, *sagemaker.DeleteWorkforceInput, ...request.Option) (*sagemaker.DeleteWorkforceOutput, error)
+	DeleteWorkforceRequest(*sagemaker.DeleteWorkforceInput) (*request.Request, *sagemaker.DeleteWorkforceOutput)
 
 	DeleteWorkteam(*sagemaker.DeleteWorkteamInput) (*sagemaker.DeleteWorkteamOutput, error)
 	DeleteWorkteamWithContext(aws.Context, *sagemaker.DeleteWorkteamInput, ...request.Option) (*sagemaker.DeleteWorkteamOutput, error)
@@ -573,6 +585,13 @@ type SageMakerAPI interface {
 
 	ListUserProfilesPages(*sagemaker.ListUserProfilesInput, func(*sagemaker.ListUserProfilesOutput, bool) bool) error
 	ListUserProfilesPagesWithContext(aws.Context, *sagemaker.ListUserProfilesInput, func(*sagemaker.ListUserProfilesOutput, bool) bool, ...request.Option) error
+
+	ListWorkforces(*sagemaker.ListWorkforcesInput) (*sagemaker.ListWorkforcesOutput, error)
+	ListWorkforcesWithContext(aws.Context, *sagemaker.ListWorkforcesInput, ...request.Option) (*sagemaker.ListWorkforcesOutput, error)
+	ListWorkforcesRequest(*sagemaker.ListWorkforcesInput) (*request.Request, *sagemaker.ListWorkforcesOutput)
+
+	ListWorkforcesPages(*sagemaker.ListWorkforcesInput, func(*sagemaker.ListWorkforcesOutput, bool) bool) error
+	ListWorkforcesPagesWithContext(aws.Context, *sagemaker.ListWorkforcesInput, func(*sagemaker.ListWorkforcesOutput, bool) bool, ...request.Option) error
 
 	ListWorkteams(*sagemaker.ListWorkteamsInput) (*sagemaker.ListWorkteamsOutput, error)
 	ListWorkteamsWithContext(aws.Context, *sagemaker.ListWorkteamsInput, ...request.Option) (*sagemaker.ListWorkteamsOutput, error)

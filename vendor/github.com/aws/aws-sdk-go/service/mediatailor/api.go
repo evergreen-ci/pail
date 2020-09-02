@@ -555,10 +555,43 @@ func (c *MediaTailor) UntagResourceWithContext(ctx aws.Context, input *UntagReso
 	return out, req.Send()
 }
 
+type AvailSuppression struct {
+	_ struct{} `type:"structure"`
+
+	Mode *string `type:"string" enum:"Mode"`
+
+	// Sets the mode for avail suppression, also known as ad suppression. By default,
+	// ad suppression is off and all ad breaks are filled by MediaTailor with ads
+	// or slate.
+	Value *string `type:"string"`
+}
+
+// String returns the string representation
+func (s AvailSuppression) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AvailSuppression) GoString() string {
+	return s.String()
+}
+
+// SetMode sets the Mode field's value.
+func (s *AvailSuppression) SetMode(v string) *AvailSuppression {
+	s.Mode = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *AvailSuppression) SetValue(v string) *AvailSuppression {
+	s.Value = &v
+	return s
+}
+
 // One of the parameters in the request is invalid.
 type BadRequestException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	// One of the parameters in the request is invalid.
 	Message_ *string `locationName:"Message" type:"string"`
@@ -576,17 +609,17 @@ func (s BadRequestException) GoString() string {
 
 func newErrorBadRequestException(v protocol.ResponseMetadata) error {
 	return &BadRequestException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s BadRequestException) Code() string {
+func (s *BadRequestException) Code() string {
 	return "BadRequestException"
 }
 
 // Message returns the exception's message.
-func (s BadRequestException) Message() string {
+func (s *BadRequestException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -594,22 +627,54 @@ func (s BadRequestException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s BadRequestException) OrigErr() error {
+func (s *BadRequestException) OrigErr() error {
 	return nil
 }
 
-func (s BadRequestException) Error() string {
+func (s *BadRequestException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s BadRequestException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *BadRequestException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s BadRequestException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *BadRequestException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The configuration for bumpers. Bumpers are short audio or video clips that
+// play at the start or before the end of an ad break.
+type Bumper struct {
+	_ struct{} `type:"structure"`
+
+	EndUrl *string `type:"string"`
+
+	StartUrl *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Bumper) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Bumper) GoString() string {
+	return s.String()
+}
+
+// SetEndUrl sets the EndUrl field's value.
+func (s *Bumper) SetEndUrl(v string) *Bumper {
+	s.EndUrl = &v
+	return s
+}
+
+// SetStartUrl sets the StartUrl field's value.
+func (s *Bumper) SetStartUrl(v string) *Bumper {
+	s.StartUrl = &v
+	return s
 }
 
 // The configuration for using a content delivery network (CDN), like Amazon
@@ -855,6 +920,13 @@ type GetPlaybackConfigurationOutput struct {
 	// static VAST URL. The maximum length is 25,000 characters.
 	AdDecisionServerUrl *string `type:"string"`
 
+	// The configuration for Avail Suppression.
+	AvailSuppression *AvailSuppression `type:"structure"`
+
+	// The configuration for bumpers. Bumpers are short audio or video clips that
+	// play at the start or before the end of an ad break.
+	Bumper *Bumper `type:"structure"`
+
 	// The configuration for using a content delivery network (CDN), like Amazon
 	// CloudFront, for content and ad segment management.
 	CdnConfiguration *CdnConfiguration `type:"structure"`
@@ -870,6 +942,8 @@ type GetPlaybackConfigurationOutput struct {
 
 	// The identifier for the playback configuration.
 	Name *string `type:"string"`
+
+	PersonalizationThresholdSeconds *int64 `min:"1" type:"integer"`
 
 	// The Amazon Resource Name (ARN) for the playback configuration.
 	PlaybackConfigurationArn *string `type:"string"`
@@ -920,6 +994,18 @@ func (s *GetPlaybackConfigurationOutput) SetAdDecisionServerUrl(v string) *GetPl
 	return s
 }
 
+// SetAvailSuppression sets the AvailSuppression field's value.
+func (s *GetPlaybackConfigurationOutput) SetAvailSuppression(v *AvailSuppression) *GetPlaybackConfigurationOutput {
+	s.AvailSuppression = v
+	return s
+}
+
+// SetBumper sets the Bumper field's value.
+func (s *GetPlaybackConfigurationOutput) SetBumper(v *Bumper) *GetPlaybackConfigurationOutput {
+	s.Bumper = v
+	return s
+}
+
 // SetCdnConfiguration sets the CdnConfiguration field's value.
 func (s *GetPlaybackConfigurationOutput) SetCdnConfiguration(v *CdnConfiguration) *GetPlaybackConfigurationOutput {
 	s.CdnConfiguration = v
@@ -947,6 +1033,12 @@ func (s *GetPlaybackConfigurationOutput) SetLivePreRollConfiguration(v *LivePreR
 // SetName sets the Name field's value.
 func (s *GetPlaybackConfigurationOutput) SetName(v string) *GetPlaybackConfigurationOutput {
 	s.Name = &v
+	return s
+}
+
+// SetPersonalizationThresholdSeconds sets the PersonalizationThresholdSeconds field's value.
+func (s *GetPlaybackConfigurationOutput) SetPersonalizationThresholdSeconds(v int64) *GetPlaybackConfigurationOutput {
+	s.PersonalizationThresholdSeconds = &v
 	return s
 }
 
@@ -1212,6 +1304,8 @@ type PlaybackConfiguration struct {
 
 	Name *string `type:"string"`
 
+	PersonalizationThresholdSeconds *int64 `min:"1" type:"integer"`
+
 	PlaybackConfigurationArn *string `type:"string"`
 
 	PlaybackEndpointPrefix *string `type:"string"`
@@ -1267,6 +1361,12 @@ func (s *PlaybackConfiguration) SetName(v string) *PlaybackConfiguration {
 	return s
 }
 
+// SetPersonalizationThresholdSeconds sets the PersonalizationThresholdSeconds field's value.
+func (s *PlaybackConfiguration) SetPersonalizationThresholdSeconds(v int64) *PlaybackConfiguration {
+	s.PersonalizationThresholdSeconds = &v
+	return s
+}
+
 // SetPlaybackConfigurationArn sets the PlaybackConfigurationArn field's value.
 func (s *PlaybackConfiguration) SetPlaybackConfigurationArn(v string) *PlaybackConfiguration {
 	s.PlaybackConfigurationArn = &v
@@ -1319,6 +1419,13 @@ type PutPlaybackConfigurationInput struct {
 	// VAST URL. The maximum length is 25,000 characters.
 	AdDecisionServerUrl *string `type:"string"`
 
+	// The configuration for Avail Suppression.
+	AvailSuppression *AvailSuppression `type:"structure"`
+
+	// The configuration for bumpers. Bumpers are short audio or video clips that
+	// play at the start or before the end of an ad break.
+	Bumper *Bumper `type:"structure"`
+
 	// The configuration for using a content delivery network (CDN), like Amazon
 	// CloudFront, for content and ad segment management.
 	CdnConfiguration *CdnConfiguration `type:"structure"`
@@ -1331,6 +1438,8 @@ type PutPlaybackConfigurationInput struct {
 
 	// The identifier for the playback configuration.
 	Name *string `type:"string"`
+
+	PersonalizationThresholdSeconds *int64 `min:"1" type:"integer"`
 
 	// The URL for a high-quality video asset to transcode and use to fill in time
 	// that's not used by ads. AWS Elemental MediaTailor shows the slate to fill
@@ -1364,9 +1473,34 @@ func (s PutPlaybackConfigurationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutPlaybackConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutPlaybackConfigurationInput"}
+	if s.PersonalizationThresholdSeconds != nil && *s.PersonalizationThresholdSeconds < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("PersonalizationThresholdSeconds", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetAdDecisionServerUrl sets the AdDecisionServerUrl field's value.
 func (s *PutPlaybackConfigurationInput) SetAdDecisionServerUrl(v string) *PutPlaybackConfigurationInput {
 	s.AdDecisionServerUrl = &v
+	return s
+}
+
+// SetAvailSuppression sets the AvailSuppression field's value.
+func (s *PutPlaybackConfigurationInput) SetAvailSuppression(v *AvailSuppression) *PutPlaybackConfigurationInput {
+	s.AvailSuppression = v
+	return s
+}
+
+// SetBumper sets the Bumper field's value.
+func (s *PutPlaybackConfigurationInput) SetBumper(v *Bumper) *PutPlaybackConfigurationInput {
+	s.Bumper = v
 	return s
 }
 
@@ -1391,6 +1525,12 @@ func (s *PutPlaybackConfigurationInput) SetLivePreRollConfiguration(v *LivePreRo
 // SetName sets the Name field's value.
 func (s *PutPlaybackConfigurationInput) SetName(v string) *PutPlaybackConfigurationInput {
 	s.Name = &v
+	return s
+}
+
+// SetPersonalizationThresholdSeconds sets the PersonalizationThresholdSeconds field's value.
+func (s *PutPlaybackConfigurationInput) SetPersonalizationThresholdSeconds(v int64) *PutPlaybackConfigurationInput {
+	s.PersonalizationThresholdSeconds = &v
 	return s
 }
 
@@ -1422,6 +1562,12 @@ type PutPlaybackConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
 	AdDecisionServerUrl *string `type:"string"`
+
+	AvailSuppression *AvailSuppression `type:"structure"`
+
+	// The configuration for bumpers. Bumpers are short audio or video clips that
+	// play at the start or before the end of an ad break.
+	Bumper *Bumper `type:"structure"`
 
 	// The configuration for using a content delivery network (CDN), like Amazon
 	// CloudFront, for content and ad segment management.
@@ -1466,6 +1612,18 @@ func (s PutPlaybackConfigurationOutput) GoString() string {
 // SetAdDecisionServerUrl sets the AdDecisionServerUrl field's value.
 func (s *PutPlaybackConfigurationOutput) SetAdDecisionServerUrl(v string) *PutPlaybackConfigurationOutput {
 	s.AdDecisionServerUrl = &v
+	return s
+}
+
+// SetAvailSuppression sets the AvailSuppression field's value.
+func (s *PutPlaybackConfigurationOutput) SetAvailSuppression(v *AvailSuppression) *PutPlaybackConfigurationOutput {
+	s.AvailSuppression = v
+	return s
+}
+
+// SetBumper sets the Bumper field's value.
+func (s *PutPlaybackConfigurationOutput) SetBumper(v *Bumper) *PutPlaybackConfigurationOutput {
+	s.Bumper = v
 	return s
 }
 
@@ -1672,9 +1830,33 @@ func (s UntagResourceOutput) GoString() string {
 }
 
 const (
+	// ModeOff is a Mode enum value
+	ModeOff = "OFF"
+
+	// ModeBehindLiveEdge is a Mode enum value
+	ModeBehindLiveEdge = "BEHIND_LIVE_EDGE"
+)
+
+// Mode_Values returns all elements of the Mode enum
+func Mode_Values() []string {
+	return []string{
+		ModeOff,
+		ModeBehindLiveEdge,
+	}
+}
+
+const (
 	// OriginManifestTypeSinglePeriod is a OriginManifestType enum value
 	OriginManifestTypeSinglePeriod = "SINGLE_PERIOD"
 
 	// OriginManifestTypeMultiPeriod is a OriginManifestType enum value
 	OriginManifestTypeMultiPeriod = "MULTI_PERIOD"
 )
+
+// OriginManifestType_Values returns all elements of the OriginManifestType enum
+func OriginManifestType_Values() []string {
+	return []string{
+		OriginManifestTypeSinglePeriod,
+		OriginManifestTypeMultiPeriod,
+	}
+}

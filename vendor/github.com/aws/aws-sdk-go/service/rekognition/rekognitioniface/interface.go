@@ -88,6 +88,14 @@ type RekognitionAPI interface {
 	DeleteFacesWithContext(aws.Context, *rekognition.DeleteFacesInput, ...request.Option) (*rekognition.DeleteFacesOutput, error)
 	DeleteFacesRequest(*rekognition.DeleteFacesInput) (*request.Request, *rekognition.DeleteFacesOutput)
 
+	DeleteProject(*rekognition.DeleteProjectInput) (*rekognition.DeleteProjectOutput, error)
+	DeleteProjectWithContext(aws.Context, *rekognition.DeleteProjectInput, ...request.Option) (*rekognition.DeleteProjectOutput, error)
+	DeleteProjectRequest(*rekognition.DeleteProjectInput) (*request.Request, *rekognition.DeleteProjectOutput)
+
+	DeleteProjectVersion(*rekognition.DeleteProjectVersionInput) (*rekognition.DeleteProjectVersionOutput, error)
+	DeleteProjectVersionWithContext(aws.Context, *rekognition.DeleteProjectVersionInput, ...request.Option) (*rekognition.DeleteProjectVersionOutput, error)
+	DeleteProjectVersionRequest(*rekognition.DeleteProjectVersionInput) (*request.Request, *rekognition.DeleteProjectVersionOutput)
+
 	DeleteStreamProcessor(*rekognition.DeleteStreamProcessorInput) (*rekognition.DeleteStreamProcessorOutput, error)
 	DeleteStreamProcessorWithContext(aws.Context, *rekognition.DeleteStreamProcessorInput, ...request.Option) (*rekognition.DeleteStreamProcessorOutput, error)
 	DeleteStreamProcessorRequest(*rekognition.DeleteStreamProcessorInput) (*request.Request, *rekognition.DeleteStreamProcessorOutput)
@@ -180,6 +188,20 @@ type RekognitionAPI interface {
 	GetPersonTrackingPages(*rekognition.GetPersonTrackingInput, func(*rekognition.GetPersonTrackingOutput, bool) bool) error
 	GetPersonTrackingPagesWithContext(aws.Context, *rekognition.GetPersonTrackingInput, func(*rekognition.GetPersonTrackingOutput, bool) bool, ...request.Option) error
 
+	GetSegmentDetection(*rekognition.GetSegmentDetectionInput) (*rekognition.GetSegmentDetectionOutput, error)
+	GetSegmentDetectionWithContext(aws.Context, *rekognition.GetSegmentDetectionInput, ...request.Option) (*rekognition.GetSegmentDetectionOutput, error)
+	GetSegmentDetectionRequest(*rekognition.GetSegmentDetectionInput) (*request.Request, *rekognition.GetSegmentDetectionOutput)
+
+	GetSegmentDetectionPages(*rekognition.GetSegmentDetectionInput, func(*rekognition.GetSegmentDetectionOutput, bool) bool) error
+	GetSegmentDetectionPagesWithContext(aws.Context, *rekognition.GetSegmentDetectionInput, func(*rekognition.GetSegmentDetectionOutput, bool) bool, ...request.Option) error
+
+	GetTextDetection(*rekognition.GetTextDetectionInput) (*rekognition.GetTextDetectionOutput, error)
+	GetTextDetectionWithContext(aws.Context, *rekognition.GetTextDetectionInput, ...request.Option) (*rekognition.GetTextDetectionOutput, error)
+	GetTextDetectionRequest(*rekognition.GetTextDetectionInput) (*request.Request, *rekognition.GetTextDetectionOutput)
+
+	GetTextDetectionPages(*rekognition.GetTextDetectionInput, func(*rekognition.GetTextDetectionOutput, bool) bool) error
+	GetTextDetectionPagesWithContext(aws.Context, *rekognition.GetTextDetectionInput, func(*rekognition.GetTextDetectionOutput, bool) bool, ...request.Option) error
+
 	IndexFaces(*rekognition.IndexFacesInput) (*rekognition.IndexFacesOutput, error)
 	IndexFacesWithContext(aws.Context, *rekognition.IndexFacesInput, ...request.Option) (*rekognition.IndexFacesOutput, error)
 	IndexFacesRequest(*rekognition.IndexFacesInput) (*request.Request, *rekognition.IndexFacesOutput)
@@ -245,9 +267,17 @@ type RekognitionAPI interface {
 	StartProjectVersionWithContext(aws.Context, *rekognition.StartProjectVersionInput, ...request.Option) (*rekognition.StartProjectVersionOutput, error)
 	StartProjectVersionRequest(*rekognition.StartProjectVersionInput) (*request.Request, *rekognition.StartProjectVersionOutput)
 
+	StartSegmentDetection(*rekognition.StartSegmentDetectionInput) (*rekognition.StartSegmentDetectionOutput, error)
+	StartSegmentDetectionWithContext(aws.Context, *rekognition.StartSegmentDetectionInput, ...request.Option) (*rekognition.StartSegmentDetectionOutput, error)
+	StartSegmentDetectionRequest(*rekognition.StartSegmentDetectionInput) (*request.Request, *rekognition.StartSegmentDetectionOutput)
+
 	StartStreamProcessor(*rekognition.StartStreamProcessorInput) (*rekognition.StartStreamProcessorOutput, error)
 	StartStreamProcessorWithContext(aws.Context, *rekognition.StartStreamProcessorInput, ...request.Option) (*rekognition.StartStreamProcessorOutput, error)
 	StartStreamProcessorRequest(*rekognition.StartStreamProcessorInput) (*request.Request, *rekognition.StartStreamProcessorOutput)
+
+	StartTextDetection(*rekognition.StartTextDetectionInput) (*rekognition.StartTextDetectionOutput, error)
+	StartTextDetectionWithContext(aws.Context, *rekognition.StartTextDetectionInput, ...request.Option) (*rekognition.StartTextDetectionOutput, error)
+	StartTextDetectionRequest(*rekognition.StartTextDetectionInput) (*request.Request, *rekognition.StartTextDetectionOutput)
 
 	StopProjectVersion(*rekognition.StopProjectVersionInput) (*rekognition.StopProjectVersionOutput, error)
 	StopProjectVersionWithContext(aws.Context, *rekognition.StopProjectVersionInput, ...request.Option) (*rekognition.StopProjectVersionOutput, error)

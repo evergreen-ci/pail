@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/restjson"
 )
 
 const opCreateOutpost = "CreateOutpost"
@@ -97,6 +98,184 @@ func (c *Outposts) CreateOutpost(input *CreateOutpostInput) (*CreateOutpostOutpu
 // for more information on using Contexts.
 func (c *Outposts) CreateOutpostWithContext(ctx aws.Context, input *CreateOutpostInput, opts ...request.Option) (*CreateOutpostOutput, error) {
 	req, out := c.CreateOutpostRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteOutpost = "DeleteOutpost"
+
+// DeleteOutpostRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteOutpost operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteOutpost for more information on using the DeleteOutpost
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteOutpostRequest method.
+//    req, resp := client.DeleteOutpostRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/outposts-2019-12-03/DeleteOutpost
+func (c *Outposts) DeleteOutpostRequest(input *DeleteOutpostInput) (req *request.Request, output *DeleteOutpostOutput) {
+	op := &request.Operation{
+		Name:       opDeleteOutpost,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/outposts/{OutpostId}",
+	}
+
+	if input == nil {
+		input = &DeleteOutpostInput{}
+	}
+
+	output = &DeleteOutpostOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteOutpost API operation for AWS Outposts.
+//
+// Deletes the Outpost.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Outposts's
+// API operation DeleteOutpost for usage and error information.
+//
+// Returned Error Types:
+//   * ValidationException
+//   A parameter is not valid.
+//
+//   * NotFoundException
+//   The specified request is not valid.
+//
+//   * AccessDeniedException
+//   You do not have permission to perform this operation.
+//
+//   * InternalServerException
+//   An internal error has occurred.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/outposts-2019-12-03/DeleteOutpost
+func (c *Outposts) DeleteOutpost(input *DeleteOutpostInput) (*DeleteOutpostOutput, error) {
+	req, out := c.DeleteOutpostRequest(input)
+	return out, req.Send()
+}
+
+// DeleteOutpostWithContext is the same as DeleteOutpost with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteOutpost for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Outposts) DeleteOutpostWithContext(ctx aws.Context, input *DeleteOutpostInput, opts ...request.Option) (*DeleteOutpostOutput, error) {
+	req, out := c.DeleteOutpostRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteSite = "DeleteSite"
+
+// DeleteSiteRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSite operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteSite for more information on using the DeleteSite
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteSiteRequest method.
+//    req, resp := client.DeleteSiteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/outposts-2019-12-03/DeleteSite
+func (c *Outposts) DeleteSiteRequest(input *DeleteSiteInput) (req *request.Request, output *DeleteSiteOutput) {
+	op := &request.Operation{
+		Name:       opDeleteSite,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/sites/{SiteId}",
+	}
+
+	if input == nil {
+		input = &DeleteSiteInput{}
+	}
+
+	output = &DeleteSiteOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteSite API operation for AWS Outposts.
+//
+// Deletes the site.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Outposts's
+// API operation DeleteSite for usage and error information.
+//
+// Returned Error Types:
+//   * ValidationException
+//   A parameter is not valid.
+//
+//   * NotFoundException
+//   The specified request is not valid.
+//
+//   * AccessDeniedException
+//   You do not have permission to perform this operation.
+//
+//   * InternalServerException
+//   An internal error has occurred.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/outposts-2019-12-03/DeleteSite
+func (c *Outposts) DeleteSite(input *DeleteSiteInput) (*DeleteSiteOutput, error) {
+	req, out := c.DeleteSiteRequest(input)
+	return out, req.Send()
+}
+
+// DeleteSiteWithContext is the same as DeleteSite with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteSite for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Outposts) DeleteSiteWithContext(ctx aws.Context, input *DeleteSiteInput, opts ...request.Option) (*DeleteSiteOutput, error) {
+	req, out := c.DeleteSiteRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -566,8 +745,8 @@ func (c *Outposts) ListSitesPagesWithContext(ctx aws.Context, input *ListSitesIn
 
 // You do not have permission to perform this operation.
 type AccessDeniedException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -584,17 +763,17 @@ func (s AccessDeniedException) GoString() string {
 
 func newErrorAccessDeniedException(v protocol.ResponseMetadata) error {
 	return &AccessDeniedException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s AccessDeniedException) Code() string {
+func (s *AccessDeniedException) Code() string {
 	return "AccessDeniedException"
 }
 
 // Message returns the exception's message.
-func (s AccessDeniedException) Message() string {
+func (s *AccessDeniedException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -602,31 +781,35 @@ func (s AccessDeniedException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s AccessDeniedException) OrigErr() error {
+func (s *AccessDeniedException) OrigErr() error {
 	return nil
 }
 
-func (s AccessDeniedException) Error() string {
+func (s *AccessDeniedException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s AccessDeniedException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *AccessDeniedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s AccessDeniedException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *AccessDeniedException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type CreateOutpostInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Availability Zone.
+	//
+	// You must specify AvailabilityZone or AvailabilityZoneId.
 	AvailabilityZone *string `min:"1" type:"string"`
 
 	// The ID of the Availability Zone.
+	//
+	// You must specify AvailabilityZone or AvailabilityZoneId.
 	AvailabilityZoneId *string `min:"1" type:"string"`
 
 	// The Outpost description.
@@ -730,6 +913,116 @@ func (s CreateOutpostOutput) GoString() string {
 func (s *CreateOutpostOutput) SetOutpost(v *Outpost) *CreateOutpostOutput {
 	s.Outpost = v
 	return s
+}
+
+type DeleteOutpostInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Outpost.
+	//
+	// OutpostId is a required field
+	OutpostId *string `location:"uri" locationName:"OutpostId" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteOutpostInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteOutpostInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteOutpostInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteOutpostInput"}
+	if s.OutpostId == nil {
+		invalidParams.Add(request.NewErrParamRequired("OutpostId"))
+	}
+	if s.OutpostId != nil && len(*s.OutpostId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("OutpostId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetOutpostId sets the OutpostId field's value.
+func (s *DeleteOutpostInput) SetOutpostId(v string) *DeleteOutpostInput {
+	s.OutpostId = &v
+	return s
+}
+
+type DeleteOutpostOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteOutpostOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteOutpostOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteSiteInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the site.
+	//
+	// SiteId is a required field
+	SiteId *string `location:"uri" locationName:"SiteId" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteSiteInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteSiteInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteSiteInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteSiteInput"}
+	if s.SiteId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SiteId"))
+	}
+	if s.SiteId != nil && len(*s.SiteId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SiteId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSiteId sets the SiteId field's value.
+func (s *DeleteSiteInput) SetSiteId(v string) *DeleteSiteInput {
+	s.SiteId = &v
+	return s
+}
+
+type DeleteSiteOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteSiteOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteSiteOutput) GoString() string {
+	return s.String()
 }
 
 type GetOutpostInput struct {
@@ -937,8 +1230,8 @@ func (s *InstanceTypeItem) SetInstanceType(v string) *InstanceTypeItem {
 
 // An internal error has occurred.
 type InternalServerException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -955,17 +1248,17 @@ func (s InternalServerException) GoString() string {
 
 func newErrorInternalServerException(v protocol.ResponseMetadata) error {
 	return &InternalServerException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InternalServerException) Code() string {
+func (s *InternalServerException) Code() string {
 	return "InternalServerException"
 }
 
 // Message returns the exception's message.
-func (s InternalServerException) Message() string {
+func (s *InternalServerException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -973,22 +1266,22 @@ func (s InternalServerException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InternalServerException) OrigErr() error {
+func (s *InternalServerException) OrigErr() error {
 	return nil
 }
 
-func (s InternalServerException) Error() string {
+func (s *InternalServerException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InternalServerException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InternalServerException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InternalServerException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InternalServerException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type ListOutpostsInput struct {
@@ -1153,8 +1446,8 @@ func (s *ListSitesOutput) SetSites(v []*Site) *ListSitesOutput {
 
 // The specified request is not valid.
 type NotFoundException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -1171,17 +1464,17 @@ func (s NotFoundException) GoString() string {
 
 func newErrorNotFoundException(v protocol.ResponseMetadata) error {
 	return &NotFoundException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s NotFoundException) Code() string {
+func (s *NotFoundException) Code() string {
 	return "NotFoundException"
 }
 
 // Message returns the exception's message.
-func (s NotFoundException) Message() string {
+func (s *NotFoundException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -1189,22 +1482,22 @@ func (s NotFoundException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s NotFoundException) OrigErr() error {
+func (s *NotFoundException) OrigErr() error {
 	return nil
 }
 
-func (s NotFoundException) Error() string {
+func (s *NotFoundException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s NotFoundException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *NotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s NotFoundException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *NotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Information about an Outpost.
@@ -1212,9 +1505,13 @@ type Outpost struct {
 	_ struct{} `type:"structure"`
 
 	// The Availability Zone.
+	//
+	// You must specify AvailabilityZone or AvailabilityZoneId.
 	AvailabilityZone *string `min:"1" type:"string"`
 
 	// The ID of the Availability Zone.
+	//
+	// You must specify AvailabilityZone or AvailabilityZoneId.
 	AvailabilityZoneId *string `min:"1" type:"string"`
 
 	// The Outpost description.
@@ -1305,8 +1602,8 @@ func (s *Outpost) SetSiteId(v string) *Outpost {
 
 // You have exceeded a service quota.
 type ServiceQuotaExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -1323,17 +1620,17 @@ func (s ServiceQuotaExceededException) GoString() string {
 
 func newErrorServiceQuotaExceededException(v protocol.ResponseMetadata) error {
 	return &ServiceQuotaExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ServiceQuotaExceededException) Code() string {
+func (s *ServiceQuotaExceededException) Code() string {
 	return "ServiceQuotaExceededException"
 }
 
 // Message returns the exception's message.
-func (s ServiceQuotaExceededException) Message() string {
+func (s *ServiceQuotaExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -1341,22 +1638,22 @@ func (s ServiceQuotaExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ServiceQuotaExceededException) OrigErr() error {
+func (s *ServiceQuotaExceededException) OrigErr() error {
 	return nil
 }
 
-func (s ServiceQuotaExceededException) Error() string {
+func (s *ServiceQuotaExceededException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ServiceQuotaExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ServiceQuotaExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ServiceQuotaExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ServiceQuotaExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // Information about a site.
@@ -1412,8 +1709,8 @@ func (s *Site) SetSiteId(v string) *Site {
 
 // A parameter is not valid.
 type ValidationException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" min:"1" type:"string"`
 }
@@ -1430,17 +1727,17 @@ func (s ValidationException) GoString() string {
 
 func newErrorValidationException(v protocol.ResponseMetadata) error {
 	return &ValidationException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ValidationException) Code() string {
+func (s *ValidationException) Code() string {
 	return "ValidationException"
 }
 
 // Message returns the exception's message.
-func (s ValidationException) Message() string {
+func (s *ValidationException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -1448,20 +1745,20 @@ func (s ValidationException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ValidationException) OrigErr() error {
+func (s *ValidationException) OrigErr() error {
 	return nil
 }
 
-func (s ValidationException) Error() string {
+func (s *ValidationException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ValidationException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ValidationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ValidationException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ValidationException) RequestID() string {
+	return s.RespMetadata.RequestID
 }

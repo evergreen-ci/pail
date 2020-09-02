@@ -65,7 +65,7 @@ func (c *TranscribeStreamingService) StartStreamTranscriptionRequest(input *Star
 		protocol.RequireHTTPMinProtocol{Major: 2}.Handler,
 	)
 
-	es := newStartStreamTranscriptionEventStream()
+	es := NewStartStreamTranscriptionEventStream()
 	output.eventStream = es
 
 	req.Handlers.Sign.PushFront(es.setupInputPipe)
@@ -126,6 +126,9 @@ func (c *TranscribeStreamingService) StartStreamTranscriptionRequest(input *Star
 //   A new stream started with the same session ID. The current stream has been
 //   terminated.
 //
+//   * ServiceUnavailableException
+//   Service is currently unavailable. Try your request later.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/transcribe-streaming-2017-10-26/StartStreamTranscription
 func (c *TranscribeStreamingService) StartStreamTranscription(input *StartStreamTranscriptionInput) (*StartStreamTranscriptionOutput, error) {
 	req, out := c.StartStreamTranscriptionRequest(input)
@@ -148,7 +151,13 @@ func (c *TranscribeStreamingService) StartStreamTranscriptionWithContext(ctx aws
 	return out, req.Send()
 }
 
+var _ awserr.Error
+
 // StartStreamTranscriptionEventStream provides the event stream handling for the StartStreamTranscription.
+//
+// For testing and mocking the event stream this type should be initialized via
+// the NewStartStreamTranscriptionEventStream constructor function. Using the functional options
+// to pass in nested mock behavior.
 type StartStreamTranscriptionEventStream struct {
 
 	// Writer is the EventStream writer for the AudioStream
@@ -176,11 +185,29 @@ type StartStreamTranscriptionEventStream struct {
 	err       *eventstreamapi.OnceError
 }
 
-func newStartStreamTranscriptionEventStream() *StartStreamTranscriptionEventStream {
-	return &StartStreamTranscriptionEventStream{
+// NewStartStreamTranscriptionEventStream initializes an StartStreamTranscriptionEventStream.
+// This function should only be used for testing and mocking the StartStreamTranscriptionEventStream
+// stream within your application.
+//
+// The Writer member must be set before writing events to the stream.
+//
+// The Reader member must be set before reading events from the stream.
+//
+//   es := NewStartStreamTranscriptionEventStream(func(o *StartStreamTranscriptionEventStream{
+//       es.Writer = myMockStreamWriter
+//       es.Reader = myMockStreamReader
+//   })
+func NewStartStreamTranscriptionEventStream(opts ...func(*StartStreamTranscriptionEventStream)) *StartStreamTranscriptionEventStream {
+	es := &StartStreamTranscriptionEventStream{
 		done: make(chan struct{}),
 		err:  eventstreamapi.NewOnceError(),
 	}
+
+	for _, fn := range opts {
+		fn(es)
+	}
+
+	return es
 }
 
 func (es *StartStreamTranscriptionEventStream) runOnStreamPartClose(r *request.Request) {
@@ -277,6 +304,7 @@ func (es *StartStreamTranscriptionEventStream) runInputStream(r *request.Request
 // These events are:
 //
 //     * TranscriptEvent
+//     * TranscriptResultStreamUnknownEvent
 func (es *StartStreamTranscriptionEventStream) Events() <-chan TranscriptResultStreamEvent {
 	return es.Reader.Events()
 }
@@ -438,6 +466,8 @@ func (s *AudioEvent) UnmarshalEvent(
 	return nil
 }
 
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
 func (s *AudioEvent) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
 	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.EventMessageType))
 	msg.Headers.Set(":content-type", eventstream.StringValue("application/octet-stream"))
@@ -502,8 +532,8 @@ func eventTypeForAudioStreamEvent(event eventstreamapi.Marshaler) (string, error
 // For example, MediaEncoding was not set to pcm or LanguageCode was not set
 // to a valid code. Check the parameters and try your request again.
 type BadRequestException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" type:"string"`
 }
@@ -535,6 +565,8 @@ func (s *BadRequestException) UnmarshalEvent(
 	return nil
 }
 
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
 func (s *BadRequestException) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
 	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.ExceptionMessageType))
 	var buf bytes.Buffer
@@ -547,17 +579,17 @@ func (s *BadRequestException) MarshalEvent(pm protocol.PayloadMarshaler) (msg ev
 
 func newErrorBadRequestException(v protocol.ResponseMetadata) error {
 	return &BadRequestException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s BadRequestException) Code() string {
+func (s *BadRequestException) Code() string {
 	return "BadRequestException"
 }
 
 // Message returns the exception's message.
-func (s BadRequestException) Message() string {
+func (s *BadRequestException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -565,29 +597,29 @@ func (s BadRequestException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s BadRequestException) OrigErr() error {
+func (s *BadRequestException) OrigErr() error {
 	return nil
 }
 
-func (s BadRequestException) Error() string {
+func (s *BadRequestException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s BadRequestException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *BadRequestException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s BadRequestException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *BadRequestException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // A new stream started with the same session ID. The current stream has been
 // terminated.
 type ConflictException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" type:"string"`
 }
@@ -619,6 +651,8 @@ func (s *ConflictException) UnmarshalEvent(
 	return nil
 }
 
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
 func (s *ConflictException) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
 	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.ExceptionMessageType))
 	var buf bytes.Buffer
@@ -631,17 +665,17 @@ func (s *ConflictException) MarshalEvent(pm protocol.PayloadMarshaler) (msg even
 
 func newErrorConflictException(v protocol.ResponseMetadata) error {
 	return &ConflictException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ConflictException) Code() string {
+func (s *ConflictException) Code() string {
 	return "ConflictException"
 }
 
 // Message returns the exception's message.
-func (s ConflictException) Message() string {
+func (s *ConflictException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -649,29 +683,29 @@ func (s ConflictException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ConflictException) OrigErr() error {
+func (s *ConflictException) OrigErr() error {
 	return nil
 }
 
-func (s ConflictException) Error() string {
+func (s *ConflictException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ConflictException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ConflictException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ConflictException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ConflictException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // A problem occurred while processing the audio. Amazon Transcribe terminated
 // processing. Try your request again.
 type InternalFailureException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" type:"string"`
 }
@@ -703,6 +737,8 @@ func (s *InternalFailureException) UnmarshalEvent(
 	return nil
 }
 
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
 func (s *InternalFailureException) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
 	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.ExceptionMessageType))
 	var buf bytes.Buffer
@@ -715,17 +751,17 @@ func (s *InternalFailureException) MarshalEvent(pm protocol.PayloadMarshaler) (m
 
 func newErrorInternalFailureException(v protocol.ResponseMetadata) error {
 	return &InternalFailureException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InternalFailureException) Code() string {
+func (s *InternalFailureException) Code() string {
 	return "InternalFailureException"
 }
 
 // Message returns the exception's message.
-func (s InternalFailureException) Message() string {
+func (s *InternalFailureException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -733,22 +769,22 @@ func (s InternalFailureException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InternalFailureException) OrigErr() error {
+func (s *InternalFailureException) OrigErr() error {
 	return nil
 }
 
-func (s InternalFailureException) Error() string {
+func (s *InternalFailureException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InternalFailureException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InternalFailureException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InternalFailureException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InternalFailureException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // A word or phrase transcribed from the input audio.
@@ -762,6 +798,10 @@ type Item struct {
 	// that resulted in the item.
 	EndTime *float64 `type:"double"`
 
+	// If speaker identification is enabled, shows the speakers identified in the
+	// real-time stream.
+	Speaker *string `type:"string"`
+
 	// The offset from the beginning of the audio stream to the beginning of the
 	// audio that resulted in the item.
 	StartTime *float64 `type:"double"`
@@ -770,6 +810,11 @@ type Item struct {
 	// was recognized in the input audio. PUNCTUATION indicates that the item was
 	// interpreted as a pause in the input audio.
 	Type *string `type:"string" enum:"ItemType"`
+
+	// Indicates whether a word in the item matches a word in the vocabulary filter
+	// you've chosen for your real-time stream. If true then a word in the item
+	// matches your vocabulary filter.
+	VocabularyFilterMatch *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -794,6 +839,12 @@ func (s *Item) SetEndTime(v float64) *Item {
 	return s
 }
 
+// SetSpeaker sets the Speaker field's value.
+func (s *Item) SetSpeaker(v string) *Item {
+	s.Speaker = &v
+	return s
+}
+
 // SetStartTime sets the StartTime field's value.
 func (s *Item) SetStartTime(v float64) *Item {
 	s.StartTime = &v
@@ -806,13 +857,19 @@ func (s *Item) SetType(v string) *Item {
 	return s
 }
 
+// SetVocabularyFilterMatch sets the VocabularyFilterMatch field's value.
+func (s *Item) SetVocabularyFilterMatch(v bool) *Item {
+	s.VocabularyFilterMatch = &v
+	return s
+}
+
 // You have exceeded the maximum number of concurrent transcription streams,
 // are starting transcription streams too quickly, or the maximum audio length
 // of 4 hours. Wait until a stream has finished processing, or break your audio
 // stream into smaller chunks and try your request again.
 type LimitExceededException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"Message" type:"string"`
 }
@@ -844,6 +901,8 @@ func (s *LimitExceededException) UnmarshalEvent(
 	return nil
 }
 
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
 func (s *LimitExceededException) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
 	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.ExceptionMessageType))
 	var buf bytes.Buffer
@@ -856,17 +915,17 @@ func (s *LimitExceededException) MarshalEvent(pm protocol.PayloadMarshaler) (msg
 
 func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
 	return &LimitExceededException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s LimitExceededException) Code() string {
+func (s *LimitExceededException) Code() string {
 	return "LimitExceededException"
 }
 
 // Message returns the exception's message.
-func (s LimitExceededException) Message() string {
+func (s *LimitExceededException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -874,22 +933,22 @@ func (s LimitExceededException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s LimitExceededException) OrigErr() error {
+func (s *LimitExceededException) OrigErr() error {
 	return nil
 }
 
-func (s LimitExceededException) Error() string {
+func (s *LimitExceededException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s LimitExceededException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *LimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s LimitExceededException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *LimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // The result of transcribing a portion of the input audio stream.
@@ -960,6 +1019,91 @@ func (s *Result) SetStartTime(v float64) *Result {
 	return s
 }
 
+// Service is currently unavailable. Try your request later.
+type ServiceUnavailableException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s ServiceUnavailableException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServiceUnavailableException) GoString() string {
+	return s.String()
+}
+
+// The ServiceUnavailableException is and event in the TranscriptResultStream group of events.
+func (s *ServiceUnavailableException) eventTranscriptResultStream() {}
+
+// UnmarshalEvent unmarshals the EventStream Message into the ServiceUnavailableException value.
+// This method is only used internally within the SDK's EventStream handling.
+func (s *ServiceUnavailableException) UnmarshalEvent(
+	payloadUnmarshaler protocol.PayloadUnmarshaler,
+	msg eventstream.Message,
+) error {
+	if err := payloadUnmarshaler.UnmarshalPayload(
+		bytes.NewReader(msg.Payload), s,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
+func (s *ServiceUnavailableException) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
+	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.ExceptionMessageType))
+	var buf bytes.Buffer
+	if err = pm.MarshalPayload(&buf, s); err != nil {
+		return eventstream.Message{}, err
+	}
+	msg.Payload = buf.Bytes()
+	return msg, err
+}
+
+func newErrorServiceUnavailableException(v protocol.ResponseMetadata) error {
+	return &ServiceUnavailableException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ServiceUnavailableException) Code() string {
+	return "ServiceUnavailableException"
+}
+
+// Message returns the exception's message.
+func (s *ServiceUnavailableException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ServiceUnavailableException) OrigErr() error {
+	return nil
+}
+
+func (s *ServiceUnavailableException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ServiceUnavailableException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ServiceUnavailableException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 type StartStreamTranscriptionInput struct {
 	_ struct{} `type:"structure" payload:"AudioStream"`
 
@@ -968,7 +1112,7 @@ type StartStreamTranscriptionInput struct {
 	// LanguageCode is a required field
 	LanguageCode *string `location:"header" locationName:"x-amzn-transcribe-language-code" type:"string" required:"true" enum:"LanguageCode"`
 
-	// The encoding used for the input audio.
+	// The encoding used for the input audio. pcm is the only valid value.
 	//
 	// MediaEncoding is a required field
 	MediaEncoding *string `location:"header" locationName:"x-amzn-transcribe-media-encoding" type:"string" required:"true" enum:"MediaEncoding"`
@@ -983,6 +1127,20 @@ type StartStreamTranscriptionInput struct {
 	// to retry a session. If you don't provide a session ID, Amazon Transcribe
 	// will generate one for you and return it in the response.
 	SessionId *string `location:"header" locationName:"x-amzn-transcribe-session-id" type:"string"`
+
+	// When true, enables speaker identification in your real-time stream.
+	ShowSpeakerLabel *bool `location:"header" locationName:"x-amzn-transcribe-show-speaker-label" type:"boolean"`
+
+	// The manner in which you use your vocabulary filter to filter words in your
+	// transcript. Remove removes filtered words from your transcription results.
+	// Mask masks those words with a *** in your transcription results. Tag keeps
+	// the filtered words in your transcription results and tags them. The tag appears
+	// as VocabularyFilterMatch equal to True
+	VocabularyFilterMethod *string `location:"header" locationName:"x-amzn-transcribe-vocabulary-filter-method" type:"string" enum:"VocabularyFilterMethod"`
+
+	// The name of the vocabulary filter you've created that is unique to your AWS
+	// account. Provide the name in this field to successfully use it in a stream.
+	VocabularyFilterName *string `location:"header" locationName:"x-amzn-transcribe-vocabulary-filter-name" min:"1" type:"string"`
 
 	// The name of the vocabulary to use when processing the transcription job.
 	VocabularyName *string `location:"header" locationName:"x-amzn-transcribe-vocabulary-name" min:"1" type:"string"`
@@ -1012,6 +1170,9 @@ func (s *StartStreamTranscriptionInput) Validate() error {
 	}
 	if s.MediaSampleRateHertz != nil && *s.MediaSampleRateHertz < 8000 {
 		invalidParams.Add(request.NewErrParamMinValue("MediaSampleRateHertz", 8000))
+	}
+	if s.VocabularyFilterName != nil && len(*s.VocabularyFilterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VocabularyFilterName", 1))
 	}
 	if s.VocabularyName != nil && len(*s.VocabularyName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("VocabularyName", 1))
@@ -1047,6 +1208,24 @@ func (s *StartStreamTranscriptionInput) SetSessionId(v string) *StartStreamTrans
 	return s
 }
 
+// SetShowSpeakerLabel sets the ShowSpeakerLabel field's value.
+func (s *StartStreamTranscriptionInput) SetShowSpeakerLabel(v bool) *StartStreamTranscriptionInput {
+	s.ShowSpeakerLabel = &v
+	return s
+}
+
+// SetVocabularyFilterMethod sets the VocabularyFilterMethod field's value.
+func (s *StartStreamTranscriptionInput) SetVocabularyFilterMethod(v string) *StartStreamTranscriptionInput {
+	s.VocabularyFilterMethod = &v
+	return s
+}
+
+// SetVocabularyFilterName sets the VocabularyFilterName field's value.
+func (s *StartStreamTranscriptionInput) SetVocabularyFilterName(v string) *StartStreamTranscriptionInput {
+	s.VocabularyFilterName = &v
+	return s
+}
+
 // SetVocabularyName sets the VocabularyName field's value.
 func (s *StartStreamTranscriptionInput) SetVocabularyName(v string) *StartStreamTranscriptionInput {
 	s.VocabularyName = &v
@@ -1074,7 +1253,16 @@ type StartStreamTranscriptionOutput struct {
 	// An identifier for a specific transcription session.
 	SessionId *string `location:"header" locationName:"x-amzn-transcribe-session-id" type:"string"`
 
-	// The name of the vocabulary used when processing the job.
+	// Shows whether speaker identification was enabled in the stream.
+	ShowSpeakerLabel *bool `location:"header" locationName:"x-amzn-transcribe-show-speaker-label" type:"boolean"`
+
+	// The vocabulary filtering method used in the real-time stream.
+	VocabularyFilterMethod *string `location:"header" locationName:"x-amzn-transcribe-vocabulary-filter-method" type:"string" enum:"VocabularyFilterMethod"`
+
+	// The name of the vocabulary filter used in your real-time stream.
+	VocabularyFilterName *string `location:"header" locationName:"x-amzn-transcribe-vocabulary-filter-name" min:"1" type:"string"`
+
+	// The name of the vocabulary used when processing the stream.
 	VocabularyName *string `location:"header" locationName:"x-amzn-transcribe-vocabulary-name" min:"1" type:"string"`
 }
 
@@ -1115,6 +1303,24 @@ func (s *StartStreamTranscriptionOutput) SetRequestId(v string) *StartStreamTran
 // SetSessionId sets the SessionId field's value.
 func (s *StartStreamTranscriptionOutput) SetSessionId(v string) *StartStreamTranscriptionOutput {
 	s.SessionId = &v
+	return s
+}
+
+// SetShowSpeakerLabel sets the ShowSpeakerLabel field's value.
+func (s *StartStreamTranscriptionOutput) SetShowSpeakerLabel(v bool) *StartStreamTranscriptionOutput {
+	s.ShowSpeakerLabel = &v
+	return s
+}
+
+// SetVocabularyFilterMethod sets the VocabularyFilterMethod field's value.
+func (s *StartStreamTranscriptionOutput) SetVocabularyFilterMethod(v string) *StartStreamTranscriptionOutput {
+	s.VocabularyFilterMethod = &v
+	return s
+}
+
+// SetVocabularyFilterName sets the VocabularyFilterName field's value.
+func (s *StartStreamTranscriptionOutput) SetVocabularyFilterName(v string) *StartStreamTranscriptionOutput {
+	s.VocabularyFilterName = &v
 	return s
 }
 
@@ -1197,6 +1403,8 @@ func (s *TranscriptEvent) UnmarshalEvent(
 	return nil
 }
 
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
 func (s *TranscriptEvent) MarshalEvent(pm protocol.PayloadMarshaler) (msg eventstream.Message, err error) {
 	msg.Headers.Set(eventstreamapi.MessageTypeHeader, eventstream.StringValue(eventstreamapi.EventMessageType))
 	var buf bytes.Buffer
@@ -1227,6 +1435,7 @@ type TranscriptResultStreamEvent interface {
 // These events are:
 //
 //     * TranscriptEvent
+//     * TranscriptResultStreamUnknownEvent
 type TranscriptResultStreamReader interface {
 	// Returns a channel of events as they are read from the event stream.
 	Events() <-chan TranscriptResultStreamEvent
@@ -1301,6 +1510,9 @@ func (r *readTranscriptResultStream) readEventStream() {
 				return
 			default:
 			}
+			if _, ok := err.(*eventstreamapi.UnknownMessageTypeError); ok {
+				continue
+			}
 			r.err.SetError(err)
 			return
 		}
@@ -1329,13 +1541,40 @@ func (u unmarshalerForTranscriptResultStreamEvent) UnmarshalerForEventName(event
 		return newErrorInternalFailureException(u.metadata).(eventstreamapi.Unmarshaler), nil
 	case "LimitExceededException":
 		return newErrorLimitExceededException(u.metadata).(eventstreamapi.Unmarshaler), nil
+	case "ServiceUnavailableException":
+		return newErrorServiceUnavailableException(u.metadata).(eventstreamapi.Unmarshaler), nil
 	default:
-		return nil, awserr.New(
-			request.ErrCodeSerialization,
-			fmt.Sprintf("unknown event type name, %s, for TranscriptResultStream", eventType),
-			nil,
-		)
+		return &TranscriptResultStreamUnknownEvent{Type: eventType}, nil
 	}
+}
+
+// TranscriptResultStreamUnknownEvent provides a failsafe event for the
+// TranscriptResultStream group of events when an unknown event is received.
+type TranscriptResultStreamUnknownEvent struct {
+	Type    string
+	Message eventstream.Message
+}
+
+// The TranscriptResultStreamUnknownEvent is and event in the TranscriptResultStream
+// group of events.
+func (s *TranscriptResultStreamUnknownEvent) eventTranscriptResultStream() {}
+
+// MarshalEvent marshals the type into an stream event value. This method
+// should only used internally within the SDK's EventStream handling.
+func (e *TranscriptResultStreamUnknownEvent) MarshalEvent(pm protocol.PayloadMarshaler) (
+	msg eventstream.Message, err error,
+) {
+	return e.Message.Clone(), nil
+}
+
+// UnmarshalEvent unmarshals the EventStream Message into the TranscriptResultStream value.
+// This method is only used internally within the SDK's EventStream handling.
+func (e *TranscriptResultStreamUnknownEvent) UnmarshalEvent(
+	payloadUnmarshaler protocol.PayloadUnmarshaler,
+	msg eventstream.Message,
+) error {
+	e.Message = msg.Clone()
+	return nil
 }
 
 const (
@@ -1345,6 +1584,14 @@ const (
 	// ItemTypePunctuation is a ItemType enum value
 	ItemTypePunctuation = "punctuation"
 )
+
+// ItemType_Values returns all elements of the ItemType enum
+func ItemType_Values() []string {
+	return []string{
+		ItemTypePronunciation,
+		ItemTypePunctuation,
+	}
+}
 
 const (
 	// LanguageCodeEnUs is a LanguageCode enum value
@@ -1366,7 +1613,46 @@ const (
 	LanguageCodeEnAu = "en-AU"
 )
 
+// LanguageCode_Values returns all elements of the LanguageCode enum
+func LanguageCode_Values() []string {
+	return []string{
+		LanguageCodeEnUs,
+		LanguageCodeEnGb,
+		LanguageCodeEsUs,
+		LanguageCodeFrCa,
+		LanguageCodeFrFr,
+		LanguageCodeEnAu,
+	}
+}
+
 const (
 	// MediaEncodingPcm is a MediaEncoding enum value
 	MediaEncodingPcm = "pcm"
 )
+
+// MediaEncoding_Values returns all elements of the MediaEncoding enum
+func MediaEncoding_Values() []string {
+	return []string{
+		MediaEncodingPcm,
+	}
+}
+
+const (
+	// VocabularyFilterMethodRemove is a VocabularyFilterMethod enum value
+	VocabularyFilterMethodRemove = "remove"
+
+	// VocabularyFilterMethodMask is a VocabularyFilterMethod enum value
+	VocabularyFilterMethodMask = "mask"
+
+	// VocabularyFilterMethodTag is a VocabularyFilterMethod enum value
+	VocabularyFilterMethodTag = "tag"
+)
+
+// VocabularyFilterMethod_Values returns all elements of the VocabularyFilterMethod enum
+func VocabularyFilterMethod_Values() []string {
+	return []string{
+		VocabularyFilterMethodRemove,
+		VocabularyFilterMethodMask,
+		VocabularyFilterMethodTag,
+	}
+}

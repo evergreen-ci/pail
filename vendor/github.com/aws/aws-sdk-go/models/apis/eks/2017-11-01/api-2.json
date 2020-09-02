@@ -349,7 +349,8 @@
       "type":"string",
       "enum":[
         "AL2_x86_64",
-        "AL2_x86_64_GPU"
+        "AL2_x86_64_GPU",
+        "AL2_ARM_64"
       ]
     },
     "AutoScalingGroup":{
@@ -416,7 +417,8 @@
         "certificateAuthority":{"shape":"Certificate"},
         "clientRequestToken":{"shape":"String"},
         "platformVersion":{"shape":"String"},
-        "tags":{"shape":"TagMap"}
+        "tags":{"shape":"TagMap"},
+        "encryptionConfig":{"shape":"EncryptionConfigList"}
       }
     },
     "ClusterName":{
@@ -452,7 +454,8 @@
           "shape":"String",
           "idempotencyToken":true
         },
-        "tags":{"shape":"TagMap"}
+        "tags":{"shape":"TagMap"},
+        "encryptionConfig":{"shape":"EncryptionConfigList"}
       }
     },
     "CreateClusterResponse":{
@@ -519,6 +522,7 @@
           "shape":"String",
           "idempotencyToken":true
         },
+        "launchTemplate":{"shape":"LaunchTemplateSpecification"},
         "version":{"shape":"String"},
         "releaseVersion":{"shape":"String"}
       }
@@ -693,6 +697,18 @@
         "update":{"shape":"Update"}
       }
     },
+    "EncryptionConfig":{
+      "type":"structure",
+      "members":{
+        "resources":{"shape":"StringList"},
+        "provider":{"shape":"Provider"}
+      }
+    },
+    "EncryptionConfigList":{
+      "type":"list",
+      "member":{"shape":"EncryptionConfig"},
+      "max":1
+    },
     "ErrorCode":{
       "type":"string",
       "enum":[
@@ -805,6 +821,14 @@
     "IssueList":{
       "type":"list",
       "member":{"shape":"Issue"}
+    },
+    "LaunchTemplateSpecification":{
+      "type":"structure",
+      "members":{
+        "name":{"shape":"String"},
+        "version":{"shape":"String"},
+        "id":{"shape":"String"}
+      }
     },
     "ListClustersRequest":{
       "type":"structure",
@@ -1004,6 +1028,7 @@
         "resources":{"shape":"NodegroupResources"},
         "diskSize":{"shape":"BoxedInteger"},
         "health":{"shape":"NodegroupHealth"},
+        "launchTemplate":{"shape":"LaunchTemplateSpecification"},
         "tags":{"shape":"TagMap"}
       }
     },
@@ -1023,8 +1048,11 @@
         "Ec2LaunchTemplateNotFound",
         "Ec2LaunchTemplateVersionMismatch",
         "Ec2SubnetNotFound",
+        "Ec2SubnetInvalidConfiguration",
         "IamInstanceProfileNotFound",
+        "IamLimitExceeded",
         "IamNodeRoleNotFound",
+        "NodeCreationFailure",
         "AsgInstanceLaunchFailures",
         "InstanceLimitExceeded",
         "InsufficientFreeAddresses",
@@ -1071,6 +1099,12 @@
       "type":"structure",
       "members":{
         "issuer":{"shape":"String"}
+      }
+    },
+    "Provider":{
+      "type":"structure",
+      "members":{
+        "keyArn":{"shape":"String"}
       }
     },
     "RemoteAccessConfig":{
@@ -1330,6 +1364,7 @@
         },
         "version":{"shape":"String"},
         "releaseVersion":{"shape":"String"},
+        "launchTemplate":{"shape":"LaunchTemplateSpecification"},
         "force":{"shape":"Boolean"},
         "clientRequestToken":{
           "shape":"String",

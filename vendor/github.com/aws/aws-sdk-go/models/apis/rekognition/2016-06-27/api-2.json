@@ -137,6 +137,42 @@
         {"shape":"ResourceNotFoundException"}
       ]
     },
+    "DeleteProject":{
+      "name":"DeleteProject",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteProjectRequest"},
+      "output":{"shape":"DeleteProjectResponse"},
+      "errors":[
+        {"shape":"ResourceInUseException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ProvisionedThroughputExceededException"}
+      ]
+    },
+    "DeleteProjectVersion":{
+      "name":"DeleteProjectVersion",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteProjectVersionRequest"},
+      "output":{"shape":"DeleteProjectVersionResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ProvisionedThroughputExceededException"}
+      ]
+    },
     "DeleteStreamProcessor":{
       "name":"DeleteStreamProcessor",
       "http":{
@@ -448,6 +484,42 @@
         {"shape":"ThrottlingException"}
       ]
     },
+    "GetSegmentDetection":{
+      "name":"GetSegmentDetection",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetSegmentDetectionRequest"},
+      "output":{"shape":"GetSegmentDetectionResponse"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InvalidPaginationTokenException"},
+        {"shape":"ProvisionedThroughputExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"}
+      ]
+    },
+    "GetTextDetection":{
+      "name":"GetTextDetection",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetTextDetectionRequest"},
+      "output":{"shape":"GetTextDetectionResponse"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"InternalServerError"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InvalidPaginationTokenException"},
+        {"shape":"ProvisionedThroughputExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"}
+      ]
+    },
     "IndexFaces":{
       "name":"IndexFaces",
       "http":{
@@ -724,6 +796,27 @@
         {"shape":"ProvisionedThroughputExceededException"}
       ]
     },
+    "StartSegmentDetection":{
+      "name":"StartSegmentDetection",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartSegmentDetectionRequest"},
+      "output":{"shape":"StartSegmentDetectionResponse"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"IdempotentParameterMismatchException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InvalidS3ObjectException"},
+        {"shape":"InternalServerError"},
+        {"shape":"VideoTooLargeException"},
+        {"shape":"ProvisionedThroughputExceededException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ThrottlingException"}
+      ],
+      "idempotent":true
+    },
     "StartStreamProcessor":{
       "name":"StartStreamProcessor",
       "http":{
@@ -741,6 +834,27 @@
         {"shape":"ResourceInUseException"},
         {"shape":"ProvisionedThroughputExceededException"}
       ]
+    },
+    "StartTextDetection":{
+      "name":"StartTextDetection",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartTextDetectionRequest"},
+      "output":{"shape":"StartTextDetectionResponse"},
+      "errors":[
+        {"shape":"AccessDeniedException"},
+        {"shape":"IdempotentParameterMismatchException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InvalidS3ObjectException"},
+        {"shape":"InternalServerError"},
+        {"shape":"VideoTooLargeException"},
+        {"shape":"ProvisionedThroughputExceededException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ThrottlingException"}
+      ],
+      "idempotent":true
     },
     "StopProjectVersion":{
       "name":"StopProjectVersion",
@@ -814,6 +928,19 @@
       "type":"list",
       "member":{"shape":"Attribute"}
     },
+    "AudioMetadata":{
+      "type":"structure",
+      "members":{
+        "Codec":{"shape":"String"},
+        "DurationMillis":{"shape":"ULong"},
+        "SampleRate":{"shape":"ULong"},
+        "NumberOfChannels":{"shape":"ULong"}
+      }
+    },
+    "AudioMetadataList":{
+      "type":"list",
+      "member":{"shape":"AudioMetadata"}
+    },
     "Beard":{
       "type":"structure",
       "members":{
@@ -830,6 +957,16 @@
         "Left":{"shape":"Float"},
         "Top":{"shape":"Float"}
       }
+    },
+    "BoundingBoxHeight":{
+      "type":"float",
+      "max":1,
+      "min":0
+    },
+    "BoundingBoxWidth":{
+      "type":"float",
+      "max":1,
+      "min":0
     },
     "Celebrity":{
       "type":"structure",
@@ -1101,6 +1238,32 @@
         "DeletedFaces":{"shape":"FaceIdList"}
       }
     },
+    "DeleteProjectRequest":{
+      "type":"structure",
+      "required":["ProjectArn"],
+      "members":{
+        "ProjectArn":{"shape":"ProjectArn"}
+      }
+    },
+    "DeleteProjectResponse":{
+      "type":"structure",
+      "members":{
+        "Status":{"shape":"ProjectStatus"}
+      }
+    },
+    "DeleteProjectVersionRequest":{
+      "type":"structure",
+      "required":["ProjectVersionArn"],
+      "members":{
+        "ProjectVersionArn":{"shape":"ProjectVersionArn"}
+      }
+    },
+    "DeleteProjectVersionResponse":{
+      "type":"structure",
+      "members":{
+        "Status":{"shape":"ProjectVersionStatus"}
+      }
+    },
     "DeleteStreamProcessorRequest":{
       "type":"structure",
       "required":["Name"],
@@ -1250,17 +1413,34 @@
         "HumanLoopActivationOutput":{"shape":"HumanLoopActivationOutput"}
       }
     },
+    "DetectTextFilters":{
+      "type":"structure",
+      "members":{
+        "WordFilter":{"shape":"DetectionFilter"},
+        "RegionsOfInterest":{"shape":"RegionsOfInterest"}
+      }
+    },
     "DetectTextRequest":{
       "type":"structure",
       "required":["Image"],
       "members":{
-        "Image":{"shape":"Image"}
+        "Image":{"shape":"Image"},
+        "Filters":{"shape":"DetectTextFilters"}
       }
     },
     "DetectTextResponse":{
       "type":"structure",
       "members":{
-        "TextDetections":{"shape":"TextDetectionList"}
+        "TextDetections":{"shape":"TextDetectionList"},
+        "TextModelVersion":{"shape":"String"}
+      }
+    },
+    "DetectionFilter":{
+      "type":"structure",
+      "members":{
+        "MinConfidence":{"shape":"Percent"},
+        "MinBoundingBoxHeight":{"shape":"BoundingBoxHeight"},
+        "MinBoundingBoxWidth":{"shape":"BoundingBoxWidth"}
       }
     },
     "Emotion":{
@@ -1584,6 +1764,47 @@
         "VideoMetadata":{"shape":"VideoMetadata"},
         "NextToken":{"shape":"PaginationToken"},
         "Persons":{"shape":"PersonDetections"}
+      }
+    },
+    "GetSegmentDetectionRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "MaxResults":{"shape":"MaxResults"},
+        "NextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "GetSegmentDetectionResponse":{
+      "type":"structure",
+      "members":{
+        "JobStatus":{"shape":"VideoJobStatus"},
+        "StatusMessage":{"shape":"StatusMessage"},
+        "VideoMetadata":{"shape":"VideoMetadataList"},
+        "AudioMetadata":{"shape":"AudioMetadataList"},
+        "NextToken":{"shape":"PaginationToken"},
+        "Segments":{"shape":"SegmentDetections"},
+        "SelectedSegmentTypes":{"shape":"SegmentTypesInfo"}
+      }
+    },
+    "GetTextDetectionRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "MaxResults":{"shape":"MaxResults"},
+        "NextToken":{"shape":"PaginationToken"}
+      }
+    },
+    "GetTextDetectionResponse":{
+      "type":"structure",
+      "members":{
+        "JobStatus":{"shape":"VideoJobStatus"},
+        "StatusMessage":{"shape":"StatusMessage"},
+        "VideoMetadata":{"shape":"VideoMetadata"},
+        "TextDetections":{"shape":"TextDetectionResults"},
+        "NextToken":{"shape":"PaginationToken"},
+        "TextModelVersion":{"shape":"String"}
       }
     },
     "GroundTruthManifest":{
@@ -2194,6 +2415,18 @@
         "OrientationCorrection":{"shape":"OrientationCorrection"}
       }
     },
+    "RegionOfInterest":{
+      "type":"structure",
+      "members":{
+        "BoundingBox":{"shape":"BoundingBox"}
+      }
+    },
+    "RegionsOfInterest":{
+      "type":"list",
+      "member":{"shape":"RegionOfInterest"},
+      "max":10,
+      "min":0
+    },
     "RekognitionUniqueId":{
       "type":"string",
       "pattern":"[0-9A-Za-z]*"
@@ -2300,6 +2533,59 @@
         "SearchedFaceId":{"shape":"FaceId"},
         "FaceMatches":{"shape":"FaceMatchList"},
         "FaceModelVersion":{"shape":"String"}
+      }
+    },
+    "SegmentConfidence":{
+      "type":"float",
+      "max":100,
+      "min":50
+    },
+    "SegmentDetection":{
+      "type":"structure",
+      "members":{
+        "Type":{"shape":"SegmentType"},
+        "StartTimestampMillis":{"shape":"Timestamp"},
+        "EndTimestampMillis":{"shape":"Timestamp"},
+        "DurationMillis":{"shape":"ULong"},
+        "StartTimecodeSMPTE":{"shape":"Timecode"},
+        "EndTimecodeSMPTE":{"shape":"Timecode"},
+        "DurationSMPTE":{"shape":"Timecode"},
+        "TechnicalCueSegment":{"shape":"TechnicalCueSegment"},
+        "ShotSegment":{"shape":"ShotSegment"}
+      }
+    },
+    "SegmentDetections":{
+      "type":"list",
+      "member":{"shape":"SegmentDetection"}
+    },
+    "SegmentType":{
+      "type":"string",
+      "enum":[
+        "TECHNICAL_CUE",
+        "SHOT"
+      ]
+    },
+    "SegmentTypeInfo":{
+      "type":"structure",
+      "members":{
+        "Type":{"shape":"SegmentType"},
+        "ModelVersion":{"shape":"String"}
+      }
+    },
+    "SegmentTypes":{
+      "type":"list",
+      "member":{"shape":"SegmentType"},
+      "min":1
+    },
+    "SegmentTypesInfo":{
+      "type":"list",
+      "member":{"shape":"SegmentTypeInfo"}
+    },
+    "ShotSegment":{
+      "type":"structure",
+      "members":{
+        "Index":{"shape":"ULong"},
+        "Confidence":{"shape":"SegmentConfidence"}
       }
     },
     "Smile":{
@@ -2430,6 +2716,40 @@
         "Status":{"shape":"ProjectVersionStatus"}
       }
     },
+    "StartSegmentDetectionFilters":{
+      "type":"structure",
+      "members":{
+        "TechnicalCueFilter":{"shape":"StartTechnicalCueDetectionFilter"},
+        "ShotFilter":{"shape":"StartShotDetectionFilter"}
+      }
+    },
+    "StartSegmentDetectionRequest":{
+      "type":"structure",
+      "required":[
+        "Video",
+        "SegmentTypes"
+      ],
+      "members":{
+        "Video":{"shape":"Video"},
+        "ClientRequestToken":{"shape":"ClientRequestToken"},
+        "NotificationChannel":{"shape":"NotificationChannel"},
+        "JobTag":{"shape":"JobTag"},
+        "Filters":{"shape":"StartSegmentDetectionFilters"},
+        "SegmentTypes":{"shape":"SegmentTypes"}
+      }
+    },
+    "StartSegmentDetectionResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "StartShotDetectionFilter":{
+      "type":"structure",
+      "members":{
+        "MinSegmentConfidence":{"shape":"SegmentConfidence"}
+      }
+    },
     "StartStreamProcessorRequest":{
       "type":"structure",
       "required":["Name"],
@@ -2440,6 +2760,36 @@
     "StartStreamProcessorResponse":{
       "type":"structure",
       "members":{
+      }
+    },
+    "StartTechnicalCueDetectionFilter":{
+      "type":"structure",
+      "members":{
+        "MinSegmentConfidence":{"shape":"SegmentConfidence"}
+      }
+    },
+    "StartTextDetectionFilters":{
+      "type":"structure",
+      "members":{
+        "WordFilter":{"shape":"DetectionFilter"},
+        "RegionsOfInterest":{"shape":"RegionsOfInterest"}
+      }
+    },
+    "StartTextDetectionRequest":{
+      "type":"structure",
+      "required":["Video"],
+      "members":{
+        "Video":{"shape":"Video"},
+        "ClientRequestToken":{"shape":"ClientRequestToken"},
+        "NotificationChannel":{"shape":"NotificationChannel"},
+        "JobTag":{"shape":"JobTag"},
+        "Filters":{"shape":"StartTextDetectionFilters"}
+      }
+    },
+    "StartTextDetectionResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"}
       }
     },
     "StatusMessage":{"type":"string"},
@@ -2531,6 +2881,21 @@
         "Confidence":{"shape":"Percent"}
       }
     },
+    "TechnicalCueSegment":{
+      "type":"structure",
+      "members":{
+        "Type":{"shape":"TechnicalCueType"},
+        "Confidence":{"shape":"SegmentConfidence"}
+      }
+    },
+    "TechnicalCueType":{
+      "type":"string",
+      "enum":[
+        "ColorBars",
+        "EndCredits",
+        "BlackFrames"
+      ]
+    },
     "TestingData":{
       "type":"structure",
       "members":{
@@ -2560,6 +2925,17 @@
       "type":"list",
       "member":{"shape":"TextDetection"}
     },
+    "TextDetectionResult":{
+      "type":"structure",
+      "members":{
+        "Timestamp":{"shape":"Timestamp"},
+        "TextDetection":{"shape":"TextDetection"}
+      }
+    },
+    "TextDetectionResults":{
+      "type":"list",
+      "member":{"shape":"TextDetectionResult"}
+    },
     "TextTypes":{
       "type":"string",
       "enum":[
@@ -2574,6 +2950,7 @@
       "exception":true,
       "fault":true
     },
+    "Timecode":{"type":"string"},
     "Timestamp":{"type":"long"},
     "TrainingData":{
       "type":"structure",
@@ -2648,6 +3025,10 @@
         "FrameHeight":{"shape":"ULong"},
         "FrameWidth":{"shape":"ULong"}
       }
+    },
+    "VideoMetadataList":{
+      "type":"list",
+      "member":{"shape":"VideoMetadata"}
     },
     "VideoTooLargeException":{
       "type":"structure",

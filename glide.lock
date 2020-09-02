@@ -6,7 +6,7 @@ imports:
 - name: github.com/mongodb/grip
   version: 2e402613ba129030dffcf05f53f185ea52d350c2
 - name: github.com/aws/aws-sdk-go
-  version: bf58031807a077119bb7e2d93535a08fd353652d
+  version: d74b040ceb12d170bd1d5d62cc800efbc78ff129
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: gopkg.in/mgo.v2

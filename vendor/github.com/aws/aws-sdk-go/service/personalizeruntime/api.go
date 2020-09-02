@@ -199,10 +199,13 @@ type GetPersonalizedRankingInput struct {
 	// The contextual metadata to use when getting recommendations. Contextual metadata
 	// includes any interaction information that might be relevant when getting
 	// a user's recommendations, such as the user's current location or device type.
-	// For more information, see Contextual Metadata.
 	Context map[string]*string `locationName:"context" type:"map"`
 
-	// A list of items (itemId's) to rank. If an item was not included in the training
+	// The Amazon Resource Name (ARN) of a filter you created to include or exclude
+	// items from recommendations for a given user.
+	FilterArn *string `locationName:"filterArn" type:"string"`
+
+	// A list of items (by itemId) to rank. If an item was not included in the training
 	// dataset, the item is appended to the end of the reranked list. The maximum
 	// is 500.
 	//
@@ -256,6 +259,12 @@ func (s *GetPersonalizedRankingInput) SetContext(v map[string]*string) *GetPerso
 	return s
 }
 
+// SetFilterArn sets the FilterArn field's value.
+func (s *GetPersonalizedRankingInput) SetFilterArn(v string) *GetPersonalizedRankingInput {
+	s.FilterArn = &v
+	return s
+}
+
 // SetInputList sets the InputList field's value.
 func (s *GetPersonalizedRankingInput) SetInputList(v []*string) *GetPersonalizedRankingInput {
 	s.InputList = v
@@ -274,6 +283,9 @@ type GetPersonalizedRankingOutput struct {
 	// A list of items in order of most likely interest to the user. The maximum
 	// is 500.
 	PersonalizedRanking []*PredictedItem `locationName:"personalizedRanking" type:"list"`
+
+	// The ID of the recommendation.
+	RecommendationId *string `locationName:"recommendationId" type:"string"`
 }
 
 // String returns the string representation
@@ -292,6 +304,12 @@ func (s *GetPersonalizedRankingOutput) SetPersonalizedRanking(v []*PredictedItem
 	return s
 }
 
+// SetRecommendationId sets the RecommendationId field's value.
+func (s *GetPersonalizedRankingOutput) SetRecommendationId(v string) *GetPersonalizedRankingOutput {
+	s.RecommendationId = &v
+	return s
+}
+
 type GetRecommendationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -303,8 +321,13 @@ type GetRecommendationsInput struct {
 	// The contextual metadata to use when getting recommendations. Contextual metadata
 	// includes any interaction information that might be relevant when getting
 	// a user's recommendations, such as the user's current location or device type.
-	// For more information, see Contextual Metadata.
 	Context map[string]*string `locationName:"context" type:"map"`
+
+	// The ARN of the filter to apply to the returned recommendations. For more
+	// information, see Using Filters with Amazon Personalize (https://docs.aws.amazon.com/personalize/latest/dg/filters.html).
+	//
+	// When using this parameter, be sure the filter resource is ACTIVE.
+	FilterArn *string `locationName:"filterArn" type:"string"`
 
 	// The item ID to provide recommendations for.
 	//
@@ -355,6 +378,12 @@ func (s *GetRecommendationsInput) SetContext(v map[string]*string) *GetRecommend
 	return s
 }
 
+// SetFilterArn sets the FilterArn field's value.
+func (s *GetRecommendationsInput) SetFilterArn(v string) *GetRecommendationsInput {
+	s.FilterArn = &v
+	return s
+}
+
 // SetItemId sets the ItemId field's value.
 func (s *GetRecommendationsInput) SetItemId(v string) *GetRecommendationsInput {
 	s.ItemId = &v
@@ -379,6 +408,9 @@ type GetRecommendationsOutput struct {
 	// A list of recommendations sorted in ascending order by prediction score.
 	// There can be a maximum of 500 items in the list.
 	ItemList []*PredictedItem `locationName:"itemList" type:"list"`
+
+	// The ID of the recommendation.
+	RecommendationId *string `locationName:"recommendationId" type:"string"`
 }
 
 // String returns the string representation
@@ -397,10 +429,16 @@ func (s *GetRecommendationsOutput) SetItemList(v []*PredictedItem) *GetRecommend
 	return s
 }
 
+// SetRecommendationId sets the RecommendationId field's value.
+func (s *GetRecommendationsOutput) SetRecommendationId(v string) *GetRecommendationsOutput {
+	s.RecommendationId = &v
+	return s
+}
+
 // Provide a valid value for the field or parameter.
 type InvalidInputException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"message" type:"string"`
 }
@@ -417,17 +455,17 @@ func (s InvalidInputException) GoString() string {
 
 func newErrorInvalidInputException(v protocol.ResponseMetadata) error {
 	return &InvalidInputException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s InvalidInputException) Code() string {
+func (s *InvalidInputException) Code() string {
 	return "InvalidInputException"
 }
 
 // Message returns the exception's message.
-func (s InvalidInputException) Message() string {
+func (s *InvalidInputException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -435,22 +473,22 @@ func (s InvalidInputException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s InvalidInputException) OrigErr() error {
+func (s *InvalidInputException) OrigErr() error {
 	return nil
 }
 
-func (s InvalidInputException) Error() string {
+func (s *InvalidInputException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s InvalidInputException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *InvalidInputException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s InvalidInputException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *InvalidInputException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 // An object that identifies an item.
@@ -461,6 +499,10 @@ type PredictedItem struct {
 
 	// The recommended item ID.
 	ItemId *string `locationName:"itemId" type:"string"`
+
+	// A numeric representation of the model's certainty that the item will be the
+	// next user selection. For more information on scoring logic, see how-scores-work.
+	Score *float64 `locationName:"score" type:"double"`
 }
 
 // String returns the string representation
@@ -479,10 +521,16 @@ func (s *PredictedItem) SetItemId(v string) *PredictedItem {
 	return s
 }
 
+// SetScore sets the Score field's value.
+func (s *PredictedItem) SetScore(v float64) *PredictedItem {
+	s.Score = &v
+	return s
+}
+
 // The specified resource does not exist.
 type ResourceNotFoundException struct {
-	_            struct{} `type:"structure"`
-	respMetadata protocol.ResponseMetadata
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
 
 	Message_ *string `locationName:"message" type:"string"`
 }
@@ -499,17 +547,17 @@ func (s ResourceNotFoundException) GoString() string {
 
 func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
 	return &ResourceNotFoundException{
-		respMetadata: v,
+		RespMetadata: v,
 	}
 }
 
 // Code returns the exception type name.
-func (s ResourceNotFoundException) Code() string {
+func (s *ResourceNotFoundException) Code() string {
 	return "ResourceNotFoundException"
 }
 
 // Message returns the exception's message.
-func (s ResourceNotFoundException) Message() string {
+func (s *ResourceNotFoundException) Message() string {
 	if s.Message_ != nil {
 		return *s.Message_
 	}
@@ -517,20 +565,20 @@ func (s ResourceNotFoundException) Message() string {
 }
 
 // OrigErr always returns nil, satisfies awserr.Error interface.
-func (s ResourceNotFoundException) OrigErr() error {
+func (s *ResourceNotFoundException) OrigErr() error {
 	return nil
 }
 
-func (s ResourceNotFoundException) Error() string {
+func (s *ResourceNotFoundException) Error() string {
 	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
 }
 
 // Status code returns the HTTP status code for the request's response error.
-func (s ResourceNotFoundException) StatusCode() int {
-	return s.respMetadata.StatusCode
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
 }
 
 // RequestID returns the service's response RequestID for request.
-func (s ResourceNotFoundException) RequestID() string {
-	return s.respMetadata.RequestID
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
 }

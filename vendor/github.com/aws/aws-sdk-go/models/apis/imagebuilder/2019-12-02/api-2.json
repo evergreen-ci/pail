@@ -50,7 +50,8 @@
         {"shape":"CallRateLimitExceededException"},
         {"shape":"InvalidVersionNumberException"},
         {"shape":"ResourceInUseException"},
-        {"shape":"InvalidParameterCombinationException"}
+        {"shape":"InvalidParameterCombinationException"},
+        {"shape":"ServiceQuotaExceededException"}
       ]
     },
     "CreateDistributionConfiguration":{
@@ -71,7 +72,8 @@
         {"shape":"CallRateLimitExceededException"},
         {"shape":"ResourceInUseException"},
         {"shape":"ResourceAlreadyExistsException"},
-        {"shape":"InvalidParameterCombinationException"}
+        {"shape":"InvalidParameterCombinationException"},
+        {"shape":"ServiceQuotaExceededException"}
       ]
     },
     "CreateImage":{
@@ -90,7 +92,8 @@
         {"shape":"IdempotentParameterMismatchException"},
         {"shape":"ForbiddenException"},
         {"shape":"CallRateLimitExceededException"},
-        {"shape":"ResourceInUseException"}
+        {"shape":"ResourceInUseException"},
+        {"shape":"ServiceQuotaExceededException"}
       ]
     },
     "CreateImagePipeline":{
@@ -110,7 +113,8 @@
         {"shape":"ForbiddenException"},
         {"shape":"CallRateLimitExceededException"},
         {"shape":"ResourceInUseException"},
-        {"shape":"ResourceAlreadyExistsException"}
+        {"shape":"ResourceAlreadyExistsException"},
+        {"shape":"ServiceQuotaExceededException"}
       ]
     },
     "CreateImageRecipe":{
@@ -131,7 +135,8 @@
         {"shape":"CallRateLimitExceededException"},
         {"shape":"InvalidVersionNumberException"},
         {"shape":"ResourceInUseException"},
-        {"shape":"ResourceAlreadyExistsException"}
+        {"shape":"ResourceAlreadyExistsException"},
+        {"shape":"ServiceQuotaExceededException"}
       ]
     },
     "CreateInfrastructureConfiguration":{
@@ -151,7 +156,8 @@
         {"shape":"ForbiddenException"},
         {"shape":"CallRateLimitExceededException"},
         {"shape":"ResourceInUseException"},
-        {"shape":"ResourceAlreadyExistsException"}
+        {"shape":"ResourceAlreadyExistsException"},
+        {"shape":"ServiceQuotaExceededException"}
       ]
     },
     "DeleteComponent":{
@@ -798,6 +804,7 @@
         "name":{"shape":"AmiNameString"},
         "description":{"shape":"NonEmptyString"},
         "amiTags":{"shape":"TagMap"},
+        "kmsKeyId":{"shape":"NonEmptyString"},
         "launchPermission":{"shape":"LaunchPermissionConfiguration"}
       }
     },
@@ -809,7 +816,7 @@
       "type":"string",
       "max":127,
       "min":1,
-      "pattern":"^[-_A-Za-z0-9{][-_A-Za-z0-9\\s:{}]+[-_A-Za-z0-9}]$"
+      "pattern":"^[-_A-Za-z0-9{][-_A-Za-z0-9\\s:{}\\.]+[-_A-Za-z0-9}]$"
     },
     "Arn":{"type":"string"},
     "ArnList":{
@@ -869,6 +876,7 @@
         "changeDescription":{"shape":"NonEmptyString"},
         "type":{"shape":"ComponentType"},
         "platform":{"shape":"Platform"},
+        "supportedOsVersions":{"shape":"OsVersionList"},
         "owner":{"shape":"NonEmptyString"},
         "data":{"shape":"ComponentData"},
         "kmsKeyId":{"shape":"NonEmptyString"},
@@ -905,6 +913,7 @@
         "name":{"shape":"ResourceName"},
         "version":{"shape":"VersionNumber"},
         "platform":{"shape":"Platform"},
+        "supportedOsVersions":{"shape":"OsVersionList"},
         "type":{"shape":"ComponentType"},
         "owner":{"shape":"NonEmptyString"},
         "description":{"shape":"NonEmptyString"},
@@ -932,6 +941,7 @@
         "version":{"shape":"VersionNumber"},
         "description":{"shape":"NonEmptyString"},
         "platform":{"shape":"Platform"},
+        "supportedOsVersions":{"shape":"OsVersionList"},
         "type":{"shape":"ComponentType"},
         "owner":{"shape":"NonEmptyString"},
         "dateCreated":{"shape":"DateTime"}
@@ -963,6 +973,7 @@
         "description":{"shape":"NonEmptyString"},
         "changeDescription":{"shape":"NonEmptyString"},
         "platform":{"shape":"Platform"},
+        "supportedOsVersions":{"shape":"OsVersionList"},
         "data":{"shape":"InlineComponentData"},
         "uri":{"shape":"Uri"},
         "kmsKeyId":{"shape":"NonEmptyString"},
@@ -1022,6 +1033,7 @@
         "infrastructureConfigurationArn":{"shape":"InfrastructureConfigurationArn"},
         "distributionConfigurationArn":{"shape":"DistributionConfigurationArn"},
         "imageTestsConfiguration":{"shape":"ImageTestsConfiguration"},
+        "enhancedImageMetadataEnabled":{"shape":"NullableBoolean"},
         "schedule":{"shape":"Schedule"},
         "status":{"shape":"PipelineStatus"},
         "tags":{"shape":"TagMap"},
@@ -1056,6 +1068,7 @@
         "parentImage":{"shape":"NonEmptyString"},
         "blockDeviceMappings":{"shape":"InstanceBlockDeviceMappings"},
         "tags":{"shape":"TagMap"},
+        "workingDirectory":{"shape":"NonEmptyString"},
         "clientToken":{
           "shape":"ClientToken",
           "idempotencyToken":true
@@ -1082,6 +1095,7 @@
         "distributionConfigurationArn":{"shape":"DistributionConfigurationArn"},
         "infrastructureConfigurationArn":{"shape":"InfrastructureConfigurationArn"},
         "imageTestsConfiguration":{"shape":"ImageTestsConfiguration"},
+        "enhancedImageMetadataEnabled":{"shape":"NullableBoolean"},
         "tags":{"shape":"TagMap"},
         "clientToken":{
           "shape":"ClientToken",
@@ -1115,6 +1129,7 @@
         "keyPair":{"shape":"NonEmptyString"},
         "terminateInstanceOnFailure":{"shape":"NullableBoolean"},
         "snsTopicArn":{"shape":"SnsTopicArn"},
+        "resourceTags":{"shape":"ResourceTagMap"},
         "tags":{"shape":"TagMap"},
         "clientToken":{
           "shape":"ClientToken",
@@ -1378,7 +1393,7 @@
       "type":"structure",
       "members":{
         "requestId":{"shape":"NonEmptyString"},
-        "policy":{"shape":"NonEmptyString"}
+        "policy":{"shape":"ResourcePolicyDocument"}
       }
     },
     "GetComponentRequest":{
@@ -1386,7 +1401,7 @@
       "required":["componentBuildVersionArn"],
       "members":{
         "componentBuildVersionArn":{
-          "shape":"ComponentBuildVersionArn",
+          "shape":"ComponentVersionArnOrBuildVersionArn",
           "location":"querystring",
           "locationName":"componentBuildVersionArn"
         }
@@ -1450,7 +1465,7 @@
       "type":"structure",
       "members":{
         "requestId":{"shape":"NonEmptyString"},
-        "policy":{"shape":"NonEmptyString"}
+        "policy":{"shape":"ResourcePolicyDocument"}
       }
     },
     "GetImageRecipePolicyRequest":{
@@ -1468,7 +1483,7 @@
       "type":"structure",
       "members":{
         "requestId":{"shape":"NonEmptyString"},
-        "policy":{"shape":"NonEmptyString"}
+        "policy":{"shape":"ResourcePolicyDocument"}
       }
     },
     "GetImageRecipeRequest":{
@@ -1494,7 +1509,7 @@
       "required":["imageBuildVersionArn"],
       "members":{
         "imageBuildVersionArn":{
-          "shape":"ImageBuildVersionArn",
+          "shape":"ImageVersionArnOrBuildVersionArn",
           "location":"querystring",
           "locationName":"imageBuildVersionArn"
         }
@@ -1540,6 +1555,8 @@
         "name":{"shape":"ResourceName"},
         "version":{"shape":"VersionNumber"},
         "platform":{"shape":"Platform"},
+        "enhancedImageMetadataEnabled":{"shape":"NullableBoolean"},
+        "osVersion":{"shape":"OsVersion"},
         "state":{"shape":"ImageState"},
         "imageRecipe":{"shape":"ImageRecipe"},
         "sourcePipelineName":{"shape":"ResourceName"},
@@ -1567,6 +1584,7 @@
         "name":{"shape":"ResourceName"},
         "description":{"shape":"NonEmptyString"},
         "platform":{"shape":"Platform"},
+        "enhancedImageMetadataEnabled":{"shape":"NullableBoolean"},
         "imageRecipeArn":{"shape":"Arn"},
         "infrastructureConfigurationArn":{"shape":"Arn"},
         "distributionConfigurationArn":{"shape":"Arn"},
@@ -1601,7 +1619,8 @@
         "parentImage":{"shape":"NonEmptyString"},
         "blockDeviceMappings":{"shape":"InstanceBlockDeviceMappings"},
         "dateCreated":{"shape":"DateTime"},
-        "tags":{"shape":"TagMap"}
+        "tags":{"shape":"TagMap"},
+        "workingDirectory":{"shape":"NonEmptyString"}
       }
     },
     "ImageRecipeArn":{
@@ -1654,6 +1673,7 @@
         "name":{"shape":"ResourceName"},
         "version":{"shape":"VersionNumber"},
         "platform":{"shape":"Platform"},
+        "osVersion":{"shape":"OsVersion"},
         "state":{"shape":"ImageState"},
         "owner":{"shape":"NonEmptyString"},
         "dateCreated":{"shape":"DateTime"},
@@ -1684,6 +1704,7 @@
         "name":{"shape":"ResourceName"},
         "version":{"shape":"VersionNumber"},
         "platform":{"shape":"Platform"},
+        "osVersion":{"shape":"OsVersion"},
         "owner":{"shape":"NonEmptyString"},
         "dateCreated":{"shape":"DateTime"}
       }
@@ -1691,6 +1712,10 @@
     "ImageVersionArn":{
       "type":"string",
       "pattern":"^arn:aws[^:]*:imagebuilder:[^:]+:(?:\\d{12}|aws):image/[a-z0-9-_]+/\\d+\\.\\d+\\.\\d+$"
+    },
+    "ImageVersionArnOrBuildVersionArn":{
+      "type":"string",
+      "pattern":"^arn:aws[^:]*:imagebuilder:[^:]+:(?:\\d{12}|aws):image/[a-z0-9-_]+/(?:(?:(\\d+|x)\\.(\\d+|x)\\.(\\d+|x))|(?:\\d+\\.\\d+\\.\\d+/\\d+))$"
     },
     "ImageVersionList":{
       "type":"list",
@@ -1748,6 +1773,7 @@
         "snsTopicArn":{"shape":"NonEmptyString"},
         "dateCreated":{"shape":"DateTime"},
         "dateUpdated":{"shape":"DateTime"},
+        "resourceTags":{"shape":"ResourceTagMap"},
         "tags":{"shape":"TagMap"}
       }
     },
@@ -1763,6 +1789,7 @@
         "description":{"shape":"NonEmptyString"},
         "dateCreated":{"shape":"DateTime"},
         "dateUpdated":{"shape":"DateTime"},
+        "resourceTags":{"shape":"ResourceTagMap"},
         "tags":{"shape":"TagMap"}
       }
     },
@@ -2056,6 +2083,16 @@
       "min":1
     },
     "NullableBoolean":{"type":"boolean"},
+    "OsVersion":{
+      "type":"string",
+      "min":1
+    },
+    "OsVersionList":{
+      "type":"list",
+      "member":{"shape":"OsVersion"},
+      "max":25,
+      "min":1
+    },
     "OutputResources":{
       "type":"structure",
       "members":{
@@ -2099,7 +2136,7 @@
       ],
       "members":{
         "componentArn":{"shape":"ComponentBuildVersionArn"},
-        "policy":{"shape":"NonEmptyString"}
+        "policy":{"shape":"ResourcePolicyDocument"}
       }
     },
     "PutComponentPolicyResponse":{
@@ -2117,7 +2154,7 @@
       ],
       "members":{
         "imageArn":{"shape":"ImageBuildVersionArn"},
-        "policy":{"shape":"NonEmptyString"}
+        "policy":{"shape":"ResourcePolicyDocument"}
       }
     },
     "PutImagePolicyResponse":{
@@ -2135,7 +2172,7 @@
       ],
       "members":{
         "imageRecipeArn":{"shape":"ImageRecipeArn"},
-        "policy":{"shape":"NonEmptyString"}
+        "policy":{"shape":"ResourcePolicyDocument"}
       }
     },
     "PutImageRecipePolicyResponse":{
@@ -2181,6 +2218,18 @@
       "error":{"httpStatusCode":404},
       "exception":true
     },
+    "ResourcePolicyDocument":{
+      "type":"string",
+      "max":30000,
+      "min":1
+    },
+    "ResourceTagMap":{
+      "type":"map",
+      "key":{"shape":"TagKey"},
+      "value":{"shape":"TagValue"},
+      "max":30,
+      "min":1
+    },
     "RestrictedInteger":{
       "type":"integer",
       "max":25,
@@ -2210,6 +2259,14 @@
         "message":{"shape":"ErrorMessage"}
       },
       "error":{"httpStatusCode":500},
+      "exception":true
+    },
+    "ServiceQuotaExceededException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "error":{"httpStatusCode":402},
       "exception":true
     },
     "ServiceUnavailableException":{
@@ -2357,6 +2414,7 @@
         "infrastructureConfigurationArn":{"shape":"InfrastructureConfigurationArn"},
         "distributionConfigurationArn":{"shape":"DistributionConfigurationArn"},
         "imageTestsConfiguration":{"shape":"ImageTestsConfiguration"},
+        "enhancedImageMetadataEnabled":{"shape":"NullableBoolean"},
         "schedule":{"shape":"Schedule"},
         "status":{"shape":"PipelineStatus"},
         "clientToken":{
@@ -2394,7 +2452,8 @@
         "clientToken":{
           "shape":"ClientToken",
           "idempotencyToken":true
-        }
+        },
+        "resourceTags":{"shape":"ResourceTagMap"}
       }
     },
     "UpdateInfrastructureConfigurationResponse":{
