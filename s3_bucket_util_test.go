@@ -105,7 +105,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				require.NoError(t, err)
 				fileName := filepath.Join(homeDir, ".aws", "credentials")
 
-				if _, err := os.Stat(fileName); os.IsNotExist(err) {
+				if _, err = os.Stat(fileName); os.IsNotExist(err) {
 					t.Skip("static credentials file not present")
 				}
 				require.NoError(t, b.Check(ctx))
@@ -384,7 +384,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				require.NoError(t, err)
 				fileName := filepath.Join(homeDir, ".aws", "credentials")
 
-				if _, err := os.Stat(fileName); os.IsNotExist(err) {
+				if _, err = os.Stat(fileName); os.IsNotExist(err) {
 					t.Skip("static credentials file not present")
 				}
 
