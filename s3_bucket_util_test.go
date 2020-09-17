@@ -101,6 +101,15 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 			test: func(t *testing.T, b Bucket) {
 				require.NoError(t, b.Check(ctx))
 
+				homeDir, err := homedir.Dir()
+				require.NoError(t, err)
+				fileName := filepath.Join(homeDir, ".aws", "credentials")
+
+				if _, err := os.Stat(fileName); os.IsNotExist(err) {
+					t.Skip("static credentials file not present")
+				}
+				require.NoError(t, b.Check(ctx))
+
 				sharedCredsOptions := S3Options{
 					SharedCredentialsProfile: "default",
 					Region:                   s3Region,
@@ -108,15 +117,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				}
 				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
 				require.NoError(t, err)
-				homeDir, err := homedir.Dir()
-				require.NoError(t, err)
-				fileName := filepath.Join(homeDir, ".aws", "credentials")
-				_, err = os.Stat(fileName)
-				if err == nil {
-					assert.NoError(t, sharedCredsBucket.Check(ctx))
-				} else {
-					assert.True(t, os.IsNotExist(err))
-				}
+				assert.NoError(t, sharedCredsBucket.Check(ctx))
 			},
 		},
 		{
@@ -379,6 +380,14 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 			test: func(t *testing.T, b Bucket) {
 				require.NoError(t, b.Check(ctx))
 
+				homeDir, err := homedir.Dir()
+				require.NoError(t, err)
+				fileName := filepath.Join(homeDir, ".aws", "credentials")
+
+				if _, err := os.Stat(fileName); os.IsNotExist(err) {
+					t.Skip("static credentials file not present")
+				}
+
 				sharedCredsOptions := S3Options{
 					SharedCredentialsProfile: "default",
 					Region:                   s3Region,
@@ -386,15 +395,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				}
 				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
 				require.NoError(t, err)
-				homeDir, err := homedir.Dir()
-				require.NoError(t, err)
-				fileName := filepath.Join(homeDir, ".aws", "credentials")
-				_, err = os.Stat(fileName)
-				if err == nil {
-					assert.NoError(t, sharedCredsBucket.Check(ctx))
-				} else {
-					assert.True(t, os.IsNotExist(err))
-				}
+				assert.NoError(t, sharedCredsBucket.Check(ctx))
 			},
 		},
 		{
