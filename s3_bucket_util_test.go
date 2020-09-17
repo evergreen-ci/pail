@@ -130,9 +130,8 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Name:                     s3BucketName,
 				}
 				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
-				assert.NoError(t, err)
-				_, err = sharedCredsBucket.List(ctx, "")
 				assert.Error(t, err)
+				assert.Zero(t, sharedCredsBucket)
 			},
 		},
 		{
@@ -409,9 +408,8 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Name:                     s3BucketName,
 				}
 				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
-				assert.NoError(t, err)
-				_, err = sharedCredsBucket.List(ctx, "")
 				assert.Error(t, err)
+				assert.Zero(t, sharedCredsBucket)
 			},
 		},
 		{
