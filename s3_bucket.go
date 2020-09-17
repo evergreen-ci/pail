@@ -166,18 +166,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		MaxRetries: aws.Int(options.MaxRetries),
 	}
 
-	if options.SharedCredentialsProfile != "" {
-		prev := os.Getenv("AWS_PROFILE")
-		if err := os.Setenv("AWS_PROFILE", options.SharedCredentialsProfile); err != nil {
-			return nil, errors.Wrap(err, "problem setting AWS_PROFILE env var")
-		}
-		defer func() {
-			if err := os.Setenv("AWS_PROFILE", prev); err != nil {
-				grip.Error(errors.Wrap(err, "problem setting back AWS_PROFILE env var"))
-			}
-		}()
-	}
-	if options.SharedCredentialsFilepath != "" {
+	if options.SharedCredentialsFilepath != "" || options.SharedCredentialsProfile != "" {
 		sharedCredentials := credentials.NewSharedCredentials(options.SharedCredentialsFilepath, options.SharedCredentialsProfile)
 		_, err := sharedCredentials.Get()
 		if err != nil {
