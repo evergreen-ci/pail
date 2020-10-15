@@ -123,6 +123,7 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/pkg/errors
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/stretchr/testify
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/go.mongodb.org/mongo-driver
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/mongodb/amboy/vendor/gopkg.in/mgo.v2/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/mongodb/ftdc/vendor/go.mongodb.org/mongo-driver/
 	# Note: we have a circular dependency problem between pail and poplar
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/pail
