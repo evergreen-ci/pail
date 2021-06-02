@@ -1,6 +1,6 @@
 buildDir := build
 name := pail
-packages := $(name)
+packages := $(name) ecs
 projectPath := github.com/evergreen-ci/pail
 
 
@@ -105,6 +105,19 @@ lint:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
 phony += lint $(buildDir) test coverage coverage-html
 .PRECIOUS: $(coverageOutput) $(coverageHtmlOutput) $(lintOutput) $(testOutput)
 # end front-ends
+
+
+# convenience targets for running tests and coverage tasks on a
+# specific package.
+test-%: $(buildDir)/output.%.test
+	
+coverage-%: $(buildDir)/output.%.coverage
+	
+html-coverage-%: $(buildDir)/output.%.coverage.html
+	
+lint-%: $(buildDir)/output.%.lint
+	
+# end convienence targets
 
 
 compile $(buildDir):

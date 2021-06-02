@@ -7,9 +7,8 @@ ignore:
 #######################################
 variables:
   - &run-build
-    # runs a build operations. The task name in evergreen should
+    # runs a build operation. The task name in evergreen should
     # correspond to a make target for the build operation.
-    name: test
     commands:
       - command: git.get_project
         type: system
@@ -33,7 +32,6 @@ variables:
   - &run-build-with-mongodb
     # runs a make target above, but only on systems that have a
     # running mongod started for testing.
-    name: test
     commands:
       - command: git.get_project
         type: system
@@ -117,6 +115,7 @@ tasks:
   # a template that does not include test result parsing.
   - name: lint
     tags: ["report"]
+    must_have_test_results: true
     commands:
       - command: git.get_project
         type: system
@@ -127,6 +126,7 @@ tasks:
 
   - name: coverage
     tags: [ "report" ]
+    must_have_test_results: true
     commands:
       - command: git.get_project
         type: system
@@ -139,7 +139,8 @@ tasks:
 
   - <<: *run-build-with-mongodb
     tags: ["test"]
-    name: test
+    name: test-pail
+    must_have_test_results: true
 
 #######################################
 #           Buildvariants             #
