@@ -14,12 +14,15 @@ type Client interface {
 	// RegisterTaskDefinition registers the definition for a new task with ECS.
 	RegisterTaskDefinition(context.Context, *ecs.RegisterTaskDefinitionInput) (*ecs.RegisterTaskDefinitionOutput, error)
 	// DeregisterTaskDefinition deregisters an existing ECS task definition.
-	DeregisterTaskDefinition(context.Context, *ecs.DeregisterTaskDefinitionInput) (*ecs.DeregisterContainerInstanceOutput, error)
+	DeregisterTaskDefinition(ctx context.Context, id string) (*ecs.DeregisterContainerInstanceOutput, error)
 	// RunTask runs a registered task.
-	RunTask(context.Context, *ecs.RunTaskInput) (*ecs.RunTaskOutput, error)
+	RunTask(ctx context.Context, in *ecs.RunTaskInput) (*ecs.RunTaskOutput, error)
+	// Close closes the client and cleans up its resources. Implementations
+	// should ensure that this is idempotent.
+	Close(ctx context.Context) error
 }
 
-// ECSClient provides an implementation that wraps the ECS API.
+// ECSClient provides a Client implementation that wraps the ECS API.
 type ECSClient struct {
 }
 
@@ -33,4 +36,8 @@ func (c *ECSClient) DeregisterTaskDefinition(context.Context, *ecs.RegisterTaskD
 
 func (c *ECSClient) RunTask(context.Context, *ecs.RegisterTaskDefinitionInput) (*ecs.RegisterContainerInstanceOutput, error) {
 	return nil, errors.New("TODO: implement")
+}
+
+func (c *ECSClient) Close(ctx context.Context) error {
+	return errors.New("TODO: implement")
 }
