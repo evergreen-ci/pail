@@ -14,7 +14,7 @@ type Client interface {
 	// RegisterTaskDefinition registers the definition for a new task with ECS.
 	RegisterTaskDefinition(context.Context, *ecs.RegisterTaskDefinitionInput) (*ecs.RegisterTaskDefinitionOutput, error)
 	// DeregisterTaskDefinition deregisters an existing ECS task definition.
-	DeregisterTaskDefinition(ctx context.Context, id string) (*ecs.DeregisterContainerInstanceOutput, error)
+	DeregisterTaskDefinition(ctx context.Context, in *ecs.DeregisterTaskDefinitionInput) (*ecs.DeregisterContainerInstanceOutput, error)
 	// RunTask runs a registered task.
 	RunTask(ctx context.Context, in *ecs.RunTaskInput) (*ecs.RunTaskOutput, error)
 	// Close closes the client and cleans up its resources. Implementations
