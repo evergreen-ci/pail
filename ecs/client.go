@@ -23,8 +23,7 @@ type Client interface {
 }
 
 // ECSClient provides a Client implementation that wraps the ECS API.
-type ECSClient struct {
-}
+type ECSClient struct{}
 
 func (c *ECSClient) RegisterTaskDefinition(context.Context, *ecs.RegisterTaskDefinitionInput) (*ecs.RegisterContainerInstanceOutput, error) {
 	return nil, errors.New("TODO: implement")
