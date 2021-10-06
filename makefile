@@ -1,6 +1,7 @@
 buildDir := build
 name := pail
 packages := $(name)
+compilePackages := $(subst $(name),,$(subst -,/,$(foreach target,$(packages),./$(target))))
 projectPath := github.com/evergreen-ci/pail
 
 # start environment setup
