@@ -87,6 +87,18 @@ benchmark:
 lint: $(lintOutput)
 
 phony += compile lint test coverage coverage-html benchmark
+
+# start convenience targets for running tests and coverage tasks on a
+# specific package.
+test-%: $(buildDir)/output.%.test
+	
+coverage-%: $(buildDir)/output.%.coverage
+	
+html-coverage-%: $(buildDir)/output.%.coverage.html
+	
+lint-%: $(buildDir)/output.%.lint
+	
+# end convenience targets
 # end basic development operations
 
 # start test and coverage artifacts
