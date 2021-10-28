@@ -40,7 +40,10 @@ func TestWalkTree(t *testing.T) {
 		if runtime.GOOS == "windows" {
 			t.Skip("git symlinks do not work on windows")
 		}
-		vendor, err := walkLocalTree(ctx, "vendor")
+		// This test requires that the benchmarks directory exists and there is
+		// a symlink to it in the testdata directory.
+		benchmarksDir := "benchmarks"
+		benchmarks, err := walkLocalTree(ctx, benchmarksDir)
 		require.NoError(t, err)
 
 		out, err := walkLocalTree(ctx, "testdata")
@@ -52,8 +55,8 @@ func TestWalkTree(t *testing.T) {
 		}
 		assert.True(t, fnMap["a_file.txt"])
 		assert.True(t, fnMap["z_file.txt"])
-		for _, fn := range vendor {
-			require.True(t, fnMap[filepath.Join("vendor", fn)])
+		for _, fn := range benchmarks {
+			require.True(t, fnMap[filepath.Join(benchmarksDir, fn)])
 		}
 	})
 }

@@ -1054,10 +1054,10 @@ func TestBucket(t *testing.T) {
 			t.Run("DownloadWithBadFileName", func(t *testing.T) {
 				bucket := impl.constructor(t)
 				// This breaks the convention in the tests where we use the
-				// null terminator ('\x00') to simualte an invalid key name
+				// null terminator ('\x00') to simulate an invalid key name
 				// because it causes Download to hang on newer version of the
 				// AWS SDK.
-				err := bucket.Download(ctx, "fileIWant", "loc")
+				err := bucket.Download(ctx, "fileIWant", filepath.Join(tempdir, "loc"))
 				assert.Error(t, err)
 			})
 			t.Run("DownloadBadDirectory", func(t *testing.T) {
