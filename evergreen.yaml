@@ -114,8 +114,18 @@ tasks:
     tags: ["report"]
     name: lint-pail
 
+  - name: verify-mod-tidy
+    tags: ["report"]
+    commands:
+      - command: git.get_project
+        type: system
+        params:
+          directory: cedar
+      - func: run-make
+        vars: { target: "${task_name}" }
+
   - <<: *run-build-with-mongodb
-    tags: [ "report" ]
+    tags: ["report"]
     name: coverage-html
 
   - <<: *run-build-with-mongodb
