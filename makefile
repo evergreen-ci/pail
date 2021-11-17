@@ -72,8 +72,8 @@ $(buildDir)/run-benchmarks: cmd/run-benchmarks/run-benchmarks.go
 testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
 lintOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).lint)
 coverageOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage)
-coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage.html)
-.PRECIOUS: $(coverageOutput) $(coverageHtmlOutput) $(lintOutput) $(testOutput)
+htmlCoverageOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage.html)
+.PRECIOUS: $(coverageOutput) $(htmlCoverageOutput) $(lintOutput) $(testOutput)
 # end output files
 
 # start basic development operations
@@ -81,12 +81,12 @@ compile:
 	$(gobin) build $(compilePackages)
 test: $(testOutput)
 coverage: $(coverageOutput)
-coverage-html: $(coverageHtmlOutput)
+html-coverage: $(htmlCoverageOutput)
 benchmark:
 	$(gobin) test -v -benchmem -bench=. -run="Benchmark.*" -timeout=20m
 lint: $(lintOutput)
 
-phony += compile lint test coverage coverage-html benchmark
+phony += compile lint test coverage html-coverage benchmark
 
 # start convenience targets for running tests and coverage tasks on a
 # specific package.
@@ -103,9 +103,6 @@ lint-%: $(buildDir)/output.%.lint
 
 # start test and coverage artifacts
 testArgs := -v
-ifeq (,$(DISABLE_COVERAGE))
-	testArgs += -cover
-endif
 ifneq (,$(RACE_DETECTOR))
 	testArgs += -race
 endif
