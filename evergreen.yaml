@@ -126,7 +126,7 @@ tasks:
 
   - <<: *run-build-with-mongodb
     tags: ["report"]
-    name: coverage-html
+    name: html-coverage
 
   - <<: *run-build-with-mongodb
     tags: ["test"]
