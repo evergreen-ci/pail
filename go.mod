@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/aws/aws-sdk-go v1.43.8
 	github.com/evergreen-ci/poplar v0.0.0-20211028170046-0999224b53df
-	github.com/evergreen-ci/utility v0.0.0-20211026201827-97b21fa2660a
+	github.com/evergreen-ci/utility v0.0.0-20220302150552-3f7a1a268ea7
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
