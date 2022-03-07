@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/evergreen-ci/utility"
@@ -38,7 +39,7 @@ const (
 	S3PermissionsBucketOwnerFullControl S3Permissions = s3.ObjectCannedACLBucketOwnerFullControl
 )
 
-// Validate s3 permissions.
+// Validate checks that the S3Permissions string is valid.
 func (p S3Permissions) Validate() error {
 	switch p {
 	case S3PermissionsPublicRead, S3PermissionsPublicReadWrite:
@@ -101,7 +102,7 @@ type S3Options struct {
 	UseSingleFileChecksums bool
 	// Verbose sets the logging mode to "debug".
 	Verbose bool
-	// MaxRetries sets the number of retry attempts for s3 operations.
+	// MaxRetries sets the number of retry attempts for S3 operations.
 	MaxRetries int
 	// Credentials allows the passing in of explicit AWS credentials. These
 	// will override the default credentials chain. (Optional)
@@ -109,9 +110,19 @@ type S3Options struct {
 	// SharedCredentialsFilepath, when not empty, will override the default
 	// credentials chain and the Credentials value (see above). (Optional)
 	SharedCredentialsFilepath string
-	// SharedCredentialsProfile, when not empty, will temporarily set the
-	// AWS_PROFILE environment variable to its value. (Optional)
+	// SharedCredentialsProfile, when not empty, will fetch the given
+	// credentials profile from the shared credentials file. (Optional)
 	SharedCredentialsProfile string
+	// AssumeRoleARN specifies an IAM role ARN. When not empty, it will be
+	// used to assume the given role for this session. See
+	// `https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html` for
+	// more information. (Optional)
+	AssumeRoleARN string
+	// AssumeRoleOptions provide a mechanism to override defaults by
+	// applying changes to the AssumeRoleProvider struct created with this
+	// session. This field is ignored if AssumeRoleARN is not set.
+	// (Optional)
+	AssumeRoleOptions []func(*stscreds.AssumeRoleProvider)
 	// Region specifies the AWS region.
 	Region string
 	// Name specifies the name of the bucket.
@@ -183,9 +194,17 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 
 	sess, err := session.NewSession(config)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem connecting to AWS")
+		return nil, errors.Wrap(err, "connecting to AWS")
 	}
-	svc := s3.New(sess)
+
+	var svcConfigs []*aws.Config
+	if options.AssumeRoleARN != "" {
+		svcConfigs = append(svcConfigs, &aws.Config{
+			Credentials: stscreds.NewCredentials(sess, options.AssumeRoleARN, options.AssumeRoleOptions...),
+		})
+	}
+
+	svc := s3.New(sess, svcConfigs...)
 	return &s3Bucket{
 		name:                options.Name,
 		prefix:              options.Prefix,
@@ -205,7 +224,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 
 // NewS3Bucket returns a Bucket implementation backed by S3. This
 // implementation does not support multipart uploads, if you would like to add
-// objects larger than 5 gigabytes see `NewS3MultiPartBucket`.
+// objects larger than 5 gigabytes see NewS3MultiPartBucket.
 func NewS3Bucket(options S3Options) (Bucket, error) {
 	bucket, err := newS3BucketBase(nil, options)
 	if err != nil {
@@ -217,7 +236,7 @@ func NewS3Bucket(options S3Options) (Bucket, error) {
 // NewS3BucketWithHTTPClient returns a Bucket implementation backed by S3 with
 // an existing HTTP client connection. This implementation does not support
 // multipart uploads, if you would like to add objects larger than 5
-// gigabytes see `NewS3MultiPartBucket`.
+// gigabytes see NewS3MultiPartBucket.
 func NewS3BucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
 	bucket, err := newS3BucketBase(client, options)
 	if err != nil {
@@ -233,7 +252,8 @@ func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
 	if err != nil {
 		return nil, err
 	}
-	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
+	// 5MB is the minimum size for a multipart upload, so buffer needs to
+	// be at least that big.
 	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 1024 * 1024 * 5}, nil
 }
 
@@ -245,7 +265,8 @@ func NewS3MultiPartBucketWithHTTPClient(client *http.Client, options S3Options) 
 	if err != nil {
 		return nil, err
 	}
-	// 5MB is the minimum size for a multipart upload, so buffer needs to be at least that big.
+	// 5MB is the minimum size for a multipart upload, so buffer needs to
+	// be at least that big.
 	return &s3BucketLarge{s3Bucket: *bucket, minPartSize: 1024 * 1024 * 5}, nil
 }
 
@@ -257,7 +278,7 @@ func (s *s3Bucket) Check(ctx context.Context) error {
 	}
 
 	_, err := s.svc.HeadBucketWithContext(ctx, input)
-	// aside from a 404 Not Found error, HEAD bucket returns a 403
+	// Aside from a 404 Not Found error, HEAD bucket returns a 403
 	// Forbidden error. If the latter is the case, that is OK because
 	// we know the bucket exists and the given credentials may have
 	// access to a sub-bucket. See
@@ -1011,7 +1032,8 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 		count := 0
 		toDelete := &s3.Delete{}
 		for _, key := range keys {
-			// key limit for s3.DeleteObjectsWithContext, call function and reset
+			// Key limit for s3.DeleteObjectsWithContext, call
+			// function and reset.
 			if count == s.batchSize {
 				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 				count = 0
@@ -1187,8 +1209,8 @@ func NewS3ArchiveBucket(options S3Options) (SyncBucket, error) {
 	return newS3ArchiveBucketWithMultiPart(bucket, options)
 }
 
-// NewS3ArchiveBucketWithHTTPClient is the same as NewS3ArchiveBucket but allows
-// the user to specify an existing HTTP client connection.
+// NewS3ArchiveBucketWithHTTPClient is the same as NewS3ArchiveBucket but
+// allows the user to specify an existing HTTP client connection.
 func NewS3ArchiveBucketWithHTTPClient(client *http.Client, options S3Options) (SyncBucket, error) {
 	bucket, err := NewS3MultiPartBucketWithHTTPClient(client, options)
 	if err != nil {
@@ -1208,9 +1230,9 @@ func newS3ArchiveBucketWithMultiPart(bucket Bucket, options S3Options) (*s3Archi
 const syncArchiveName = "archive.tar"
 
 // Push pushes the contents from opts.Local to the archive prefixed by
-// opts.Remote. This operation automatically performs DeleteOnSync in the remote
-// regardless of the bucket setting. UseSingleFileChecksums is ignored if it is
-// set on the bucket.
+// opts.Remote. This operation automatically performs DeleteOnSync in the
+// remote regardless of the bucket setting. UseSingleFileChecksums is ignored
+// if it is set on the bucket.
 func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",
@@ -1254,8 +1276,9 @@ func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 		}
 
 		file := filepath.Join(opts.Local, fn)
-		// We can't compare the checksum without processing all the local
-		// matched files as a tar stream, so just upload it unconditionally.
+		// We can't compare the checksum without processing all the
+		// local matched files as a tar stream, so just upload it
+		// unconditionally.
 		if err := tarFile(tarWriter, opts.Local, fn); err != nil {
 			return errors.Wrap(err, file)
 		}

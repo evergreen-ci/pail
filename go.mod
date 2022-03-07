@@ -10,6 +10,7 @@ require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mongodb/grip v0.0.0-20211018154934-e661a71929d5
