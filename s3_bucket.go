@@ -197,7 +197,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		return nil, errors.Wrap(err, "connecting to AWS")
 	}
 
-	svcConfigs := []*aws.Config{}
+	var svcConfigs []*aws.Config
 	if options.AssumeRoleARN != "" {
 		svcConfigs = append(svcConfigs, &aws.Config{
 			Credentials: stscreds.NewCredentials(sess, options.AssumeRoleARN, options.AssumeRoleOptions...),
