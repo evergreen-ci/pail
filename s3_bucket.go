@@ -187,7 +187,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	} else if options.Credentials != nil {
 		_, err := options.Credentials.Get()
 		if err != nil {
-			return nil, errors.Wrap(err, "invalid credentials!")
+			return nil, errors.Wrap(err, "invalid credentials")
 		}
 		config.Credentials = options.Credentials
 	}
@@ -286,7 +286,7 @@ func (s *s3Bucket) Check(ctx context.Context) error {
 	// for more information.
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NotFound" {
-			return errors.Wrap(err, "problem finding bucket")
+			return errors.Wrap(err, "finding bucket")
 		}
 	}
 	return nil
@@ -347,7 +347,7 @@ func (w *largeWriteCloser) create() error {
 
 		result, err := w.svc.CreateMultipartUploadWithContext(w.ctx, input)
 		if err != nil {
-			return errors.Wrap(err, "problem creating a multipart upload")
+			return errors.Wrap(err, "creating a multipart upload")
 		}
 		w.uploadID = *result.UploadId
 	}
@@ -379,9 +379,9 @@ func (w *largeWriteCloser) complete() error {
 		if err != nil {
 			abortErr := w.abort()
 			if abortErr != nil {
-				return errors.Wrap(abortErr, "problem aborting multipart upload")
+				return errors.Wrap(abortErr, "aborting multipart upload")
 			}
-			return errors.Wrap(err, "problem completing multipart upload")
+			return errors.Wrap(err, "completing multipart upload")
 		}
 	}
 	return nil
@@ -433,9 +433,9 @@ func (w *largeWriteCloser) flush() error {
 		if err != nil {
 			abortErr := w.abort()
 			if abortErr != nil {
-				return errors.Wrap(abortErr, "problem aborting multipart upload")
+				return errors.Wrap(abortErr, "aborting multipart upload")
 			}
-			return errors.Wrap(err, "problem uploading part")
+			return errors.Wrap(err, "uploading part")
 		}
 		w.completedParts = append(w.completedParts, &s3.CompletedPart{
 			ETag:       result.ETag,
@@ -514,7 +514,7 @@ func (w *smallWriteCloser) Close() error {
 	}
 
 	_, err := w.svc.PutObjectWithContext(w.ctx, input)
-	return errors.Wrap(err, "problem copying data to file")
+	return errors.Wrap(err, "copying data to file")
 
 }
 
@@ -650,7 +650,7 @@ func putHelper(ctx context.Context, b Bucket, key string, r io.Reader) error {
 	_, err = io.Copy(f, r)
 	if err != nil {
 		_ = f.Close()
-		return errors.Wrap(err, "problem copying data to file")
+		return errors.Wrap(err, "copying data to file")
 	}
 	return errors.WithStack(f.Close())
 }
@@ -696,7 +696,7 @@ func (s *s3Bucket) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, target, file string) (bool, error) {
 	localmd5, err := utility.MD5SumFile(file)
 	if err != nil {
-		return false, errors.Wrapf(err, "problem checksumming '%s'", file)
+		return false, errors.Wrapf(err, "checksumming '%s'", file)
 	}
 	input := &s3.HeadObjectInput{
 		Bucket:  aws.String(s.name),
@@ -710,13 +710,13 @@ func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, target, file 
 		}
 	}
 
-	return false, errors.Wrapf(err, "problem with checksum for '%s'", target)
+	return false, errors.Wrapf(err, "checking if object '%s' exists", target)
 }
 
 func doUpload(ctx context.Context, b Bucket, key, path string) error {
 	f, err := os.Open(path)
 	if err != nil {
-		return errors.Wrapf(err, "problem opening file %s", path)
+		return errors.Wrapf(err, "opening file '%s'", path)
 	}
 	defer f.Close()
 
@@ -762,17 +762,17 @@ func doDownload(ctx context.Context, b Bucket, key, path string) error {
 	}
 
 	if err = os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-		return errors.Wrapf(err, "problem creating enclosing directory for '%s'", path)
+		return errors.Wrapf(err, "creating enclosing directory for file '%s'", path)
 	}
 
 	f, err := os.Create(path)
 	if err != nil {
-		return errors.Wrapf(err, "problem creating file '%s'", path)
+		return errors.Wrapf(err, "creating file '%s'", path)
 	}
 	_, err = io.Copy(f, reader)
 	if err != nil {
 		_ = f.Close()
-		return errors.Wrap(err, "problem copying data")
+		return errors.Wrap(err, "copying data")
 	}
 
 	return errors.WithStack(f.Close())
@@ -845,7 +845,7 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 	if opts.Exclude != "" {
 		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
-			return errors.Wrap(err, "problem compiling exclude regex")
+			return errors.Wrap(err, "compiling exclude regex")
 		}
 	}
 
@@ -874,7 +874,7 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 	}
 
 	if s.deleteOnPush && !s.dryRun {
-		return errors.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "problem with delete on sync after push")
+		return errors.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "deleting on sync after push")
 	}
 	return nil
 }
@@ -902,7 +902,7 @@ func (s *s3Bucket) pullHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 	if opts.Exclude != "" {
 		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
-			return errors.Wrap(err, "problem compiling exclude regex")
+			return errors.Wrap(err, "compiling exclude regex")
 		}
 	}
 
@@ -914,7 +914,7 @@ func (s *s3Bucket) pullHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 	keys := []string{}
 	for iter.Next(ctx) {
 		if iter.Err() != nil {
-			return errors.Wrap(err, "problem iterating bucket")
+			return errors.Wrap(err, "iterating bucket")
 		}
 
 		if re != nil && re.MatchString(iter.Item().Name()) {
@@ -923,7 +923,7 @@ func (s *s3Bucket) pullHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 
 		name, err := filepath.Rel(opts.Remote, iter.Item().Name())
 		if err != nil {
-			return errors.Wrap(err, "problem getting relative filepath")
+			return errors.Wrap(err, "getting relative filepath")
 		}
 		localName := filepath.Join(opts.Local, name)
 		if err := s3DownloadWithChecksum(ctx, b, iter.Item(), localName); err != nil {
@@ -933,7 +933,7 @@ func (s *s3Bucket) pullHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 	}
 
 	if s.deleteOnPull && !s.dryRun {
-		return errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "problem with delete on sync after pull")
+		return errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "deleting on sync after pull")
 	}
 	return nil
 }
@@ -973,7 +973,7 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 	if !s.dryRun {
 		_, err := s.svc.CopyObjectWithContext(ctx, input)
 		if err != nil {
-			return errors.Wrap(err, "problem copying data")
+			return errors.Wrap(err, "copying data")
 		}
 	}
 	return nil
@@ -997,7 +997,7 @@ func (s *s3Bucket) Remove(ctx context.Context, key string) error {
 
 		_, err := s.svc.DeleteObjectWithContext(ctx, input)
 		if err != nil {
-			return errors.Wrap(err, "problem removing data")
+			return errors.Wrap(err, "removing data")
 		}
 	}
 	return nil
@@ -1011,7 +1011,7 @@ func (s *s3Bucket) deleteObjectsWrapper(ctx context.Context, toDelete *s3.Delete
 		}
 		_, err := s.svc.DeleteObjectsWithContext(ctx, input)
 		if err != nil {
-			return errors.Wrap(err, "problem removing data")
+			return errors.Wrap(err, "removing data")
 		}
 	}
 	return nil
@@ -1142,7 +1142,7 @@ func getObjectsWrapper(ctx context.Context, s *s3Bucket, prefix, marker string) 
 
 	result, err := s.svc.ListObjectsWithContext(ctx, input)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "problem listing objects")
+		return nil, false, errors.Wrap(err, "listing objects")
 	}
 	return result.Contents, *result.IsTruncated, nil
 }
@@ -1250,7 +1250,7 @@ func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 	if opts.Exclude != "" {
 		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
-			return errors.Wrap(err, "problem compiling exclude regex")
+			return errors.Wrap(err, "compiling exclude regex")
 		}
 	}
 
@@ -1305,20 +1305,20 @@ func (s *s3ArchiveBucket) Pull(ctx context.Context, opts SyncOptions) error {
 	if opts.Exclude != "" {
 		re, err = regexp.Compile(opts.Exclude)
 		if err != nil {
-			return errors.Wrap(err, "problem compiling exclude regex")
+			return errors.Wrap(err, "compiling exclude regex")
 		}
 	}
 
 	target := consistentJoin(opts.Remote, syncArchiveName)
 	reader, err := s.Get(ctx, target)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrapf(err, "getting archive from remote path '%s'", opts.Remote)
 	}
 	defer reader.Close()
 
 	tarReader := tar.NewReader(reader)
 	if err := untar(tarReader, opts.Local, re); err != nil {
-		return errors.Wrapf(err, "unarchiving from remote to %s", opts.Local)
+		return errors.Wrapf(err, "unarchiving from remote path '%s' to local path '%s'", opts.Remote, opts.Local)
 	}
 
 	return nil

@@ -11,7 +11,7 @@ import (
 func CleanupS3Bucket(creds *credentials.Credentials, name, prefix, region string) error {
 	svc, err := CreateS3Client(creds, region)
 	if err != nil {
-		return errors.Wrap(err, "clean up failed")
+		return errors.Wrap(err, "creating S3 client")
 	}
 	deleteObjectsInput := &s3.DeleteObjectsInput{
 		Bucket: aws.String(name),
@@ -26,7 +26,7 @@ func CleanupS3Bucket(creds *credentials.Credentials, name, prefix, region string
 	for {
 		result, err = svc.ListObjects(listInput)
 		if err != nil {
-			return errors.Wrap(err, "clean up failed")
+			return errors.Wrap(err, "listing objects")
 		}
 
 		for _, object := range result.Contents {
@@ -38,7 +38,7 @@ func CleanupS3Bucket(creds *credentials.Credentials, name, prefix, region string
 		if deleteObjectsInput.Delete.Objects != nil {
 			_, err = svc.DeleteObjects(deleteObjectsInput)
 			if err != nil {
-				return errors.Wrap(err, "failed to delete S3 bucket")
+				return errors.Wrap(err, "deleting S3 bucket objects")
 			}
 			deleteObjectsInput.Delete = &s3.Delete{}
 		}

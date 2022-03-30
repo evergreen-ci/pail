@@ -3,7 +3,6 @@ package pail
 import (
 	"archive/tar"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -28,17 +27,17 @@ func walkLocalTree(ctx context.Context, prefix string) ([]string, error) {
 
 		rel, err := filepath.Rel(prefix, path)
 		if err != nil {
-			return errors.Wrap(err, "problem getting relative path")
+			return errors.Wrap(err, "getting relative path")
 		}
 
 		if info.Mode()&os.ModeSymlink != 0 {
 			symPath, err := filepath.EvalSymlinks(path)
 			if err != nil {
-				return errors.Wrap(err, "problem getting symlink path")
+				return errors.Wrap(err, "getting symlink path")
 			}
 			symTree, err := walkLocalTree(ctx, symPath)
 			if err != nil {
-				return errors.Wrap(err, "problem getting symlink tree")
+				return errors.Wrap(err, "getting symlink tree")
 			}
 			for i := range symTree {
 				symTree[i] = filepath.Join(rel, symTree[i])
@@ -57,7 +56,7 @@ func walkLocalTree(ctx context.Context, prefix string) ([]string, error) {
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "problem finding files")
+		return nil, errors.Wrap(err, "finding files")
 	}
 	if ctx.Err() != nil {
 		return nil, errors.New("operation canceled")
@@ -69,14 +68,14 @@ func walkLocalTree(ctx context.Context, prefix string) ([]string, error) {
 func removePrefix(ctx context.Context, prefix string, b Bucket) error {
 	iter, err := b.List(ctx, prefix)
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete any objects with prefix '%s' for deletion", prefix)
+		return errors.Wrapf(err, "listing objects with prefix '%s'", prefix)
 	}
 
 	keys := []string{}
 	for iter.Next(ctx) {
 		keys = append(keys, iter.Item().Name())
 	}
-	return errors.Wrapf(b.RemoveMany(ctx, keys...), "failed to delete some objects with prefix '%s'", prefix)
+	return errors.Wrapf(b.RemoveMany(ctx, keys...), "deleting objects with prefix '%s'", prefix)
 }
 
 func removeMatching(ctx context.Context, expression string, b Bucket) error {
@@ -86,7 +85,7 @@ func removeMatching(ctx context.Context, expression string, b Bucket) error {
 	}
 	iter, err := b.List(ctx, "")
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete any objects matching '%s'", expression)
+		return errors.Wrapf(err, "listing objects matching '%s'", expression)
 	}
 
 	keys := []string{}
@@ -96,7 +95,7 @@ func removeMatching(ctx context.Context, expression string, b Bucket) error {
 			keys = append(keys, key)
 		}
 	}
-	return errors.Wrapf(b.RemoveMany(ctx, keys...), "failed to delete some objects matching '%s'", expression)
+	return errors.Wrapf(b.RemoveMany(ctx, keys...), "deleting objects matching '%s'", expression)
 }
 
 func consistentJoin(prefix, key string) string {
@@ -159,7 +158,7 @@ func tarFile(tarWriter *tar.Writer, dir, relPath string) error {
 	var absPath string
 	if filepath.IsAbs(relPath) {
 		if !strings.HasPrefix(relPath, dir) {
-			return errors.Errorf("cannot specify absolute path to file that is not within directory %s", dir)
+			return errors.Errorf("cannot specify absolute path to file that is not within directory '%s'", dir)
 		}
 		absPath = relPath
 		var err error
@@ -173,7 +172,7 @@ func tarFile(tarWriter *tar.Writer, dir, relPath string) error {
 
 	info, err := os.Stat(absPath)
 	if err != nil {
-		return errors.Wrapf(err, "stat %s", absPath)
+		return errors.Wrapf(err, "stat '%s'", absPath)
 	}
 
 	var file *os.File
@@ -266,21 +265,21 @@ func sanitizeExtractPath(filePath string, destination string) error {
 	// destination, or bail otherwise.
 	destpath := filepath.Join(destination, filePath)
 	if !strings.HasPrefix(destpath, filepath.Clean(destination)) {
-		return fmt.Errorf("%s: illegal file path", filePath)
+		return errors.Errorf("%s: illegal file path", filePath)
 	}
 	return nil
 }
 
 func mkdir(dirPath string) error {
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
-		return errors.Wrapf(err, "failed to make directory %s", dirPath)
+		return errors.Wrapf(err, "making directory '%s'", dirPath)
 	}
 	return nil
 }
 
 func writeFile(path string, content io.Reader, mode os.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return errors.Wrapf(err, "making parent directories for file %s", path)
+		return errors.Wrapf(err, "making parent directories for file '%s'", path)
 	}
 
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0700)
@@ -301,11 +300,11 @@ func writeFile(path string, content io.Reader, mode os.FileMode) error {
 
 func writeSymlink(path string, target string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return errors.Wrapf(err, "making parent directories for file %s", path)
+		return errors.Wrapf(err, "making parent directories for file '%s'", path)
 	}
 
 	if err := os.Symlink(target, path); err != nil {
-		return errors.Wrapf(err, "making symbolic link for %s", path)
+		return errors.Wrapf(err, "making symbolic link for path '%s'", path)
 	}
 
 	return nil
@@ -313,11 +312,11 @@ func writeSymlink(path string, target string) error {
 
 func writeHardLink(path string, target string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return errors.Wrapf(err, "making parent directories for file %s", path)
+		return errors.Wrapf(err, "making parent directories for file '%s'", path)
 	}
 
 	if err := os.Link(target, path); err != nil {
-		return errors.Wrapf(err, "making hard link for %s", path)
+		return errors.Wrapf(err, "making hard link for '%s'", path)
 	}
 
 	return nil
