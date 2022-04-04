@@ -108,7 +108,7 @@ func (b *parallelBucketImpl) Push(ctx context.Context, opts SyncOptions) error {
 	wg.Wait()
 
 	if ctx.Err() == nil && b.deleteOnPush && !b.dryRun {
-		catcher.Add(errors.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "deleting on sync after push"))
+		catcher.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "deleting on sync after push")
 	}
 
 	return catcher.Resolve()

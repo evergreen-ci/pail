@@ -104,7 +104,7 @@ func (b *gridfsBucket) Check(ctx context.Context) error {
 		return errors.New("no client defined")
 	}
 
-	return errors.Wrap(b.client.Ping(ctx, nil), "contacting mongodb")
+	return errors.Wrap(b.client.Ping(ctx, nil), "contacting DB")
 }
 
 func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
@@ -427,7 +427,7 @@ func (b *gridfsBucket) Remove(ctx context.Context, key string) error {
 
 		if err != nil {
 			_ = cursor.Close(ctx)
-			return errors.Wrap(err, "decoding gridfs metadata")
+			return errors.Wrap(err, "decoding GridFS metadata")
 		}
 
 		if b.opts.DryRun {
@@ -435,11 +435,11 @@ func (b *gridfsBucket) Remove(ctx context.Context, key string) error {
 		}
 
 		if err = grid.Delete(document.ID); err != nil {
-			return errors.Wrap(err, "deleting gridfs file")
+			return errors.Wrap(err, "deleting GridFS file")
 		}
 	}
 	if err = cursor.Err(); err != nil {
-		return errors.Wrap(err, "iterating gridfs metadata")
+		return errors.Wrap(err, "iterating GridFS metadata")
 	}
 	if err = cursor.Close(ctx); err != nil {
 		return errors.Wrap(err, "closing cursor")
@@ -484,7 +484,7 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 		}
 
 		if err != nil {
-			return errors.Wrap(err, "decoding gridfs metadata")
+			return errors.Wrap(err, "decoding GridFS metadata")
 		}
 
 		if b.opts.DryRun {
@@ -492,12 +492,12 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 		}
 
 		if err = grid.Delete(document.ID); err != nil {
-			return errors.Wrap(err, "deleting gridfs file")
+			return errors.Wrap(err, "deleting GridFS file")
 		}
 	}
 
 	if err = cursor.Err(); err != nil {
-		return errors.Wrap(err, "iterating gridfs metadata")
+		return errors.Wrap(err, "iterating GridFS metadata")
 	}
 
 	if err = cursor.Close(ctx); err != nil {

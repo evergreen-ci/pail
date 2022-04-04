@@ -197,7 +197,7 @@ func (b *localFileSystem) Upload(ctx context.Context, name, path string) error {
 
 	f, err := os.Open(path)
 	if err != nil {
-		return errors.Wrapf(err, "opening file %s", name)
+		return errors.Wrapf(err, "opening file '%s'", name)
 	}
 	defer f.Close()
 

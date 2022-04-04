@@ -53,7 +53,7 @@ func NewLegacyGridFSBucket(opts GridFSOptions) (Bucket, error) {
 
 	ses, err := mgo.DialWithTimeout(opts.MongoDBURI, time.Second)
 	if err != nil {
-		return nil, errors.Wrap(err, "connecting to MongoDB")
+		return nil, errors.Wrap(err, "connecting to DB")
 	}
 
 	return &gridfsLegacyBucket{
@@ -88,7 +88,7 @@ func (b *gridfsLegacyBucket) Check(_ context.Context) error {
 		return errors.New("no session defined")
 	}
 
-	return errors.Wrap(b.session.Ping(), "contacting mongodb")
+	return errors.Wrap(b.session.Ping(), "contacting DB")
 }
 
 func (b *gridfsLegacyBucket) gridFS() *mgo.GridFS {
@@ -346,7 +346,7 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, opts SyncOptions) error {
 
 	iterimpl, ok := iter.(*legacyGridFSIterator)
 	if !ok {
-		return errors.Errorf("programmer error: iterator should be legacy gridfs iterator but is actually type %T", iter)
+		return errors.Errorf("programmer error: iterator should be a legacy GridFS iterator but is actually type %T", iter)
 	}
 
 	gridfs := b.gridFS()

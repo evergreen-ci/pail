@@ -172,7 +172,7 @@ func tarFile(tarWriter *tar.Writer, dir, relPath string) error {
 
 	info, err := os.Stat(absPath)
 	if err != nil {
-		return errors.Wrapf(err, "stat '%s'", absPath)
+		return errors.Wrapf(err, "getting stat info for path '%s'", absPath)
 	}
 
 	var file *os.File
@@ -265,7 +265,7 @@ func sanitizeExtractPath(filePath string, destination string) error {
 	// destination, or bail otherwise.
 	destpath := filepath.Join(destination, filePath)
 	if !strings.HasPrefix(destpath, filepath.Clean(destination)) {
-		return errors.Errorf("%s: illegal file path", filePath)
+		return errors.Errorf("illegal file path '%s'", filePath)
 	}
 	return nil
 }
