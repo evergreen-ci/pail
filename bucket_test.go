@@ -92,7 +92,7 @@ func TestBucket(t *testing.T) {
 					test: func(t *testing.T, b Bucket) {
 						_, err := b.Writer(ctx, "\x00")
 						require.Error(t, err)
-						assert.Contains(t, err.Error(), "problem opening")
+						assert.Contains(t, err.Error(), "opening file")
 					},
 				},
 				{
@@ -100,7 +100,7 @@ func TestBucket(t *testing.T) {
 					test: func(t *testing.T, b Bucket) {
 						_, err := b.Reader(ctx, "\x00")
 						require.Error(t, err)
-						assert.Contains(t, err.Error(), "problem opening")
+						assert.Contains(t, err.Error(), "opening file")
 					},
 				},
 				{
@@ -113,7 +113,7 @@ func TestBucket(t *testing.T) {
 						}
 						err := b.Copy(ctx, options)
 						require.Error(t, err)
-						assert.Contains(t, err.Error(), "problem opening")
+						assert.Contains(t, err.Error(), "opening file")
 					},
 				},
 				{
@@ -130,7 +130,7 @@ func TestBucket(t *testing.T) {
 						}
 						err = b.Copy(ctx, options)
 						require.Error(t, err)
-						assert.Contains(t, err.Error(), "problem opening")
+						assert.Contains(t, err.Error(), "opening file")
 					},
 				},
 				{
@@ -138,7 +138,7 @@ func TestBucket(t *testing.T) {
 					test: func(t *testing.T, b Bucket) {
 						err := b.Put(ctx, "\x00", nil)
 						require.Error(t, err)
-						assert.Contains(t, err.Error(), "problem opening")
+						assert.Contains(t, err.Error(), "opening file")
 					},
 				},
 				{
@@ -146,7 +146,7 @@ func TestBucket(t *testing.T) {
 					test: func(t *testing.T, b Bucket) {
 						err := b.Put(ctx, "foo", &brokenWriter{})
 						require.Error(t, err)
-						assert.Contains(t, err.Error(), "problem copying data to file")
+						assert.Contains(t, err.Error(), "copying data to file")
 					},
 				},
 				{
@@ -156,7 +156,7 @@ func TestBucket(t *testing.T) {
 						bucket.path = "\x00"
 						_, err := b.Writer(ctx, "foo")
 						require.Error(t, err)
-						assert.Contains(t, err.Error(), "problem creating base directories")
+						assert.Contains(t, err.Error(), "creating base directories")
 					},
 				},
 				{
@@ -1055,7 +1055,7 @@ func TestBucket(t *testing.T) {
 				bucket := impl.constructor(t)
 				// This breaks the convention in the tests where we use the
 				// null terminator ('\x00') to simulate an invalid key name
-				// because it causes Download to hang on newer version of the
+				// because it causes Download to hang on newer versions of the
 				// AWS SDK.
 				err := bucket.Download(ctx, "fileIWant", filepath.Join(tempdir, "loc"))
 				assert.Error(t, err)
