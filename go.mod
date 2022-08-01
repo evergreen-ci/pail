@@ -3,7 +3,7 @@ module github.com/evergreen-ci/pail
 go 1.16
 
 require (
-	github.com/aws/aws-sdk-go v1.44.46
+	github.com/aws/aws-sdk-go v1.44.66
 	github.com/evergreen-ci/poplar v0.0.0-20211028170046-0999224b53df
 	github.com/evergreen-ci/utility v0.0.0-20220404192535-d16eb64796e6
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
