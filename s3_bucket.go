@@ -1187,7 +1187,7 @@ func (iter *s3BucketIterator) Next(ctx context.Context) bool {
 	iter.item = &bucketItemImpl{
 		bucket: iter.s.name,
 		key:    iter.s.denormalizeKey(*iter.contents[iter.idx].Key),
-		hash:   *iter.contents[iter.idx].ETag,
+		hash:   strings.Trim(*iter.contents[iter.idx].ETag, `"`),
 		b:      iter.b,
 	}
 	return true
