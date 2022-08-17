@@ -10,11 +10,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/evergreen-ci/utility"
@@ -1322,4 +1324,65 @@ func (s *s3ArchiveBucket) Pull(ctx context.Context, opts SyncOptions) error {
 	}
 
 	return nil
+}
+
+// PresignExpireTime sets the amount of time the link is live before expiring.
+const PresignExpireTime = 24 * time.Hour
+
+// PreSignRequestParams holds all the parameters needed to sign a URL or fetch S3 object metadata.
+type PreSignRequestParams struct {
+	Bucket    string `json:"bucket"`
+	FileKey   string `json:"fileKey"`
+	AwsKey    string `json:"awsKey"`
+	AwsSecret string `json:"awsSecret"`
+	Region    string `json:"region"`
+}
+
+// PreSign returns a presigned URL that expires in 24 hours.
+func PreSign(r PreSignRequestParams) (string, error) {
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(endpoints.UsEast1RegionID),
+		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
+			AccessKeyID:     r.AwsKey,
+			SecretAccessKey: r.AwsSecret,
+		}),
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "connecting to AWS")
+	}
+	svc := s3.New(sess)
+
+	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(r.Bucket),
+		Key:    aws.String(r.FileKey),
+	})
+
+	urlStr, err := req.Presign(PresignExpireTime)
+	return urlStr, err
+}
+
+// GetHeadObject fetches the metadata of an S3 object.
+func GetHeadObject(r PreSignRequestParams) (*s3.HeadObjectOutput, error) {
+	session, err := session.NewSession(&aws.Config{
+		Region: aws.String(r.Region),
+		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
+			AccessKeyID:     r.AwsKey,
+			SecretAccessKey: r.AwsSecret,
+		}),
+	})
+	if err != nil {
+		return nil, err
+	}
+	svc := s3.New(session)
+
+	headObject, err := svc.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(r.Bucket),
+		Key:    aws.String(r.FileKey),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return headObject, nil
 }
