@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -294,6 +295,10 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				require.NoError(t, err)
 				assert.Equal(t, data, s3UncompressedData)
 			},
+		},
+		{
+			id:   "PullWithCache",
+			test: makePullWithCacheTest(ctx, tempdir),
 		},
 	}
 }
@@ -589,5 +594,49 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				assert.Equal(t, data, s3UncompressedData)
 			},
 		},
+		// The test below should be enabled once we have changed how we handle file hash
+		// comparisons. Currently multi-part uploads always fail this test.
+		// {
+		// 	id:   "PullWithCache",
+		// 	test: makePullWithCacheTest(ctx, tempdir),
+		// },
+	}
+}
+
+func makePullWithCacheTest(ctx context.Context, tempdir string) func(*testing.T, Bucket) {
+	return func(t *testing.T, bucket Bucket) {
+		prefix := testutil.NewUUID()
+		localPath := filepath.Join(tempdir, prefix)
+
+		require.NoError(t, os.MkdirAll(localPath, 0700))
+
+		f, err := os.CreateTemp(localPath, "pull-with-cache")
+		require.NoError(t, err)
+
+		_, err = io.Copy(f, bytes.NewReader([]byte("test-content")))
+		require.NoError(t, err)
+
+		initialInfo, err := f.Stat()
+		require.NoError(t, err)
+
+		require.NoError(t, bucket.Push(ctx, SyncOptions{Local: localPath, Remote: prefix}))
+		iter, err := bucket.List(ctx, prefix)
+		require.NoError(t, err)
+		counter := 0
+		filenames := map[string]bool{f.Name(): true}
+		for iter.Next(ctx) {
+			name := filepath.Join(tempdir, iter.Item().Name())
+			require.True(t, filenames[name])
+			counter++
+		}
+		require.NoError(t, iter.Err())
+		require.Equal(t, 1, counter)
+
+		require.NoError(t, bucket.Pull(ctx, SyncOptions{Local: localPath, Remote: prefix}))
+
+		finalInfo, err := f.Stat()
+		require.NoError(t, err)
+
+		assert.True(t, finalInfo.ModTime().Equal(initialInfo.ModTime()))
 	}
 }
