@@ -105,7 +105,8 @@ type S3Options struct {
 	// Verbose sets the logging mode to "debug".
 	Verbose bool
 	// MaxRetries sets the number of retry attempts for S3 operations.
-	MaxRetries int
+	// By default it defers to the AWS SDK's default.
+	MaxRetries *int
 	// Credentials allows the passing in of explicit AWS credentials. These
 	// will override the default credentials chain. (Optional)
 	Credentials *credentials.Credentials
@@ -176,7 +177,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	config := &aws.Config{
 		Region:     aws.String(options.Region),
 		HTTPClient: client,
-		MaxRetries: aws.Int(options.MaxRetries),
+		MaxRetries: options.MaxRetries,
 	}
 
 	if options.SharedCredentialsFilepath != "" || options.SharedCredentialsProfile != "" {
