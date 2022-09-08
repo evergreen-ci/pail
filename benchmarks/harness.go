@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/evergreen-ci/pail"
 	"github.com/evergreen-ci/pail/testutil"
 	"github.com/evergreen-ci/poplar"
@@ -336,7 +337,7 @@ func s3Opts() pail.S3Options {
 		Region:      "us-east-1",
 		Name:        "build-test-curator",
 		Prefix:      testutil.NewUUID(),
-		MaxRetries:  20,
+		MaxRetries:  aws.Int(20),
 	}
 }
 

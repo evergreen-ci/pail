@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/evergreen-ci/pail/testutil"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -240,7 +241,7 @@ func TestBucket(t *testing.T) {
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
-					MaxRetries:  20,
+					MaxRetries:  aws.Int(20),
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -256,7 +257,7 @@ func TestBucket(t *testing.T) {
 					Region:                 s3Region,
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
-					MaxRetries:             20,
+					MaxRetries:             aws.Int(20),
 					UseSingleFileChecksums: true,
 				}
 				b, err := NewS3Bucket(s3Options)
@@ -286,7 +287,7 @@ func TestBucket(t *testing.T) {
 					Region:                 s3Region,
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
-					MaxRetries:             20,
+					MaxRetries:             aws.Int(20),
 					UseSingleFileChecksums: true,
 				}
 				b, err := NewS3Bucket(s3Options)
@@ -305,7 +306,7 @@ func TestBucket(t *testing.T) {
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
-					MaxRetries:  20,
+					MaxRetries:  aws.Int(20),
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
@@ -321,7 +322,7 @@ func TestBucket(t *testing.T) {
 					Region:                 s3Region,
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
-					MaxRetries:             20,
+					MaxRetries:             aws.Int(20),
 					UseSingleFileChecksums: true,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
@@ -1132,7 +1133,7 @@ func TestS3ArchiveBucket(t *testing.T) {
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
-					MaxRetries:  20,
+					MaxRetries:  aws.Int(20),
 				}
 				bucket, err := NewS3ArchiveBucket(s3Options)
 				require.NoError(t, err)

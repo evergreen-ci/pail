@@ -250,7 +250,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      rawBucket.prefix,
-					MaxRetries:  20,
+					MaxRetries:  aws.Int(20),
 					Compress:    true,
 				}
 				cb, err := NewS3Bucket(s3Options)
@@ -553,7 +553,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Region:      s3Region,
 					Name:        s3BucketName,
 					Prefix:      rawBucket.prefix,
-					MaxRetries:  20,
+					MaxRetries:  aws.Int(20),
 					Compress:    true,
 				}
 				cb, err := NewS3MultiPartBucket(s3Options)
