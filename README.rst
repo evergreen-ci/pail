@@ -7,8 +7,7 @@ Overview
 
 Pail is a high-level Go interface to blob storage containers like AWS's
 S3 and similar services. Pail also provides implementation backed by
-local file systems or MongoDB's GridFS for testing and different kinds
-of applications.
+local file systems, mostly used for testing.
 
 Documentation
 -------------

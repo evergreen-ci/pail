@@ -6,8 +6,7 @@ import (
 )
 
 // Bucket defines an interface for accessing a remote blob store, like
-// S3. Should be generic enough to be implemented for GCP equivalent,
-// or even a GridFS backed system (mostly just for kicks.)
+// S3. Should be generic enough to be implemented for GCP equivalent.
 //
 // Other goals of this project are to allow us to have a single
 // interface for interacting with blob storage, and allow us to fully
