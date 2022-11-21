@@ -101,6 +101,17 @@ func (b *localFileSystem) Check(_ context.Context) error {
 	return nil
 }
 
+func (b *localFileSystem) Exists(_ context.Context, key string) (bool, error) {
+	if _, err := os.Stat(filepath.Join(b.path, b.normalizeKey(key))); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "getting file stats")
+	}
+
+	return true, nil
+}
+
 func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser, error) {
 	grip.DebugWhen(b.verbose, message.Fields{
 		"type":          "local",

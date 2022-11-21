@@ -18,9 +18,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	mgo "gopkg.in/mgo.v2"
 )
 
 type bucketTestCase struct {
@@ -39,12 +36,6 @@ func TestBucket(t *testing.T) {
 	defer func() { require.NoError(t, os.RemoveAll(tempdir)) }()
 	require.NoError(t, err, os.MkdirAll(filepath.Join(tempdir, uuid), 0700))
 
-	mdburl := "mongodb://localhost:27017"
-	ses, err := mgo.DialWithTimeout(mdburl, time.Second)
-	require.NoError(t, err)
-	defer ses.Close()
-	defer func() { assert.NoError(t, ses.DB(uuid).DropDatabase()) }()
-
 	s3Credentials := CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
 	s3BucketName := "build-test-curator"
 	s3Prefix := testutil.NewUUID() + "-"
@@ -52,12 +43,6 @@ func TestBucket(t *testing.T) {
 	defer func() {
 		require.NoError(t, testutil.CleanupS3Bucket(s3Credentials, s3BucketName, s3Prefix, s3Region))
 	}()
-
-	client, err := mongo.NewClient(options.Client().ApplyURI(mdburl))
-	require.NoError(t, err)
-	connctx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	require.NoError(t, client.Connect(connctx))
 
 	for _, impl := range []struct {
 		name        string
@@ -180,54 +165,6 @@ func TestBucket(t *testing.T) {
 						cancel()
 						opts := SyncOptions{Local: filepath.Dir(file)}
 						err := b.Push(tctx, opts)
-						assert.Error(t, err)
-					},
-				},
-			},
-		},
-		{
-			name: "GridFS",
-			constructor: func(t *testing.T) Bucket {
-				require.NoError(t, client.Database(uuid).Drop(ctx))
-				b, err := NewGridFSBucketWithClient(ctx, client, GridFSOptions{
-					Name:     testutil.NewUUID(),
-					Prefix:   testutil.NewUUID(),
-					Database: uuid,
-				})
-				require.NoError(t, err)
-				return b
-			},
-		},
-		{
-			name: "LegacyGridFS",
-			constructor: func(t *testing.T) Bucket {
-				require.NoError(t, client.Database(uuid).Drop(ctx))
-				b, err := NewLegacyGridFSBucketWithSession(ses.Clone(), GridFSOptions{
-					Name:     testutil.NewUUID(),
-					Prefix:   testutil.NewUUID(),
-					Database: uuid,
-				})
-				require.NoError(t, err)
-				return b
-			},
-			tests: []bucketTestCase{
-				{
-					id: "VerifyBucketType",
-					test: func(t *testing.T, b Bucket) {
-						bucket, ok := b.(*gridfsLegacyBucket)
-						require.True(t, ok)
-						assert.NotNil(t, bucket)
-					},
-				},
-				{
-					id: "OpenFailsWithClosedSession",
-					test: func(t *testing.T, b Bucket) {
-						bucket := b.(*gridfsLegacyBucket)
-						go func() {
-							time.Sleep(time.Millisecond)
-							bucket.session.Close()
-						}()
-						_, err := bucket.openFile(ctx, "foo", false)
 						assert.Error(t, err)
 					},
 				},
@@ -365,11 +302,12 @@ func TestBucket(t *testing.T) {
 				bucket := impl.constructor(t)
 				assert.NoError(t, writeDataToFile(ctx, bucket, testutil.NewUUID(), "hello world!"))
 
-				// dry run does not write
+				// Dry run does not write.
 				setDryRun(bucket, true)
 				assert.NoError(t, writeDataToFile(ctx, bucket, testutil.NewUUID(), "hello world!"))
 
-				// just check that only one key exists in the iterator
+				// Check that only one key exists in the
+				// iterator.
 				iter, err := bucket.List(ctx, "")
 				require.NoError(t, err)
 				assert.True(t, iter.Next(ctx))
@@ -381,12 +319,12 @@ func TestBucket(t *testing.T) {
 				key := testutil.NewUUID()
 				assert.NoError(t, writeDataToFile(ctx, bucket, key, "hello world!"))
 
-				// dry run does not remove anything
+				// Dry run does not remove anything.
 				setDryRun(bucket, true)
 				assert.NoError(t, bucket.Remove(ctx, key))
 				setDryRun(bucket, false)
 
-				// just check that it exists in the iterator
+				// Check that it exists in the iterator.
 				iter, err := bucket.List(ctx, "")
 				require.NoError(t, err)
 				assert.True(t, iter.Next(ctx))
@@ -426,7 +364,7 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
 				}
 
-				// smaller s3 batch sizes for testing
+				// Smaller s3 batch sizes for testing.
 				switch i := bucket.(type) {
 				case *s3BucketSmall:
 					i.batchSize = 20
@@ -434,7 +372,7 @@ func TestBucket(t *testing.T) {
 					i.batchSize = 20
 				}
 
-				// check keys are in bucket
+				// Check keys are in bucket.
 				iter, err := bucket.List(ctx, "")
 				require.NoError(t, err)
 				for iter.Next(ctx) {
@@ -485,7 +423,7 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
 				}
 
-				// check keys are in bucket
+				// Check keys are in bucket.
 				iter, err := bucket.List(ctx, "")
 				require.NoError(t, err)
 				for iter.Next(ctx) {
@@ -535,7 +473,7 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, writeDataToFile(ctx, bucket, k, v))
 				}
 
-				// check keys are in bucket
+				// Check keys are in bucket.
 				iter, err := bucket.List(ctx, "")
 				require.NoError(t, err)
 				for iter.Next(ctx) {
@@ -572,6 +510,7 @@ func TestBucket(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, data, payload)
 			})
+
 			t.Run("GetRetrievesData", func(t *testing.T) {
 				bucket := impl.constructor(t)
 				key := testutil.NewUUID()
@@ -583,7 +522,7 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, "hello world!", string(data))
 
-				// dry run bucket also retrieves data
+				// Dry run bucket also retrieves data.
 				setDryRun(bucket, true)
 				reader, err = bucket.Get(ctx, key)
 				require.NoError(t, err)
@@ -717,16 +656,16 @@ func TestBucket(t *testing.T) {
 
 				assert.NoError(t, writeDataToFile(ctx, bucket, key, "foo/bar"))
 
-				// there's one thing in the iterator
-				// with the correct prefix
+				// There's one thing in the iterator with the
+				// correct prefix.
 				iter, err := bucket.List(ctx, "")
 				require.NoError(t, err)
 				assert.True(t, iter.Next(ctx))
 				assert.False(t, iter.Next(ctx))
 				assert.NoError(t, iter.Err())
 
-				// there's nothing in the iterator
-				// with a prefix
+				// There's nothing in the iterator with a
+				// prefix.
 				iter, err = bucket.List(ctx, "bar")
 				require.NoError(t, err)
 				assert.False(t, iter.Next(ctx))
@@ -788,11 +727,9 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, err)
 					require.Len(t, files, 50)
 
-					if !strings.Contains(impl.name, "GridFS") {
-						for _, fn := range files {
-							_, ok := data[filepath.Base(fn)]
-							require.True(t, ok)
-						}
+					for _, fn := range files {
+						_, ok := data[filepath.Base(fn)]
+						require.True(t, ok)
 					}
 				})
 				t.Run("DryRunBucketPulls", func(t *testing.T) {
@@ -805,11 +742,9 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, err)
 					require.Len(t, files, 50)
 
-					if !strings.Contains(impl.name, "GridFS") {
-						for _, fn := range files {
-							_, ok := data[filepath.Base(fn)]
-							require.True(t, ok)
-						}
+					for _, fn := range files {
+						_, ok := data[filepath.Base(fn)]
+						require.True(t, ok)
 					}
 					setDryRun(bucket, false)
 				})
@@ -825,14 +760,12 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, err)
 					require.Len(t, files, 52)
 
-					if !strings.Contains(impl.name, "GridFS") {
-						for _, fn := range files {
-							_, ok := data[filepath.Base(fn)]
-							if !ok {
-								ok = filepath.Base(fn) == "python.py" || filepath.Base(fn) == "python2.py"
-							}
-							require.True(t, ok)
+					for _, fn := range files {
+						_, ok := data[filepath.Base(fn)]
+						if !ok {
+							ok = filepath.Base(fn) == "python.py" || filepath.Base(fn) == "python2.py"
 						}
+						require.True(t, ok)
 					}
 
 					mirror = filepath.Join(tempdir, "excludes", testutil.NewUUID())
@@ -844,11 +777,9 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, err)
 					require.Len(t, files, 50)
 
-					if !strings.Contains(impl.name, "GridFS") {
-						for _, fn := range files {
-							_, ok := data[filepath.Base(fn)]
-							require.True(t, ok)
-						}
+					for _, fn := range files {
+						_, ok := data[filepath.Base(fn)]
+						require.True(t, ok)
 					}
 
 					require.NoError(t, bucket.Remove(ctx, "python.py"))
@@ -857,7 +788,7 @@ func TestBucket(t *testing.T) {
 				t.Run("DeleteOnSync", func(t *testing.T) {
 					setDeleteOnSync(bucket, true)
 
-					// dry run bucket does not delete
+					// Dry run bucket does not delete.
 					mirror := filepath.Join(tempdir, "pull-one", testutil.NewUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					require.NoError(t, writeDataToDisk(mirror, "delete1", "should be deleted"))
@@ -871,7 +802,7 @@ func TestBucket(t *testing.T) {
 					setDryRun(bucket, false)
 					require.NoError(t, os.RemoveAll(mirror))
 
-					// with out dry run set
+					// With out dry run set.
 					mirror = filepath.Join(tempdir, "pull-one", testutil.NewUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					require.NoError(t, writeDataToDisk(mirror, "delete1", "should be deleted"))
@@ -902,11 +833,9 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, err)
 					assert.Len(t, files, len(largeData))
 
-					if !strings.Contains(impl.name, "GridFS") {
-						for _, fn := range files {
-							_, ok := largeData[fn]
-							require.True(t, ok)
-						}
+					for _, fn := range files {
+						_, ok := largeData[fn]
+						require.True(t, ok)
 					}
 				})
 			})
@@ -1020,7 +949,8 @@ func TestBucket(t *testing.T) {
 					contents = []byte("this should also be deleted")
 					require.NoError(t, bucket.Put(ctx, filepath.Join("baz", "delete2"), bytes.NewBuffer(contents)))
 
-					// dry run bucket does not push or delete
+					// Dry run bucket does not push or
+					// delete.
 					setDryRun(bucket, true)
 					opts := SyncOptions{Local: prefix, Remote: "baz"}
 					assert.NoError(t, bucket.Push(ctx, opts))
@@ -1054,10 +984,11 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("DownloadWithBadFileName", func(t *testing.T) {
 				bucket := impl.constructor(t)
-				// This breaks the convention in the tests where we use the
-				// null terminator ('\x00') to simulate an invalid key name
-				// because it causes Download to hang on newer versions of the
-				// AWS SDK.
+				// This breaks the convention in the tests
+				// where we use the null terminator ('\x00') to
+				// simulate an invalid key name because it
+				// causes Download to hang on newer versions
+				// of the AWS SDK.
 				err := bucket.Download(ctx, "fileIWant", filepath.Join(tempdir, "loc"))
 				assert.Error(t, err)
 			})
@@ -1078,6 +1009,22 @@ func TestBucket(t *testing.T) {
 
 				err = bucket.Download(ctx, "key", "location-\x00-key-name")
 				require.Error(t, err)
+			})
+			t.Run("Exists", func(t *testing.T) {
+				bucket := impl.constructor(t)
+				require.NoError(t, writeDataToFile(ctx, bucket, "key0", "data for key0"))
+				require.NoError(t, writeDataToFile(ctx, bucket, "key1", "data for key1"))
+
+				t.Run("KeyDNE", func(t *testing.T) {
+					exists, err := bucket.Exists(ctx, "DNE")
+					require.NoError(t, err)
+					assert.False(t, exists)
+				})
+				t.Run("KeyExists", func(t *testing.T) {
+					exists, err := bucket.Exists(ctx, "key0")
+					require.NoError(t, err)
+					assert.True(t, exists)
+				})
 			})
 		})
 	}
@@ -1478,14 +1425,10 @@ func setDryRun(b Bucket, set bool) {
 	switch i := b.(type) {
 	case *localFileSystem:
 		i.dryRun = set
-	case *gridfsLegacyBucket:
-		i.opts.DryRun = set
 	case *s3BucketSmall:
 		i.dryRun = set
 	case *s3BucketLarge:
 		i.dryRun = set
-	case *gridfsBucket:
-		i.opts.DryRun = set
 	case *parallelBucketImpl:
 		i.dryRun = set
 		setDryRun(i.Bucket, set)
@@ -1497,16 +1440,12 @@ func setDeleteOnSync(b Bucket, set bool) {
 	case *localFileSystem:
 		i.deleteOnPush = set
 		i.deleteOnPull = set
-	case *gridfsLegacyBucket:
-		i.opts.DeleteOnSync = set
 	case *s3BucketSmall:
 		i.deleteOnPush = set
 		i.deleteOnPull = set
 	case *s3BucketLarge:
 		i.deleteOnPush = set
 		i.deleteOnPull = set
-	case *gridfsBucket:
-		i.opts.DeleteOnSync = set
 	case *parallelBucketImpl:
 		i.deleteOnPush = set
 		i.deleteOnPull = set

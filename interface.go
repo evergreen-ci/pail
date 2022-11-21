@@ -38,6 +38,9 @@ type Bucket interface {
 	// implementation.
 	Check(context.Context) error
 
+	// Exists returns whether the given key exists in the bucket or not.
+	Exists(context.Context, string) (bool, error)
+
 	// Produces a Writer and Reader interface to the file named by
 	// the string.
 	Writer(context.Context, string) (io.WriteCloser, error)
@@ -80,7 +83,7 @@ type Bucket interface {
 	RemoveMatching(context.Context, string) error
 
 	// List provides a way to iterator over the contents of a
-	// bucket (for a given prefix.)
+	// bucket (for a given prefix).
 	List(context.Context, string) (BucketIterator, error)
 }
 
