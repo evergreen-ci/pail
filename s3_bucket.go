@@ -295,6 +295,21 @@ func (s *s3Bucket) Check(ctx context.Context) error {
 	return nil
 }
 
+func (s *s3Bucket) Exists(ctx context.Context, key string) (bool, error) {
+	_, err := s.svc.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(s.name),
+		Key:    aws.String(s.normalizeKey(key)),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NotFound" {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "getting S3 object head")
+	}
+
+	return true, nil
+}
+
 type smallWriteCloser struct {
 	isClosed    bool
 	dryRun      bool

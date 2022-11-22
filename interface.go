@@ -6,8 +6,7 @@ import (
 )
 
 // Bucket defines an interface for accessing a remote blob store, like
-// S3. Should be generic enough to be implemented for GCP equivalent,
-// or even a GridFS backed system (mostly just for kicks.)
+// S3. Should be generic enough to be implemented for GCP equivalent.
 //
 // Other goals of this project are to allow us to have a single
 // interface for interacting with blob storage, and allow us to fully
@@ -37,6 +36,9 @@ type Bucket interface {
 	// Check validity of the bucket. This is dependent on the underlying
 	// implementation.
 	Check(context.Context) error
+
+	// Exists returns whether the given key exists in the bucket or not.
+	Exists(context.Context, string) (bool, error)
 
 	// Produces a Writer and Reader interface to the file named by
 	// the string.
@@ -80,7 +82,7 @@ type Bucket interface {
 	RemoveMatching(context.Context, string) error
 
 	// List provides a way to iterator over the contents of a
-	// bucket (for a given prefix.)
+	// bucket (for a given prefix).
 	List(context.Context, string) (BucketIterator, error)
 }
 
