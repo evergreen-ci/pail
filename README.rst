@@ -18,7 +18,7 @@ The core API documentation is in the `godoc
 Contribute
 ----------
 
-Open tickets in the `MAKE project <http://jira.mongodb.org/browse/MAKE>`_, and
+Open tickets in the `EVG project <http://jira.mongodb.org/browse/EVG>`_, and
 feel free to open pull requests here.
 
 Development
