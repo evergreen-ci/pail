@@ -64,7 +64,6 @@ functions:
         working_dir: pail
         include_expansions_in_env: ["MONGODB_URL"]
         env:
-          DECOMPRESS: ${decompress}
           MONGODB_DECOMPRESS: ${MONGODB_DECOMPRESS|*decompress}
     - command: subprocess.exec
       type: setup
@@ -73,7 +72,6 @@ functions:
         working_dir: pail
         include_expansions_in_env: ["MONGOSH_URL"]
         env:
-          DECOMPRESS: ${decompress}
           MONGOSH_DECOMPRESS: ${MONGOSH_DECOMPRESS|*decompress}
     - command: subprocess.exec
       type: setup
