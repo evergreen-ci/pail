@@ -62,17 +62,17 @@ functions:
       params:
         command: make get-mongodb
         working_dir: pail
-        include_expansions_in_env: ["MONGODB_URL"]
         env:
           MONGODB_DECOMPRESS: ${MONGODB_DECOMPRESS|*decompress}
+          MONGODB_URL: ${MONGODB_URL}
     - command: subprocess.exec
       type: setup
       params:
         command: make get-mongosh
         working_dir: pail
-        include_expansions_in_env: ["MONGOSH_URL"]
         env:
           MONGOSH_DECOMPRESS: ${MONGOSH_DECOMPRESS|*decompress}
+          MONGOSH_URL: ${MONGOSH_URL}
     - command: subprocess.exec
       type: setup
       params:
@@ -94,38 +94,15 @@ post:
     params:
       files:
         - "pail/build/output.*"
-  - command: s3.put
-    type: system
-    params:
-      aws_key: ${aws_s3_key}
-      aws_secret: ${aws_s3_secret}
-      local_files_include_filter: ["pail/build/output.*.coverage.html"]
-      remote_file: pail/${task_id}/
-      bucket: mciuploads
-      content_type: text/html
-      permissions: public-read
-      display_name: "(html) coverage:"
-  - command: s3.put
-    type: system
-    params:
-      aws_key: ${aws_s3_key}
-      aws_secret: ${aws_s3_secret}
-      local_files_include_filter: ["pail/build/output.*.coverage"]
-      remote_file: pail/${task_id}/
-      bucket: mciuploads
-      content_type: text/plain
-      permissions: public-read
-      display_name: "(txt) coverage:"
 
 tasks:
   # the build (with and without the race detector) and lint tasks use
   # a template that does not include test result parsing.
   - <<: *run-build
-    tags: ["report"]
+    tags: ["lint"]
     name: lint-pail
 
   - name: verify-mod-tidy
-    tags: ["report"]
     commands:
       - command: git.get_project
         type: system
@@ -135,10 +112,6 @@ tasks:
         vars: { target: "${task_name}" }
 
   - <<: *run-build-with-mongodb
-    tags: ["report"]
-    name: html-coverage
-
-  - <<: *run-build-with-mongodb
     tags: ["test"]
     name: test-pail
 
@@ -146,8 +119,8 @@ tasks:
 #           Buildvariants             #
 #######################################
 buildvariants:
-  - name: coverage
-    display_name: Coverage
+  - name: lint
+    display_name: Lint
     expansions:
       GOROOT: /opt/golang/go1.20
       MONGODB_URL: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-6.0.6.tgz
@@ -155,7 +128,8 @@ buildvariants:
     run_on:
       - ubuntu2204-small
     tasks:
-      - name: ".report"
+      - .lint
+      - verify-mod-tidy
 
   - name: ubuntu
     display_name: Ubuntu 22.04
