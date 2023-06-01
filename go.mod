@@ -3,7 +3,7 @@ module github.com/evergreen-ci/pail
 go 1.16
 
 require (
-	github.com/aws/aws-sdk-go v1.44.127
+	github.com/aws/aws-sdk-go v1.44.273
 	github.com/evergreen-ci/poplar v0.0.0-20211028170046-0999224b53df
 	github.com/evergreen-ci/utility v0.0.0-20220404192535-d16eb64796e6
 	github.com/mitchellh/go-homedir v1.1.0
