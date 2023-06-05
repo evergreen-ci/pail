@@ -22,16 +22,16 @@ import (
 // The preferred aws sdk is here: https://docs.aws.amazon.com/sdk-for-go/api/
 //
 // In no particular order:
-//  - implementation constructors should make it possible to use
-//    custom http.Clients (to aid in pooling.)
-//  - We should probably implement .String methods.
-//  - Do use the grip package for logging.
-//  - get/put should support multipart upload/download?
-//  - we'll want to do retries with back-off (potentially configurable
-//    in bucketinfo?)
-//  - we might need to have variants that Put/Get byte slices rather
-//    than readers.
-//  - pass contexts to requests for timeouts.
+//   - implementation constructors should make it possible to use
+//     custom http.Clients (to aid in pooling.)
+//   - We should probably implement .String methods.
+//   - Do use the grip package for logging.
+//   - get/put should support multipart upload/download?
+//   - we'll want to do retries with back-off (potentially configurable
+//     in bucketinfo?)
+//   - we might need to have variants that Put/Get byte slices rather
+//     than readers.
+//   - pass contexts to requests for timeouts.
 type Bucket interface {
 	// Check validity of the bucket. This is dependent on the underlying
 	// implementation.
