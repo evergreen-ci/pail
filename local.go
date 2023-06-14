@@ -112,6 +112,8 @@ func (b *localFileSystem) Exists(_ context.Context, key string) (bool, error) {
 	return true, nil
 }
 
+func (b *localFileSystem) Join(elems ...string) string { return filepath.Join(elems...) }
+
 func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser, error) {
 	grip.DebugWhen(b.verbose, message.Fields{
 		"type":          "local",

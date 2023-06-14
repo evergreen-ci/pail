@@ -1321,7 +1321,7 @@ func writeDataToArchive(ctx context.Context, bucket *s3ArchiveBucket, prefix str
 	wctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	writer, err := bucket.Writer(wctx, consistentJoin(prefix, syncArchiveName))
+	writer, err := bucket.Writer(wctx, bucket.Join(prefix, syncArchiveName))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -1349,7 +1349,7 @@ func readDataFromArchive(ctx context.Context, bucket *s3ArchiveBucket, prefix st
 
 	data := map[string]string{}
 
-	reader, err := bucket.Reader(rctx, consistentJoin(prefix, syncArchiveName))
+	reader, err := bucket.Reader(rctx, bucket.Join(prefix, syncArchiveName))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

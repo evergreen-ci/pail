@@ -149,12 +149,7 @@ func CreateAWSCredentials(awsKey, awsPassword, awsToken string) *credentials.Cre
 	return credentials.NewStaticCredentials(awsKey, awsPassword, awsToken)
 }
 
-func (s *s3Bucket) normalizeKey(key string) string {
-	if key == "" {
-		return s.prefix
-	}
-	return consistentJoin(s.prefix, key)
-}
+func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
 
 func (s *s3Bucket) denormalizeKey(key string) string {
 	if s.prefix != "" && len(key) > len(s.prefix)+1 {
@@ -308,6 +303,17 @@ func (s *s3Bucket) Exists(ctx context.Context, key string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (s *s3Bucket) Join(elems ...string) string {
+	var out []string
+	for _, elem := range elems {
+		if elem != "" {
+			out = append(out, elem)
+		}
+	}
+
+	return strings.Join(out, "/")
 }
 
 type smallWriteCloser struct {
@@ -877,7 +883,7 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 			continue
 		}
 
-		target := consistentJoin(opts.Remote, fn)
+		target := s.Join(opts.Remote, fn)
 		file := filepath.Join(opts.Local, fn)
 		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, target, file)
 		if err != nil {
@@ -967,7 +973,7 @@ func (s *s3BucketLarge) Pull(ctx context.Context, opts SyncOptions) error {
 func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 	if !options.IsDestination {
 		options.IsDestination = true
-		options.SourceKey = consistentJoin(s.name, s.normalizeKey(options.SourceKey))
+		options.SourceKey = s.Join(s.name, s.normalizeKey(options.SourceKey))
 		return options.DestinationBucket.Copy(ctx, options)
 	}
 
@@ -1277,7 +1283,7 @@ func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 		return errors.WithStack(err)
 	}
 
-	target := consistentJoin(opts.Remote, syncArchiveName)
+	target := s.Join(opts.Remote, syncArchiveName)
 
 	s3Writer, err := s.Writer(ctx, target)
 	if err != nil {
@@ -1327,7 +1333,7 @@ func (s *s3ArchiveBucket) Pull(ctx context.Context, opts SyncOptions) error {
 		}
 	}
 
-	target := consistentJoin(opts.Remote, syncArchiveName)
+	target := s.Join(opts.Remote, syncArchiveName)
 	reader, err := s.Get(ctx, target)
 	if err != nil {
 		return errors.Wrapf(err, "getting archive from remote path '%s'", opts.Remote)

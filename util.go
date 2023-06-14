@@ -98,13 +98,6 @@ func removeMatching(ctx context.Context, expression string, b Bucket) error {
 	return errors.Wrapf(b.RemoveMany(ctx, keys...), "deleting objects matching '%s'", expression)
 }
 
-func consistentJoin(prefix, key string) string {
-	if prefix != "" {
-		return prefix + "/" + key
-	}
-	return key
-}
-
 func deleteOnPush(ctx context.Context, sourceFiles []string, remote string, bucket Bucket) error {
 	sourceFilesMap := map[string]bool{}
 	for _, fn := range sourceFiles {
