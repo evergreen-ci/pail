@@ -19,7 +19,7 @@ import (
 //   - https://github.com/evergreen-ci/evergreen/blob/master/thirdparty/s3.go
 //   - https://github.com/mongodb/curator/tree/master/sthree
 //
-// The preferred aws sdk is here: https://docs.aws.amazon.com/sdk-for-go/api/
+// The preferred AWS SDK is here: https://docs.aws.amazon.com/sdk-for-go/api/
 //
 // In no particular order:
 //   - implementation constructors should make it possible to use
@@ -40,13 +40,18 @@ type Bucket interface {
 	// Exists returns whether the given key exists in the bucket or not.
 	Exists(context.Context, string) (bool, error)
 
+	// Join concatenates elements with the appropriate path separator of
+	// the bucket, ignoring empty elements. This is analogous to
+	// `filepath.Join`.
+	Join(...string) string
+
 	// Produces a Writer and Reader interface to the file named by
 	// the string.
 	Writer(context.Context, string) (io.WriteCloser, error)
 	Reader(context.Context, string) (io.ReadCloser, error)
 
 	// Put and Get write simple byte streams (in the form of
-	// io.Readers) to/from specfied keys.
+	// io.Readers) to/from specified keys.
 	//
 	// TODO: consider if these, particularly Get are not
 	// substantively different from Writer/Reader methods, or
@@ -90,7 +95,7 @@ type Bucket interface {
 // the local file system tree with the remote store.
 type SyncBucket interface {
 	// Sync methods: these methods are the recursive, efficient
-	// copy methods of files from s3 to the local file
+	// copy methods of files from S3 to the local file
 	// system.
 	Push(context.Context, SyncOptions) error
 	Pull(context.Context, SyncOptions) error
@@ -119,7 +124,7 @@ type CopyOptions struct {
 // While iterators (typically) use channels internally, this is a
 // fairly standard paradigm for iterating through resources, and is
 // use heavily in the FTDC library (https://github.com/mongodb/ftdc)
-// and bson (https://godoc.org/github.com/mongodb/mongo-go-driver/bson)
+// and BSON (https://godoc.org/github.com/mongodb/mongo-go-driver/bson)
 // libraries.
 
 // BucketIterator provides a way to interact with the contents of a
