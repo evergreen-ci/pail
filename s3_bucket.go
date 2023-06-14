@@ -149,15 +149,7 @@ func CreateAWSCredentials(awsKey, awsPassword, awsToken string) *credentials.Cre
 	return credentials.NewStaticCredentials(awsKey, awsPassword, awsToken)
 }
 
-func (s *s3Bucket) normalizeKey(key string) string {
-	if key == "" {
-		return s.prefix
-	}
-	if s.prefix == "" {
-		return key
-	}
-	return s.Join(s.prefix, key)
-}
+func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
 
 func (s *s3Bucket) denormalizeKey(key string) string {
 	if s.prefix != "" && len(key) > len(s.prefix)+1 {
