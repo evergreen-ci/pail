@@ -3,7 +3,7 @@ module github.com/evergreen-ci/pail
 go 1.20
 
 require (
-	github.com/aws/aws-sdk-go v1.44.127
+	github.com/aws/aws-sdk-go v1.44.294
 	github.com/evergreen-ci/poplar v0.0.0-20211028170046-0999224b53df
 	github.com/evergreen-ci/utility v0.0.0-20220404192535-d16eb64796e6
 	github.com/mitchellh/go-homedir v1.1.0
@@ -52,10 +52,10 @@ require (
 	github.com/urfave/negroni v1.0.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.mongodb.org/mongo-driver v1.8.3 // indirect
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
+	golang.org/x/net v0.1.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1 // indirect
-	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987 // indirect
 	google.golang.org/grpc v1.41.0 // indirect
