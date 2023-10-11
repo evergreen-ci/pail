@@ -299,9 +299,6 @@ func TestBucket(t *testing.T) {
 		},
 	} {
 		t.Run(impl.name, func(t *testing.T) {
-			if strings.Contains(impl.name, "MultiPart") {
-				t.Skip()
-			}
 			for _, test := range impl.tests {
 				t.Run(test.id, func(t *testing.T) {
 					bucket := impl.constructor(t)
@@ -793,14 +790,12 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, err)
 					require.Len(t, files, numFiles+2)
 
-					if !strings.Contains(impl.name, "GridFS") {
-						for _, fn := range files {
-							_, ok := data[filepath.Base(fn)]
-							if !ok {
-								ok = filepath.Base(fn) == "python.py" || filepath.Base(fn) == "python2.py"
-							}
-							require.True(t, ok)
+					for _, fn := range files {
+						_, ok := data[filepath.Base(fn)]
+						if !ok {
+							ok = filepath.Base(fn) == "python.py" || filepath.Base(fn) == "python2.py"
 						}
+						require.True(t, ok)
 					}
 
 					mirror = filepath.Join(tempdir, "pull-excludes", testutil.NewUUID())
