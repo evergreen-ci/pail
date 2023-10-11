@@ -14,6 +14,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+func consistentJoin(elems []string) string {
+	var out []string
+	for _, elem := range elems {
+		if elem != "" {
+			out = append(out, filepath.ToSlash(elem))
+		}
+	}
+
+	return strings.Join(out, "/")
+}
+
 func walkLocalTree(ctx context.Context, prefix string) ([]string, error) {
 	var out []string
 	err := filepath.Walk(prefix, func(path string, info os.FileInfo, err error) error {

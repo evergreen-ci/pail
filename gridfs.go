@@ -19,8 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// GridFSOptions support the use and creation of GridFS backed
-// buckets.
+// GridFSOptions support the use and creation of GridFS backed buckets.
 type GridFSOptions struct {
 	Name         string
 	Prefix       string
@@ -46,12 +45,7 @@ type gridfsBucket struct {
 	client *mongo.Client
 }
 
-func (b *gridfsBucket) normalizeKey(key string) string {
-	if key == "" {
-		return b.opts.Prefix
-	}
-	return consistentJoin(b.opts.Prefix, key)
-}
+func (b *gridfsBucket) normalizeKey(key string) string { return b.Join(b.opts.Prefix, key) }
 
 func (b *gridfsBucket) denormalizeKey(key string) string {
 	if b.opts.Prefix != "" && len(key) > len(b.opts.Prefix)+1 {
@@ -60,10 +54,8 @@ func (b *gridfsBucket) denormalizeKey(key string) string {
 	return key
 }
 
-// NewGridFSBucketWithClient constructs a Bucket implementation using
-// GridFS and the new MongoDB driver. If client is nil, then this
-// method falls back to the behavior of NewGridFS bucket. Use the
-// Check method to verify that this bucket ise operationsal.
+// NewGridFSBucketWithClient returns a new bucket backed by GridFS with the
+// existing Mongo client and given options.
 func NewGridFSBucketWithClient(ctx context.Context, client *mongo.Client, opts GridFSOptions) (Bucket, error) {
 	if client == nil {
 		return NewGridFSBucket(ctx, opts)
@@ -72,12 +64,11 @@ func NewGridFSBucketWithClient(ctx context.Context, client *mongo.Client, opts G
 	if err := opts.validate(); err != nil {
 		return nil, err
 	}
+
 	return &gridfsBucket{opts: opts, client: client}, nil
 }
 
-// NewGridFSBucket creates a Bucket instance backed by the new MongoDB
-// driver, creating a new client and connecting to the URI.
-// Use the Check method to verify that this bucket ise operationsal.
+// NewGridFSBucket returns a bucket backed by GridFS with the given options.
 func NewGridFSBucket(ctx context.Context, opts GridFSOptions) (Bucket, error) {
 	if err := opts.validate(); err != nil {
 		return nil, err
@@ -107,10 +98,22 @@ func (b *gridfsBucket) Check(ctx context.Context) error {
 	return errors.Wrap(b.client.Ping(ctx, nil), "contacting DB")
 }
 
-func (b *gripfsBucket) Exists(ctx context.Context, key string) (bool, error) {
-	// TODO: implement this.
-	return false, errors.New("not implemented")
+func (b *gridfsBucket) Exists(ctx context.Context, key string) (bool, error) {
+	grid, err := b.bucket(ctx)
+	if err != nil {
+		return false, errors.Wrap(err, "resolving bucket")
+	}
+
+	if err = grid.GetFilesCollection().FindOne(ctx, bson.M{"filename": b.normalizeKey(key)}).Err(); err == mongo.ErrNoDocuments {
+		return false, nil
+	} else if err != nil {
+		return false, errors.Wrap(err, "finding file")
+	}
+
+	return true, nil
 }
+
+func (b *gridfsBucket) Join(elems ...string) string { return consistentJoin(elems) }
 
 func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 	if err := ctx.Err(); err != nil {
@@ -304,7 +307,7 @@ func (b *gridfsBucket) Push(ctx context.Context, opts SyncOptions) error {
 			continue
 		}
 
-		target := consistentJoin(opts.Remote, path)
+		target := b.Join(opts.Remote, path)
 		_ = b.Remove(ctx, target)
 		if err = b.Upload(ctx, target, filepath.Join(opts.Local, path)); err != nil {
 			return errors.Wrapf(err, "uploading file '%s' to '%s'", path, target)
@@ -344,18 +347,19 @@ func (b *gridfsBucket) Pull(ctx context.Context, opts SyncOptions) error {
 	}
 
 	keys := []string{}
-
 	for iter.Next(ctx) {
 		item := iter.Item()
 		if re != nil && re.MatchString(item.Name()) {
 			continue
 		}
 
-		fn := item.Name()[len(opts.Remote)+1:]
-		name := filepath.Join(opts.Local, fn)
-		keys = append(keys, fn)
+		localName, err := filepath.Rel(opts.Remote, item.Name())
+		if err != nil {
+			return errors.Wrap(err, "getting relative filepath")
+		}
+		keys = append(keys, localName)
 
-		if err = b.Download(ctx, item.Name(), name); err != nil {
+		if err = b.Download(ctx, item.Name(), filepath.Join(opts.Local, localName)); err != nil {
 			return errors.WithStack(err)
 		}
 	}
@@ -547,16 +551,15 @@ func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator,
 		"prefix":        prefix,
 	})
 
-	filter := bson.M{}
-	if prefix != "" {
-		filter = bson.M{"filename": primitive.Regex{Pattern: fmt.Sprintf("^%s.*", b.normalizeKey(prefix))}}
-	}
-
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolving bucket")
 	}
 
+	filter := bson.M{}
+	if prefix != "" {
+		filter = bson.M{"filename": primitive.Regex{Pattern: fmt.Sprintf("^%s.*", b.normalizeKey(prefix))}}
+	}
 	cursor, err := grid.Find(filter)
 	if err != nil {
 		return nil, errors.Wrap(err, "finding file")
@@ -584,17 +587,15 @@ func (iter *gridfsIterator) Next(ctx context.Context) bool {
 		ID       interface{} `bson:"_id"`
 		Filename string      `bson:"filename"`
 	}{}
-
-	err := iter.iter.Decode(&document)
-	if err != nil {
+	if err := iter.iter.Decode(&document); err != nil {
 		iter.err = err
 		return false
 	}
 
 	iter.item = &bucketItemImpl{
-		bucket: iter.bucket.opts.Prefix,
-		b:      iter.bucket,
+		bucket: iter.bucket.opts.Name,
 		key:    iter.bucket.denormalizeKey(document.Filename),
+		b:      iter.bucket,
 	}
 	return true
 }
