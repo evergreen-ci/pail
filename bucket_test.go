@@ -33,11 +33,10 @@ func TestBucket(t *testing.T) {
 
 	uuid := testutil.NewUUID()
 
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-	require.NoError(t, err)
 	connCtx, connCancel := context.WithTimeout(ctx, time.Second)
 	defer connCancel()
-	require.NoError(t, client.Connect(connCtx))
+	client, err := mongo.Connect(connCtx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	require.NoError(t, err)
 	dbName := "pail-bucket-test"
 	defer func() {
 		require.NoError(t, client.Database(dbName).Drop(ctx))
