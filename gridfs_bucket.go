@@ -99,9 +99,13 @@ func (b *gridfsBucket) Exists(ctx context.Context, key string) (bool, error) {
 
 func (b *gridfsBucket) Join(elems ...string) string { return consistentJoin(elems) }
 
-// bucket creates a new GridFS bucket for each pail operation to avoid conflict
-// since custom deadlines cannot be set on the bucket concurrently with other
-// read or write operations that also require a custom deadline.
+// bucket returns a new GridFS bucket configured with the context timeout, if
+// it exists. This function is called by each operation that needs to read or
+// write from the bucket to avoid read and write deadline conflicts—custom
+// deadlines cannot be set on a GridFS bucket instance concurrently with other
+// read or write operations that also require a custom deadlines. Setting the
+// deadlines here for each individual pail operation allows us to respect
+// context timeouts passed in by the caller.
 func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, errors.Wrap(err, "fetching bucket with canceled context")
@@ -113,7 +117,8 @@ func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 	}
 
 	// The streaming GridFS functions do not accept a context so we need to
-	// set the deadline from the passed-in context here, if it exists.
+	// set the deadline from the passed-in context here, if it exists, in
+	// order to respect context timeouts passed in by the caller.
 	dl, ok := ctx.Deadline()
 	if ok {
 		_ = gfs.SetReadDeadline(dl)
