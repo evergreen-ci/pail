@@ -25,6 +25,10 @@ func consistentJoin(elems []string) string {
 	return strings.Join(out, "/")
 }
 
+func consistentTrimPrefix(key, prefix string) string {
+	return strings.TrimPrefix(key, prefix+"/")
+}
+
 func walkLocalTree(ctx context.Context, prefix string) ([]string, error) {
 	var out []string
 	err := filepath.Walk(prefix, func(path string, info os.FileInfo, err error) error {

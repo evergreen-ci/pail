@@ -31,13 +31,18 @@ func TestBucket(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	uuid := testutil.NewUUID()
+
 	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
 	require.NoError(t, err)
 	connCtx, connCancel := context.WithTimeout(ctx, time.Second)
 	defer connCancel()
 	require.NoError(t, client.Connect(connCtx))
+	dbName := "pail-bucket-test"
+	defer func() {
+		require.NoError(t, client.Database(dbName).Drop(ctx))
+	}()
 
-	uuid := testutil.NewUUID()
 	_, file, _, _ := runtime.Caller(0)
 	tempdir := t.TempDir()
 	require.NoError(t, err, os.MkdirAll(filepath.Join(tempdir, uuid), 0700))
@@ -62,7 +67,7 @@ func TestBucket(t *testing.T) {
 				b, err := NewGridFSBucketWithClient(ctx, client, GridFSOptions{
 					Name:     testutil.NewUUID(),
 					Prefix:   testutil.NewUUID(),
-					Database: uuid,
+					Database: dbName,
 				})
 				require.NoError(t, err)
 				return b
@@ -738,7 +743,7 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("PullFromBucket", func(t *testing.T) {
 				data := map[string]string{}
-				numFiles := 50
+				const numFiles = 50
 				for i := 0; i < numFiles; i++ {
 					data[testutil.NewUUID()] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 				}
@@ -871,7 +876,7 @@ func TestBucket(t *testing.T) {
 			t.Run("PushToBucket", func(t *testing.T) {
 				prefix := filepath.Join(tempdir, testutil.NewUUID())
 				filenames := map[string]bool{}
-				numFiles := 50
+				const numFiles = 50
 				for i := 0; i < numFiles; i++ {
 					// Add an additional prefix here to
 					// ensure that we correctly replace the

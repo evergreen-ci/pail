@@ -151,12 +151,7 @@ func CreateAWSCredentials(awsKey, awsPassword, awsToken string) *credentials.Cre
 
 func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
 
-func (s *s3Bucket) denormalizeKey(key string) string {
-	if s.prefix != "" && len(key) > len(s.prefix)+1 {
-		key = key[len(s.prefix)+1:]
-	}
-	return key
-}
+func (s *s3Bucket) denormalizeKey(key string) string { return consistentTrimPrefix(key, s.prefix) }
 
 func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) {
 	if options.Permissions != "" {

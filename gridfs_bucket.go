@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"time"
 
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
@@ -48,17 +47,14 @@ type gridfsBucket struct {
 func (b *gridfsBucket) normalizeKey(key string) string { return b.Join(b.opts.Prefix, key) }
 
 func (b *gridfsBucket) denormalizeKey(key string) string {
-	if b.opts.Prefix != "" && len(key) > len(b.opts.Prefix)+1 {
-		key = key[len(b.opts.Prefix)+1:]
-	}
-	return key
+	return consistentTrimPrefix(key, b.opts.Prefix)
 }
 
 // NewGridFSBucketWithClient returns a new bucket backed by GridFS with the
 // existing Mongo client and given options.
 func NewGridFSBucketWithClient(ctx context.Context, client *mongo.Client, opts GridFSOptions) (Bucket, error) {
 	if client == nil {
-		return NewGridFSBucket(ctx, opts)
+		return nil, errors.New("must provide a Mongo client")
 	}
 
 	if err := opts.validate(); err != nil {
@@ -74,28 +70,16 @@ func NewGridFSBucket(ctx context.Context, opts GridFSOptions) (Bucket, error) {
 		return nil, err
 	}
 
-	client, err := mongo.NewClient(options.Client().ApplyURI(opts.MongoDBURI))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(opts.MongoDBURI))
 	if err != nil {
 		return nil, errors.Wrap(err, "constructing client")
-	}
-
-	connctx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-
-	err = client.Connect(connctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "connecting")
 	}
 
 	return &gridfsBucket{opts: opts, client: client}, nil
 }
 
 func (b *gridfsBucket) Check(ctx context.Context) error {
-	if b.client == nil {
-		return errors.New("no client defined")
-	}
-
-	return errors.Wrap(b.client.Ping(ctx, nil), "contacting DB")
+	return errors.Wrap(b.client.Ping(ctx, nil), "pinging DB")
 }
 
 func (b *gridfsBucket) Exists(ctx context.Context, key string) (bool, error) {
@@ -115,6 +99,9 @@ func (b *gridfsBucket) Exists(ctx context.Context, key string) (bool, error) {
 
 func (b *gridfsBucket) Join(elems ...string) string { return consistentJoin(elems) }
 
+// bucket creates a new GridFS bucket for each pail operation to avoid conflict
+// since custom deadlines cannot be set on the bucket concurrently with other
+// read or write operations that also require a custom deadline.
 func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, errors.Wrap(err, "fetching bucket with canceled context")
@@ -125,6 +112,8 @@ func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 		return nil, errors.WithStack(err)
 	}
 
+	// The streaming GridFS functions do not accept a context so we need to
+	// set the deadline from the passed-in context here, if it exists.
 	dl, ok := ctx.Deadline()
 	if ok {
 		_ = gfs.SetReadDeadline(dl)
@@ -267,13 +256,10 @@ func (b *gridfsBucket) Download(ctx context.Context, name, path string) error {
 	if err != nil {
 		return errors.Wrapf(err, "creating file '%s'", path)
 	}
-	_, err = io.Copy(f, reader)
-	if err != nil {
-		_ = f.Close()
-		return errors.Wrap(err, "copying data")
-	}
+	defer f.Close()
 
-	return errors.WithStack(f.Close())
+	_, err = io.Copy(f, reader)
+	return errors.Wrap(err, "copying data to file")
 }
 
 func (b *gridfsBucket) Push(ctx context.Context, opts SyncOptions) error {
@@ -308,7 +294,6 @@ func (b *gridfsBucket) Push(ctx context.Context, opts SyncOptions) error {
 		}
 
 		target := b.Join(opts.Remote, path)
-		_ = b.Remove(ctx, target)
 		if err = b.Upload(ctx, target, filepath.Join(opts.Local, path)); err != nil {
 			return errors.Wrapf(err, "uploading file '%s' to '%s'", path, target)
 		}
@@ -412,49 +397,7 @@ func (b *gridfsBucket) Remove(ctx context.Context, key string) error {
 		"key":           key,
 	})
 
-	grid, err := b.bucket(ctx)
-	if err != nil {
-		return errors.Wrap(err, "resolving bucket")
-	}
-
-	cursor, err := grid.Find(bson.M{"filename": b.normalizeKey(key)})
-	if err == mongo.ErrNoDocuments {
-		return nil
-	} else if err != nil {
-		return errors.Wrap(err, "finding file")
-	}
-
-	document := struct {
-		ID interface{} `bson:"_id"`
-	}{}
-
-	for cursor.Next(ctx) {
-		err = cursor.Decode(&document)
-		if err == mongo.ErrNoDocuments {
-			continue
-		}
-
-		if err != nil {
-			_ = cursor.Close(ctx)
-			return errors.Wrap(err, "decoding GridFS metadata")
-		}
-
-		if b.opts.DryRun {
-			continue
-		}
-
-		if err = grid.Delete(document.ID); err != nil {
-			return errors.Wrap(err, "deleting GridFS file")
-		}
-	}
-	if err = cursor.Err(); err != nil {
-		return errors.Wrap(err, "iterating GridFS metadata")
-	}
-	if err = cursor.Close(ctx); err != nil {
-		return errors.Wrap(err, "closing cursor")
-	}
-
-	return nil
+	return b.RemoveMany(ctx, key)
 }
 
 func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
@@ -477,22 +420,17 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 		normalizedKeys[i] = b.normalizeKey(key)
 	}
 
-	cursor, err := grid.Find(bson.M{"filename": bson.M{"$in": normalizedKeys}})
+	cur, err := grid.FindContext(ctx, bson.M{"filename": bson.M{"$in": normalizedKeys}})
 	if err != nil {
-		return errors.Wrap(err, "finding file")
+		return errors.Wrap(err, "finding file(s)")
 	}
 
+	catcher := grip.NewBasicCatcher()
 	document := struct {
 		ID interface{} `bson:"_id"`
 	}{}
-
-	for cursor.Next(ctx) {
-		err = cursor.Decode(&document)
-		if err == mongo.ErrNoDocuments {
-			continue
-		}
-
-		if err != nil {
+	for cur.Next(ctx) {
+		if err = cur.Decode(&document); err != nil {
 			return errors.Wrap(err, "decoding GridFS metadata")
 		}
 
@@ -500,20 +438,15 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 			continue
 		}
 
-		if err = grid.Delete(document.ID); err != nil {
-			return errors.Wrap(err, "deleting GridFS file")
+		if err = grid.DeleteContext(ctx, document.ID); err != nil {
+			catcher.Wrap(err, "deleting GridFS file")
+			break
 		}
 	}
+	catcher.Wrap(cur.Err(), "iterating GridFS metadata")
+	catcher.Wrap(cur.Close(ctx), "closing cursor")
 
-	if err = cursor.Err(); err != nil {
-		return errors.Wrap(err, "iterating GridFS metadata")
-	}
-
-	if err = cursor.Close(ctx); err != nil {
-		return errors.Wrap(err, "closing cursor")
-	}
-
-	return nil
+	return catcher.Resolve()
 }
 
 func (b *gridfsBucket) RemovePrefix(ctx context.Context, prefix string) error {
@@ -560,7 +493,7 @@ func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator,
 	if prefix != "" {
 		filter = bson.M{"filename": primitive.Regex{Pattern: fmt.Sprintf("^%s.*", b.normalizeKey(prefix))}}
 	}
-	cursor, err := grid.Find(filter)
+	cursor, err := grid.FindContext(ctx, filter)
 	if err != nil {
 		return nil, errors.Wrap(err, "finding file")
 	}
