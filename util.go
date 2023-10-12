@@ -113,7 +113,7 @@ func deleteOnPush(ctx context.Context, sourceFiles []string, remote string, buck
 	sourceFilesMap := map[string]bool{}
 	for _, fn := range sourceFiles {
 		// Add the remote prefix and use the bucket's Join method to
-		// ensure that we are correctly matching remote and local
+		// ensure that we are correctly matching remote keys with local
 		// filenames.
 		sourceFilesMap[bucket.Join(remote, fn)] = true
 	}
@@ -126,7 +126,7 @@ func deleteOnPush(ctx context.Context, sourceFiles []string, remote string, buck
 	toDelete := []string{}
 	for iter.Next(ctx) {
 		name := iter.Item().Name()
-		if !sourceFilesMap[key] {
+		if !sourceFilesMap[name] {
 			toDelete = append(toDelete, name)
 		}
 	}
