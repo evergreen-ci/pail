@@ -995,7 +995,6 @@ func TestBucket(t *testing.T) {
 					setDryRun(bucket, true)
 					opts := SyncOptions{Local: prefix, Remote: "baz"}
 					assert.NoError(t, bucket.Push(ctx, opts))
-					setDryRun(bucket, false)
 					iter, err := bucket.List(ctx, "baz")
 					require.NoError(t, err)
 					count := 0
@@ -1004,6 +1003,7 @@ func TestBucket(t *testing.T) {
 						count++
 					}
 					assert.Equal(t, 2, count)
+					setDryRun(bucket, false)
 
 					assert.NoError(t, bucket.Push(ctx, opts))
 					iter, err = bucket.List(ctx, "baz")

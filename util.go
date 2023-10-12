@@ -112,7 +112,10 @@ func removeMatching(ctx context.Context, expression string, b Bucket) error {
 func deleteOnPush(ctx context.Context, sourceFiles []string, remote string, bucket Bucket) error {
 	sourceFilesMap := map[string]bool{}
 	for _, fn := range sourceFiles {
-		sourceFilesMap[fn] = true
+		// Add the remote prefix and use the bucket's Join method to
+		// ensure that we are correctly matching remote and local
+		// filenames.
+		sourceFilesMap[bucket.Join(remote, fn)] = true
 	}
 
 	iter, err := bucket.List(ctx, remote)
@@ -122,12 +125,9 @@ func deleteOnPush(ctx context.Context, sourceFiles []string, remote string, buck
 
 	toDelete := []string{}
 	for iter.Next(ctx) {
-		fn := strings.TrimPrefix(iter.Item().Name(), remote)
-		fn = strings.TrimPrefix(fn, "/")
-		fn = strings.TrimPrefix(fn, "\\") // cause windows...
-
-		if !sourceFilesMap[fn] {
-			toDelete = append(toDelete, iter.Item().Name())
+		name := iter.Item().Name()
+		if !sourceFilesMap[key] {
+			toDelete = append(toDelete, name)
 		}
 	}
 
