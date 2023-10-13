@@ -66,9 +66,9 @@ type Bucket interface {
 
 	SyncBucket
 
-	// Copy does a special copy operation that does not require
-	// downloading a file. Note that CopyOptions.DestinationBucket must
-	// have the same type as the calling bucket object.
+	// Copy does a special copy operation that does not require downloading
+	// a file. Note that CopyOptions.DestinationBucket must have the same
+	// type as the calling bucket object.
 	Copy(context.Context, CopyOptions) error
 
 	// Remove the specified object(s) from the bucket.
@@ -81,13 +81,13 @@ type Bucket interface {
 	// Note that this operation is not atomic.
 	RemovePrefix(context.Context, string) error
 
-	// Remove all objects matching the given regular expression,
-	// continuing on error and returning any accumulated errors.
+	// Remove all objects matching the given regular expression, continuing
+	// on error and returning any accumulated errors.
 	// Note that this operation is not atomic.
 	RemoveMatching(context.Context, string) error
 
 	// List provides a way to iterator over the contents of a
-	// bucket (for a given prefix).
+	// bucket with the given prefix.
 	List(context.Context, string) (BucketIterator, error)
 }
 

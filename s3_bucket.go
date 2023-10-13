@@ -151,12 +151,7 @@ func CreateAWSCredentials(awsKey, awsPassword, awsToken string) *credentials.Cre
 
 func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
 
-func (s *s3Bucket) denormalizeKey(key string) string {
-	if s.prefix != "" && len(key) > len(s.prefix)+1 {
-		key = key[len(s.prefix)+1:]
-	}
-	return key
-}
+func (s *s3Bucket) denormalizeKey(key string) string { return consistentTrimPrefix(key, s.prefix) }
 
 func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) {
 	if options.Permissions != "" {
@@ -305,16 +300,7 @@ func (s *s3Bucket) Exists(ctx context.Context, key string) (bool, error) {
 	return true, nil
 }
 
-func (s *s3Bucket) Join(elems ...string) string {
-	var out []string
-	for _, elem := range elems {
-		if elem != "" {
-			out = append(out, elem)
-		}
-	}
-
-	return strings.Join(out, "/")
-}
+func (s *s3Bucket) Join(elems ...string) string { return consistentJoin(elems) }
 
 type smallWriteCloser struct {
 	isClosed    bool
@@ -945,15 +931,15 @@ func (s *s3Bucket) pullHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 			continue
 		}
 
-		name, err := filepath.Rel(opts.Remote, iter.Item().Name())
+		localName, err := filepath.Rel(opts.Remote, iter.Item().Name())
 		if err != nil {
 			return errors.Wrap(err, "getting relative filepath")
 		}
-		localName := filepath.Join(opts.Local, name)
-		if err := s3DownloadWithChecksum(ctx, b, iter.Item(), localName); err != nil {
+		keys = append(keys, localName)
+
+		if err := s3DownloadWithChecksum(ctx, b, iter.Item(), filepath.Join(opts.Local, localName)); err != nil {
 			return errors.WithStack(err)
 		}
-		keys = append(keys, name)
 	}
 
 	if s.deleteOnPull && !s.dryRun {
