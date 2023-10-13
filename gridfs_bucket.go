@@ -101,10 +101,9 @@ func (b *gridfsBucket) Join(elems ...string) string { return consistentJoin(elem
 
 // bucket returns a new GridFS bucket configured with the context timeout, if
 // it exists. This function is called by each operation that needs to read or
-// write from the bucket to avoid read and write deadline conflicts—custom
-// deadlines cannot be set on a GridFS bucket instance concurrently with other
-// read or write operations that also require a custom deadlines. Setting the
-// deadlines here for each individual pail operation allows us to respect
+// write from the bucket to avoid read and write deadline conflicts—GridFS only
+// supports a single read and a single write deadline for a bucket instance.
+// This function sets the read and write deadlines to allow it to respect the
 // context timeouts passed in by the caller.
 func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 	if err := ctx.Err(); err != nil {
