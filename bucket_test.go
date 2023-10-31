@@ -705,6 +705,33 @@ func TestBucket(t *testing.T) {
 				assert.Nil(t, iter.Item())
 				assert.NoError(t, iter.Err())
 			})
+			t.Run("ListIteratesLexicographically", func(t *testing.T) {
+				bucket := impl.constructor(t)
+				keys := []string{
+					"0file",
+					"Afile",
+					"Zfile",
+					"afile1",
+					"cfile",
+					"zfile1",
+				}
+				// Insert keys in reverse order because some
+				// underlying bucket stores may iterate in
+				// insert order by default.
+				for i := len(keys) - 1; i >= 0; i-- {
+					assert.NoError(t, writeDataToFile(ctx, bucket, keys[i], "foo/bar"))
+				}
+
+				iter, err := bucket.List(ctx, "")
+				require.NoError(t, err)
+
+				var listedKeys []string
+				for iter.Next(ctx) {
+					listedKeys = append(listedKeys, iter.Item().Name())
+				}
+				require.NoError(t, iter.Err())
+				assert.Equal(t, keys, listedKeys)
+			})
 			t.Run("RoundTripManyFiles", func(t *testing.T) {
 				data := map[string]string{}
 				for i := 0; i < 3; i++ {

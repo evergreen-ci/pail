@@ -86,8 +86,9 @@ type Bucket interface {
 	// Note that this operation is not atomic.
 	RemoveMatching(context.Context, string) error
 
-	// List provides a way to iterator over the contents of a
-	// bucket with the given prefix.
+	// List returns an iterator over the contents of a bucket with the
+	// the given prefix. Contents are iterated lexicographically by key
+	// name.
 	List(context.Context, string) (BucketIterator, error)
 }
 

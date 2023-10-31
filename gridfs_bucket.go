@@ -497,7 +497,7 @@ func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator,
 	if prefix != "" {
 		filter = bson.M{"filename": primitive.Regex{Pattern: fmt.Sprintf("^%s.*", b.normalizeKey(prefix))}}
 	}
-	cursor, err := grid.FindContext(ctx, filter)
+	cursor, err := grid.FindContext(ctx, filter, options.GridFSFind().SetSort(bson.M{"filename": 1}))
 	if err != nil {
 		return nil, errors.Wrap(err, "finding file")
 	}
