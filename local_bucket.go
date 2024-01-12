@@ -62,6 +62,7 @@ func NewLocalBucket(opts LocalOptions) (Bucket, error) {
 	b := &localFileSystem{
 		path:         opts.Path,
 		prefix:       opts.Prefix,
+		useSlash:     opts.UseSlash,
 		dryRun:       opts.DryRun,
 		deleteOnPush: opts.DeleteOnPush || opts.DeleteOnSync,
 		deleteOnPull: opts.DeleteOnPull || opts.DeleteOnSync,
