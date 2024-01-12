@@ -311,9 +311,9 @@ func TestBucket(t *testing.T) {
 		},
 	} {
 		t.Run(impl.name, func(t *testing.T) {
-			// Only test local bucket with slash separator
-			// where the path separator is not the slash ('/')
-			// character.
+			// Only test the local implementation using the slash
+			// ('/') separator where the OS specific separator is
+			// different.
 			if impl.name == "LocalSlashSeparator" && runtime.GOOS != "windows" {
 				t.Skip()
 			}
