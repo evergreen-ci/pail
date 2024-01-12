@@ -116,7 +116,7 @@ func (b *localFileSystem) Exists(_ context.Context, key string) (bool, error) {
 
 func (b *localFileSystem) Join(elems ...string) string {
 	if b.useSlash {
-		return consistentJoin(elems...)
+		return consistentJoin(elems)
 	}
 
 	return filepath.Join(elems...)
