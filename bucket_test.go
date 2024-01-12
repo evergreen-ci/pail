@@ -204,6 +204,14 @@ func TestBucket(t *testing.T) {
 			},
 		},
 		{
+			name: "LocalSlashSeparator",
+			constructor: func(t *testing.T) Bucket {
+				path := filepath.Join(tempdir, uuid)
+				require.NoError(t, os.MkdirAll(path, 0777))
+				return &localFileSystem{path: path, prefix: testutil.NewUUID(), useSlash: true}
+			},
+		},
+		{
 			name: "S3Bucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
@@ -303,6 +311,13 @@ func TestBucket(t *testing.T) {
 		},
 	} {
 		t.Run(impl.name, func(t *testing.T) {
+			// Only test local bucket with slash separator
+			// where the path separator is not the slash ('/')
+			// character.
+			if impl.name == "LocalSlashSeparator" && runtime.GOOS != "windows" {
+				t.Skip()
+			}
+
 			for _, test := range impl.tests {
 				t.Run(test.id, func(t *testing.T) {
 					bucket := impl.constructor(t)
