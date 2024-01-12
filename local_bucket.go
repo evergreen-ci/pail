@@ -17,6 +17,7 @@ import (
 type localFileSystem struct {
 	path         string
 	prefix       string
+	useSlash     bool
 	dryRun       bool
 	deleteOnPush bool
 	deleteOnPull bool
@@ -25,8 +26,11 @@ type localFileSystem struct {
 
 // LocalOptions describes the configuration of a local Bucket.
 type LocalOptions struct {
-	Path         string
-	Prefix       string
+	Path   string
+	Prefix string
+	// UseSlash sets the prefix separator to the slash ('/') character
+	// instead of the OS specific separator.
+	UseSlash     bool
 	DryRun       bool
 	DeleteOnSync bool
 	DeleteOnPush bool
@@ -46,7 +50,7 @@ func (b *localFileSystem) normalizeKey(key string) string {
 	if key == "" {
 		return b.prefix
 	}
-	return filepath.Join(b.prefix, key)
+	return b.Join(b.prefix, key)
 }
 
 // NewLocalBucket returns an implementation of the Bucket interface
@@ -60,6 +64,7 @@ func NewLocalBucket(opts LocalOptions) (Bucket, error) {
 	b := &localFileSystem{
 		path:         opts.Path,
 		prefix:       opts.Prefix,
+		useSlash:     opts.UseSlash,
 		dryRun:       opts.DryRun,
 		deleteOnPush: opts.DeleteOnPush || opts.DeleteOnSync,
 		deleteOnPull: opts.DeleteOnPull || opts.DeleteOnSync,
@@ -102,7 +107,7 @@ func (b *localFileSystem) Check(_ context.Context) error {
 }
 
 func (b *localFileSystem) Exists(_ context.Context, key string) (bool, error) {
-	if _, err := os.Stat(filepath.Join(b.path, b.normalizeKey(key))); err != nil {
+	if _, err := os.Stat(b.Join(b.path, b.normalizeKey(key))); err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
 		}
@@ -112,7 +117,13 @@ func (b *localFileSystem) Exists(_ context.Context, key string) (bool, error) {
 	return true, nil
 }
 
-func (b *localFileSystem) Join(elems ...string) string { return filepath.Join(elems...) }
+func (b *localFileSystem) Join(elems ...string) string {
+	if b.useSlash {
+		return consistentJoin(elems)
+	}
+
+	return filepath.Join(elems...)
+}
 
 func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser, error) {
 	grip.DebugWhen(b.verbose, message.Fields{
@@ -128,7 +139,7 @@ func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser
 		return &mockWriteCloser{}, nil
 	}
 
-	path := filepath.Join(b.path, b.normalizeKey(name))
+	path := b.Join(b.path, b.normalizeKey(name))
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, errors.Wrap(err, "creating base directories")
 	}
@@ -150,7 +161,7 @@ func (b *localFileSystem) Reader(_ context.Context, name string) (io.ReadCloser,
 		"key":           name,
 	})
 
-	path := filepath.Join(b.path, b.normalizeKey(name))
+	path := b.Join(b.path, b.normalizeKey(name))
 	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -299,7 +310,7 @@ func (b *localFileSystem) Remove(ctx context.Context, key string) error {
 		return nil
 	}
 
-	path := filepath.Join(b.path, b.normalizeKey(key))
+	path := b.Join(b.path, b.normalizeKey(key))
 	err := os.Remove(path)
 	if os.IsNotExist(err) {
 		err = MakeKeyNotFoundError(err)
@@ -381,10 +392,10 @@ func (b *localFileSystem) Push(ctx context.Context, opts SyncOptions) error {
 			continue
 		}
 
-		target := filepath.Join(b.path, b.normalizeKey(filepath.Join(opts.Remote, fn)))
-		file := filepath.Join(opts.Local, fn)
+		target := b.Join(b.path, b.normalizeKey(b.Join(opts.Remote, fn)))
+		file := b.Join(opts.Local, fn)
 		if _, err := os.Stat(target); os.IsNotExist(err) {
-			if err := b.Upload(ctx, filepath.Join(opts.Remote, fn), file); err != nil {
+			if err := b.Upload(ctx, b.Join(opts.Remote, fn), file); err != nil {
 				return errors.WithStack(err)
 			}
 
@@ -401,7 +412,7 @@ func (b *localFileSystem) Push(ctx context.Context, opts SyncOptions) error {
 		}
 
 		if lsum != rsum {
-			if err := b.Upload(ctx, filepath.Join(opts.Remote, fn), file); err != nil {
+			if err := b.Upload(ctx, b.Join(opts.Remote, fn), file); err != nil {
 				return errors.WithStack(err)
 			}
 		}
@@ -433,7 +444,7 @@ func (b *localFileSystem) Pull(ctx context.Context, opts SyncOptions) error {
 		}
 	}
 
-	prefix := filepath.Join(b.path, b.normalizeKey(opts.Remote))
+	prefix := b.Join(b.path, b.normalizeKey(opts.Remote))
 	files, err := walkLocalTree(ctx, prefix)
 	if err != nil {
 		return errors.WithStack(err)
@@ -446,8 +457,8 @@ func (b *localFileSystem) Pull(ctx context.Context, opts SyncOptions) error {
 		}
 
 		keys = append(keys, fn)
-		path := filepath.Join(opts.Local, fn)
-		fn = filepath.Join(opts.Remote, fn)
+		path := b.Join(opts.Local, fn)
+		fn = b.Join(opts.Remote, fn)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			if err := b.Download(ctx, fn, path); err != nil {
 				return errors.WithStack(err)
@@ -456,7 +467,7 @@ func (b *localFileSystem) Pull(ctx context.Context, opts SyncOptions) error {
 			continue
 		}
 
-		lsum, err := utility.SHA1SumFile(filepath.Join(prefix, fn))
+		lsum, err := utility.SHA1SumFile(b.Join(prefix, fn))
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -486,7 +497,7 @@ func (b *localFileSystem) List(ctx context.Context, prefix string) (BucketIterat
 		"prefix":        prefix,
 	})
 
-	files, err := walkLocalTree(ctx, filepath.Join(b.path, b.normalizeKey(prefix)))
+	files, err := walkLocalTree(ctx, b.Join(b.path, b.normalizeKey(prefix)))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -518,7 +529,7 @@ func (iter *localFileSystemIterator) Next(_ context.Context) bool {
 
 	iter.item = &bucketItemImpl{
 		bucket: iter.bucket.path,
-		key:    filepath.Join(iter.prefix, iter.files[iter.idx]),
+		key:    iter.bucket.Join(iter.prefix, iter.files[iter.idx]),
 		b:      iter.bucket,
 	}
 	return true
