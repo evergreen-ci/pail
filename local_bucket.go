@@ -17,6 +17,7 @@ import (
 type localFileSystem struct {
 	path         string
 	prefix       string
+	useSlash     bool
 	dryRun       bool
 	deleteOnPush bool
 	deleteOnPull bool
@@ -27,6 +28,7 @@ type localFileSystem struct {
 type LocalOptions struct {
 	Path         string
 	Prefix       string
+	UseSlash     bool
 	DryRun       bool
 	DeleteOnSync bool
 	DeleteOnPush bool
@@ -112,7 +114,13 @@ func (b *localFileSystem) Exists(_ context.Context, key string) (bool, error) {
 	return true, nil
 }
 
-func (b *localFileSystem) Join(elems ...string) string { return filepath.Join(elems...) }
+func (b *localFileSystem) Join(elems ...string) string {
+	if b.useSlash {
+		return consistentJoin(elems...)
+	}
+
+	return filepath.Join(elems...)
+}
 
 func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser, error) {
 	grip.DebugWhen(b.verbose, message.Fields{
@@ -518,7 +526,7 @@ func (iter *localFileSystemIterator) Next(_ context.Context) bool {
 
 	iter.item = &bucketItemImpl{
 		bucket: iter.bucket.path,
-		key:    filepath.Join(iter.prefix, iter.files[iter.idx]),
+		key:    iter.bucket.Join(iter.prefix, iter.files[iter.idx]),
 		b:      iter.bucket,
 	}
 	return true
