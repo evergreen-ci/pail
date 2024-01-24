@@ -1353,11 +1353,12 @@ const PresignExpireTime = 24 * time.Hour
 
 // PreSignRequestParams holds all the parameters needed to sign a URL or fetch S3 object metadata.
 type PreSignRequestParams struct {
-	Bucket    string `json:"bucket"`
-	FileKey   string `json:"fileKey"`
-	AwsKey    string `json:"awsKey"`
-	AwsSecret string `json:"awsSecret"`
-	Region    string `json:"region"`
+	Bucket          string
+	FileKey         string
+	AwsKey          string
+	AwsSecret       string
+	AwsSessionToken string
+	Region          string
 }
 
 // PreSign returns a presigned URL that expires in 24 hours.
@@ -1367,6 +1368,7 @@ func PreSign(r PreSignRequestParams) (string, error) {
 		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
 			AccessKeyID:     r.AwsKey,
 			SecretAccessKey: r.AwsSecret,
+			SessionToken:    r.AwsSessionToken,
 		}),
 	})
 	if err != nil {
@@ -1390,6 +1392,7 @@ func GetHeadObject(r PreSignRequestParams) (*s3.HeadObjectOutput, error) {
 		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
 			AccessKeyID:     r.AwsKey,
 			SecretAccessKey: r.AwsSecret,
+			SessionToken:    r.AwsSessionToken,
 		}),
 	})
 	if err != nil {
