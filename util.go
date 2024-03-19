@@ -15,14 +15,7 @@ import (
 )
 
 func consistentJoin(elems []string) string {
-	var out []string
-	for _, elem := range elems {
-		if elem != "" {
-			out = append(out, filepath.ToSlash(elem))
-		}
-	}
-
-	return strings.Join(out, "/")
+	return filepath.ToSlash(filepath.Join(elems...))
 }
 
 func consistentTrimPrefix(key, prefix string) string {
