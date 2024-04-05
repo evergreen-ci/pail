@@ -1349,13 +1349,19 @@ type PreSignRequestParams struct {
 
 // PreSign returns a presigned URL that expires in 24 hours.
 func PreSign(r PreSignRequestParams) (string, error) {
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(endpoints.UsEast1RegionID),
-		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
+	var creds *credentials.Credentials
+	// Use static credentials if they're provided.
+	// If not the SDK will default to the credentials chain.
+	if r.AwsKey != "" {
+		creds = credentials.NewStaticCredentialsFromCreds(credentials.Value{
 			AccessKeyID:     r.AwsKey,
 			SecretAccessKey: r.AwsSecret,
 			SessionToken:    r.AwsSessionToken,
-		}),
+		})
+	}
+	sess, err := session.NewSession(&aws.Config{
+		Region:      aws.String(endpoints.UsEast1RegionID),
+		Credentials: creds,
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "connecting to AWS")
