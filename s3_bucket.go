@@ -164,10 +164,10 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		return nil, errors.New("ambiguous delete on sync options set")
 	}
 
-	config := &aws.Config{
-		Region:     aws.String(options.Region),
-		HTTPClient: client,
-		MaxRetries: options.MaxRetries,
+	config := sessionConfig{
+		region:     options.Region,
+		client:     client,
+		maxRetries: aws.IntValue(options.MaxRetries),
 	}
 
 	if options.SharedCredentialsFilepath != "" || options.SharedCredentialsProfile != "" {
@@ -176,16 +176,16 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid credentials from profile '%s'", options.SharedCredentialsProfile)
 		}
-		config.Credentials = sharedCredentials
+		config.credentials = sharedCredentials
 	} else if options.Credentials != nil {
 		_, err := options.Credentials.Get()
 		if err != nil {
 			return nil, errors.Wrap(err, "invalid credentials")
 		}
-		config.Credentials = options.Credentials
+		config.credentials = options.Credentials
 	}
 
-	sess, err := session.NewSession(config)
+	sess, err := getSession(config)
 	if err != nil {
 		return nil, errors.Wrap(err, "connecting to AWS")
 	}
@@ -213,6 +213,37 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		deleteOnPush:        options.DeleteOnPush || options.DeleteOnSync,
 		deleteOnPull:        options.DeleteOnPull || options.DeleteOnSync,
 	}, nil
+}
+
+var sessionCache = make(map[sessionConfig]*session.Session)
+
+type sessionConfig struct {
+	region      string
+	maxRetries  int
+	credentials *credentials.Credentials
+	client      *http.Client
+}
+
+func getSession(config sessionConfig) (*session.Session, error) {
+	isDefault := config.credentials == nil && config.client == nil
+	if isDefault && sessionCache[config] != nil {
+		return sessionCache[config], nil
+	}
+
+	sess, err := session.NewSession(&aws.Config{
+		Region:      aws.String(config.region),
+		MaxRetries:  aws.Int(config.maxRetries),
+		Credentials: config.credentials,
+		HTTPClient:  config.client,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "creating new session")
+	}
+	if isDefault {
+		sessionCache[config] = sess
+	}
+
+	return sess, nil
 }
 
 // NewS3Bucket returns a Bucket implementation backed by S3. This
@@ -1359,9 +1390,9 @@ func PreSign(r PreSignRequestParams) (string, error) {
 			SessionToken:    r.AwsSessionToken,
 		})
 	}
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(endpoints.UsEast1RegionID),
-		Credentials: creds,
+	sess, err := getSession(sessionConfig{
+		region:      endpoints.UsEast1RegionID,
+		credentials: creds,
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "connecting to AWS")
@@ -1379,9 +1410,9 @@ func PreSign(r PreSignRequestParams) (string, error) {
 
 // GetHeadObject fetches the metadata of an S3 object.
 func GetHeadObject(r PreSignRequestParams) (*s3.HeadObjectOutput, error) {
-	session, err := session.NewSession(&aws.Config{
-		Region: aws.String(r.Region),
-		Credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
+	session, err := getSession(sessionConfig{
+		region: r.Region,
+		credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
 			AccessKeyID:     r.AwsKey,
 			SecretAccessKey: r.AwsSecret,
 			SessionToken:    r.AwsSessionToken,
