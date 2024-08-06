@@ -1399,7 +1399,7 @@ type PreSignRequestParams struct {
 	Region          string
 }
 
-func (p *PreSignRequestParams) getPresignClient(ctx context.Context) (*s3.PresignClient, error) {
+func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, error) {
 	region := p.Region
 	if region == "" {
 		region = "us-east-1"
@@ -1421,19 +1421,17 @@ func (p *PreSignRequestParams) getPresignClient(ctx context.Context) (*s3.Presig
 		})
 	}
 
-	s3Client := s3.NewFromConfig(*cfg, s3Opts...)
-
-	// kim: TODO: figure out if this is proper usage of pre-signed HTTP request.
-	// Some examples: https://docs.aws.amazon.com/code-library/latest/ug/go_2_s3_code_examples.html
-	return s3.NewPresignClient(s3Client), nil
+	return s3.NewFromConfig(*cfg, s3Opts...), nil
 }
 
 // PreSign returns a presigned URL that expires in 24 hours.
 func PreSign(ctx context.Context, r PreSignRequestParams) (string, error) {
-	presignClient, err := r.getPresignClient(ctx)
+	svc, err := r.getS3Client(ctx)
 	if err != nil {
-		return "", errors.Wrap(err, "getting pre-signing client")
+		return "", errors.Wrap(err, "getting S3 client")
 	}
+	presignClient := s3.NewPresignClient(svc)
+
 	req, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(r.Bucket),
 		Key:    aws.String(r.FileKey),
@@ -1449,19 +1447,10 @@ func PreSign(ctx context.Context, r PreSignRequestParams) (string, error) {
 // input parameters, the function doesn't pre-sign the request to get the head
 // object at all.
 func GetHeadObject(ctx context.Context, r PreSignRequestParams) (*s3.HeadObjectOutput, error) {
-	cfg, err := getCachedConfig(ctx, configOpts{region: r.Region})
+	svc, err := r.getS3Client(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting AWS config")
+		return nil, errors.Wrap(err, "getting S3 client")
 	}
-
-	var s3Opts []func(*s3.Options)
-	if r.AwsKey != "" {
-		s3Opts = append(s3Opts, func(opts *s3.Options) {
-			opts.Credentials = CreateAWSCredentials(r.AwsKey, r.AwsSecret, r.AwsSessionToken)
-		})
-	}
-
-	svc := s3.NewFromConfig(*cfg, s3Opts...)
 
 	return svc.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(r.Bucket),
