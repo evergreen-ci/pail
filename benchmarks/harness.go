@@ -37,7 +37,7 @@ func RunSyncBucket(ctx context.Context) error {
 	}
 
 	var resultText string
-	s := syncBucketBenchmarkSuite()
+	s := syncBucketBenchmarkSuite(ctx)
 	res, err := s.Run(ctx, prefix)
 	if err != nil {
 		resultText = err.Error()
@@ -53,15 +53,15 @@ func RunSyncBucket(ctx context.Context) error {
 	return catcher.Resolve()
 }
 
-type syncBucketConstructor func(pail.S3Options) (pail.SyncBucket, error)
+type syncBucketConstructor func(context.Context, pail.S3Options) (pail.SyncBucket, error)
 type payloadConstructor func(numFiles int, bytesPerFile int) makePayload
 type makePayload func(context.Context, pail.SyncBucket, pail.S3Options) (dir string, err error)
 
-func basicPullIteration(makeBucket syncBucketConstructor, makePayload makePayload, opts pail.S3Options) poplar.Benchmark {
+func basicPullIteration(ctx context.Context, makeBucket syncBucketConstructor, makePayload makePayload, opts pail.S3Options) poplar.Benchmark {
 	return func(ctx context.Context, r poplar.Recorder, count int) error {
 		for i := 0; i < count; i++ {
 			if err := func() error {
-				b, err := makeBucket(opts)
+				b, err := makeBucket(ctx, opts)
 				if err != nil {
 					return errors.Wrap(err, "making bucket")
 				}
@@ -137,11 +137,11 @@ func runBasicPullIteration(ctx context.Context, r poplar.Recorder, b pail.SyncBu
 	return catcher.Resolve()
 }
 
-func basicPushIteration(makeBucket syncBucketConstructor, makePayload makePayload, opts pail.S3Options) poplar.Benchmark {
+func basicPushIteration(ctx context.Context, makeBucket syncBucketConstructor, makePayload makePayload, opts pail.S3Options) poplar.Benchmark {
 	return func(ctx context.Context, r poplar.Recorder, count int) error {
 		for i := 0; i < count; i++ {
 			if err := func() error {
-				b, err := makeBucket(opts)
+				b, err := makeBucket(ctx, opts)
 				if err != nil {
 					return errors.Wrap(err, "making bucket")
 				}
@@ -225,7 +225,7 @@ func getDirTotalSize(dir string) (int64, error) {
 	return size, nil
 }
 
-func syncBucketBenchmarkSuite() poplar.BenchmarkSuite {
+func syncBucketBenchmarkSuite(ctx context.Context) poplar.BenchmarkSuite {
 	var suite poplar.BenchmarkSuite
 	bucketCases := map[string]syncBucketConstructor{
 		"Small":   smallBucketConstructor,
@@ -253,7 +253,7 @@ func syncBucketBenchmarkSuite() poplar.BenchmarkSuite {
 			suite = append(suite,
 				&poplar.BenchmarkCase{
 					CaseName:      fmt.Sprintf("%sBucket-Pull-%s-%dFilesEachWith%dBytes", bucketName, caseName, benchCase.numFiles, benchCase.bytesPerFile),
-					Bench:         basicPullIteration(makeBucket, uploadLocalTree(benchCase.numFiles, benchCase.bytesPerFile), s3Opts()),
+					Bench:         basicPullIteration(ctx, makeBucket, uploadLocalTree(benchCase.numFiles, benchCase.bytesPerFile), s3Opts()),
 					Count:         1,
 					MinRuntime:    1 * time.Nanosecond, // We have to set this to be non-zero even though the test does not use it.
 					MaxRuntime:    benchCase.timeout,
@@ -263,7 +263,7 @@ func syncBucketBenchmarkSuite() poplar.BenchmarkSuite {
 				},
 				&poplar.BenchmarkCase{
 					CaseName:      fmt.Sprintf("%sBucket-Push-%s-%dFilesEachWith%dBytes", bucketName, caseName, benchCase.numFiles, benchCase.bytesPerFile),
-					Bench:         basicPushIteration(makeBucket, makeLocalTree(benchCase.numFiles, benchCase.bytesPerFile), s3Opts()),
+					Bench:         basicPushIteration(ctx, makeBucket, makeLocalTree(benchCase.numFiles, benchCase.bytesPerFile), s3Opts()),
 					Count:         1,
 					MinRuntime:    1 * time.Nanosecond, // We have to set this to be non-zero even though the test does not use it.
 					MaxRuntime:    benchCase.timeout,
@@ -341,24 +341,24 @@ func s3Opts() pail.S3Options {
 	}
 }
 
-func smallBucketConstructor(opts pail.S3Options) (pail.SyncBucket, error) {
-	b, err := pail.NewS3Bucket(opts)
+func smallBucketConstructor(ctx context.Context, opts pail.S3Options) (pail.SyncBucket, error) {
+	b, err := pail.NewS3Bucket(ctx, opts)
 	if err != nil {
 		return nil, errors.Wrap(err, "making small bucket")
 	}
 	return b, nil
 }
 
-func largeBucketConstructor(opts pail.S3Options) (pail.SyncBucket, error) {
-	b, err := pail.NewS3MultiPartBucket(opts)
+func largeBucketConstructor(ctx context.Context, opts pail.S3Options) (pail.SyncBucket, error) {
+	b, err := pail.NewS3MultiPartBucket(ctx, opts)
 	if err != nil {
 		return nil, errors.Wrap(err, "making large bucket")
 	}
 	return b, nil
 }
 
-func archiveBucketConstructor(opts pail.S3Options) (pail.SyncBucket, error) {
-	b, err := pail.NewS3ArchiveBucket(opts)
+func archiveBucketConstructor(ctx context.Context, opts pail.S3Options) (pail.SyncBucket, error) {
+	b, err := pail.NewS3ArchiveBucket(ctx, opts)
 	if err != nil {
 		return nil, errors.Wrap(err, "making archive bucket")
 	}

@@ -46,7 +46,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Region:      s3Region,
 					Name:        s3BucketName,
 				}
-				badBucket, err := NewS3Bucket(badOptions)
+				badBucket, err := NewS3Bucket(ctx, badOptions)
 				require.NoError(t, err)
 				rawBucket = badBucket.(*s3BucketSmall)
 				_, err = rawBucket.svc.GetBucketLocation(ctx, input)
@@ -92,7 +92,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Region:                    s3Region,
 					Name:                      s3BucketName,
 				}
-				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3Bucket(ctx, sharedCredsOptions)
 				require.NoError(t, err)
 				assert.NoError(t, sharedCredsBucket.Check(ctx))
 			},
@@ -116,7 +116,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Region:                   s3Region,
 					Name:                     s3BucketName,
 				}
-				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3Bucket(ctx, sharedCredsOptions)
 				require.NoError(t, err)
 				assert.NoError(t, sharedCredsBucket.Check(ctx))
 			},
@@ -131,7 +131,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Region:                   s3Region,
 					Name:                     s3BucketName,
 				}
-				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3Bucket(ctx, sharedCredsOptions)
 				assert.Error(t, err)
 				assert.Zero(t, sharedCredsBucket)
 			},
@@ -164,7 +164,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Prefix:      s3Prefix + testutil.NewUUID(),
 					Permissions: S3PermissionsPublicRead,
 				}
-				openBucket, err := NewS3Bucket(openOptions)
+				openBucket, err := NewS3Bucket(ctx, openOptions)
 				require.NoError(t, err)
 				key2 := testutil.NewUUID()
 				writer, err = openBucket.Writer(ctx, key2)
@@ -222,7 +222,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Prefix:      s3Prefix + testutil.NewUUID(),
 					ContentType: "html/text",
 				}
-				htmlBucket, err := NewS3Bucket(htmlOptions)
+				htmlBucket, err := NewS3Bucket(ctx, htmlOptions)
 				require.NoError(t, err)
 				key = testutil.NewUUID()
 				writer, err = htmlBucket.Writer(ctx, key)
@@ -253,7 +253,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					MaxRetries:  aws.Int(20),
 					Compress:    true,
 				}
-				cb, err := NewS3Bucket(s3Options)
+				cb, err := NewS3Bucket(ctx, s3Options)
 				require.NoError(t, err)
 
 				data := []byte{}
@@ -333,7 +333,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Region:      s3Region,
 					Name:        s3BucketName,
 				}
-				badBucket, err := NewS3MultiPartBucket(badOptions)
+				badBucket, err := NewS3MultiPartBucket(ctx, badOptions)
 				require.NoError(t, err)
 				rawBucket = badBucket.(*s3BucketLarge)
 				_, err = rawBucket.svc.GetBucketLocation(ctx, input)
@@ -379,7 +379,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Region:                    s3Region,
 					Name:                      s3BucketName,
 				}
-				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3MultiPartBucket(ctx, sharedCredsOptions)
 				require.NoError(t, err)
 				assert.NoError(t, sharedCredsBucket.Check(ctx))
 			},
@@ -402,7 +402,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Region:                   s3Region,
 					Name:                     s3BucketName,
 				}
-				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3MultiPartBucket(ctx, sharedCredsOptions)
 				require.NoError(t, err)
 				assert.NoError(t, sharedCredsBucket.Check(ctx))
 			},
@@ -417,7 +417,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Region:                   s3Region,
 					Name:                     s3BucketName,
 				}
-				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
+				sharedCredsBucket, err := NewS3MultiPartBucket(ctx, sharedCredsOptions)
 				assert.Error(t, err)
 				assert.Zero(t, sharedCredsBucket)
 			},
@@ -450,7 +450,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Prefix:      s3Prefix + testutil.NewUUID(),
 					Permissions: S3PermissionsPublicRead,
 				}
-				openBucket, err := NewS3MultiPartBucket(openOptions)
+				openBucket, err := NewS3MultiPartBucket(ctx, openOptions)
 				require.NoError(t, err)
 				key2 := testutil.NewUUID()
 				writer, err = openBucket.Writer(ctx, key2)
@@ -529,7 +529,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					Prefix:      s3Prefix + testutil.NewUUID(),
 					ContentType: "html/text",
 				}
-				htmlBucket, err := NewS3MultiPartBucket(htmlOptions)
+				htmlBucket, err := NewS3MultiPartBucket(ctx, htmlOptions)
 				require.NoError(t, err)
 				key = testutil.NewUUID()
 				writer, err = htmlBucket.Writer(ctx, key)
@@ -559,7 +559,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					MaxRetries:  aws.Int(20),
 					Compress:    true,
 				}
-				cb, err := NewS3MultiPartBucket(s3Options)
+				cb, err := NewS3MultiPartBucket(ctx, s3Options)
 				require.NoError(t, err)
 
 				data := []byte{}

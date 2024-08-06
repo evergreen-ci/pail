@@ -55,16 +55,6 @@ func CleanupS3Bucket(ctx context.Context, creds aws.CredentialsProvider, name, p
 }
 
 func CreateS3Client(creds aws.CredentialsProvider, region string) (*s3.Client, error) {
-	// kim: TODO: remove
-	// sess, err := session.NewSession(&aws.Config{
-	//     Credentials: creds,
-	//     Region:      aws.String(region),
-	// })
-	// if err != nil {
-	//     return nil, errors.Wrap(err, "problem connecting to AWS")
-	// }
-	// svc := s3.New(sess)
-	// return svc, nil
 	svc := s3.New(s3.Options{
 		Credentials: creds,
 		Region:      region,

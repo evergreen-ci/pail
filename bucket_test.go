@@ -222,7 +222,7 @@ func TestBucket(t *testing.T) {
 					Prefix:      s3Prefix + testutil.NewUUID(),
 					MaxRetries:  aws.Int(20),
 				}
-				b, err := NewS3Bucket(s3Options)
+				b, err := NewS3Bucket(ctx, s3Options)
 				require.NoError(t, err)
 				return b
 			},
@@ -239,7 +239,7 @@ func TestBucket(t *testing.T) {
 					MaxRetries:             aws.Int(20),
 					UseSingleFileChecksums: true,
 				}
-				b, err := NewS3Bucket(s3Options)
+				b, err := NewS3Bucket(ctx, s3Options)
 				require.NoError(t, err)
 				return b
 			},
@@ -269,7 +269,7 @@ func TestBucket(t *testing.T) {
 					MaxRetries:             aws.Int(20),
 					UseSingleFileChecksums: true,
 				}
-				b, err := NewS3Bucket(s3Options)
+				b, err := NewS3Bucket(ctx, s3Options)
 				require.NoError(t, err)
 
 				b, err = NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, b)
@@ -287,7 +287,7 @@ func TestBucket(t *testing.T) {
 					Prefix:      s3Prefix + testutil.NewUUID(),
 					MaxRetries:  aws.Int(20),
 				}
-				b, err := NewS3MultiPartBucket(s3Options)
+				b, err := NewS3MultiPartBucket(ctx, s3Options)
 				require.NoError(t, err)
 				return b
 			},
@@ -304,7 +304,7 @@ func TestBucket(t *testing.T) {
 					MaxRetries:             aws.Int(20),
 					UseSingleFileChecksums: true,
 				}
-				b, err := NewS3MultiPartBucket(s3Options)
+				b, err := NewS3MultiPartBucket(ctx, s3Options)
 				require.NoError(t, err)
 				return b
 			},
@@ -316,7 +316,7 @@ func TestBucket(t *testing.T) {
 			// ('/') separator where the OS specific separator is
 			// different.
 			if impl.name == "LocalSlashSeparator" && runtime.GOOS != "windows" {
-				t.Skip("skipping test on Windows due to different OS-specific path separator")
+				t.Skip()
 			}
 
 			for _, test := range impl.tests {
@@ -1172,7 +1172,7 @@ func TestS3ArchiveBucket(t *testing.T) {
 					Prefix:      s3Prefix + testutil.NewUUID(),
 					MaxRetries:  aws.Int(20),
 				}
-				bucket, err := NewS3ArchiveBucket(s3Options)
+				bucket, err := NewS3ArchiveBucket(ctx, s3Options)
 				require.NoError(t, err)
 				archiveBucket, ok := bucket.(*s3ArchiveBucket)
 				require.True(t, ok)
@@ -1563,7 +1563,7 @@ func TestPreSign(t *testing.T) {
 		require.NoError(t, testutil.CleanupS3Bucket(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region))
 	}()
 
-	b, err := NewS3Bucket(S3Options{
+	b, err := NewS3Bucket(ctx, S3Options{
 		Credentials: s3Credentials,
 		Region:      s3Region,
 		Name:        s3BucketName,
@@ -1611,7 +1611,7 @@ func TestGetHeadObject(t *testing.T) {
 		require.NoError(t, testutil.CleanupS3Bucket(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region))
 	}()
 
-	b, err := NewS3Bucket(S3Options{
+	b, err := NewS3Bucket(ctx, S3Options{
 		Credentials: s3Credentials,
 		Region:      s3Region,
 		Name:        s3BucketName,
