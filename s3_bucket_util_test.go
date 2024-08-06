@@ -11,16 +11,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/evergreen-ci/pail/testutil"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *credentials.Credentials, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
+func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aws.CredentialsProvider, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
 	return []bucketTestCase{
 		{
 			id: "VerifyBucketType",
@@ -38,7 +38,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				}
 
 				rawBucket := b.(*s3BucketSmall)
-				_, err := rawBucket.svc.GetBucketLocationWithContext(ctx, input)
+				_, err := rawBucket.svc.GetBucketLocation(ctx, input)
 				assert.NoError(t, err)
 
 				badOptions := S3Options{
@@ -49,7 +49,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				badBucket, err := NewS3Bucket(badOptions)
 				require.NoError(t, err)
 				rawBucket = badBucket.(*s3BucketSmall)
-				_, err = rawBucket.svc.GetBucketLocationWithContext(ctx, input)
+				_, err = rawBucket.svc.GetBucketLocation(ctx, input)
 				assert.Error(t, err)
 			},
 		},
@@ -151,10 +151,10 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Bucket: aws.String(s3BucketName),
 					Key:    aws.String(rawBucket.normalizeKey(key1)),
 				}
-				objectACLOutput, err := rawBucket.svc.GetObjectAcl(objectACLInput)
+				objectACLOutput, err := rawBucket.svc.GetObjectAcl(ctx, objectACLInput)
 				require.NoError(t, err)
 				require.Equal(t, 1, len(objectACLOutput.Grants))
-				assert.Equal(t, "FULL_CONTROL", *objectACLOutput.Grants[0].Permission)
+				assert.Equal(t, s3Types.PermissionFullControl, objectACLOutput.Grants[0].Permission)
 
 				// explicitly set permissions
 				openOptions := S3Options{
@@ -177,10 +177,10 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Bucket: aws.String(s3BucketName),
 					Key:    aws.String(rawBucket.normalizeKey(key2)),
 				}
-				objectACLOutput, err = rawBucket.svc.GetObjectAcl(objectACLInput)
+				objectACLOutput, err = rawBucket.svc.GetObjectAcl(ctx, objectACLInput)
 				require.NoError(t, err)
 				require.Equal(t, 2, len(objectACLOutput.Grants))
-				assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
+				assert.Equal(t, s3Types.PermissionRead, objectACLOutput.Grants[1].Permission)
 
 				// copy with permissions
 				destKey := testutil.NewUUID()
@@ -192,7 +192,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				require.NoError(t, b.Copy(ctx, copyOpts))
 				require.NoError(t, err)
 				require.Equal(t, 2, len(objectACLOutput.Grants))
-				assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
+				assert.Equal(t, s3Types.PermissionRead, objectACLOutput.Grants[1].Permission)
 			},
 		},
 		{
@@ -210,9 +210,9 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Bucket: aws.String(s3BucketName),
 					Key:    aws.String(rawBucket.normalizeKey(key)),
 				}
-				getObjectOutput, err := rawBucket.svc.GetObject(getObjectInput)
+				getObjectOutput, err := rawBucket.svc.GetObject(ctx, getObjectInput)
 				require.NoError(t, err)
-				assert.Nil(t, getObjectOutput.ContentType)
+				assert.Equal(t, "application/octet-stream", aws.ToString(getObjectOutput.ContentType))
 
 				// explicitly set content type
 				htmlOptions := S3Options{
@@ -235,7 +235,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Bucket: aws.String(s3BucketName),
 					Key:    aws.String(rawBucket.normalizeKey(key)),
 				}
-				getObjectOutput, err = rawBucket.svc.GetObject(getObjectInput)
+				getObjectOutput, err = rawBucket.svc.GetObject(ctx, getObjectInput)
 				require.NoError(t, err)
 				require.NotNil(t, getObjectOutput.ContentType)
 				assert.Equal(t, "html/text", *getObjectOutput.ContentType)
@@ -281,6 +281,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				reader, err := gzip.NewReader(bytes.NewReader(compressedData))
 				require.NoError(t, err)
 				decompressedData, err := ioutil.ReadAll(reader)
+				require.NoError(t, reader.Close())
 				require.NoError(t, err)
 				assert.Equal(t, data, decompressedData)
 
@@ -288,11 +289,14 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				require.NoError(t, err)
 				s3CompressedData, err := ioutil.ReadAll(cr)
 				require.NoError(t, err)
+				require.NoError(t, cr.Close())
 				assert.Equal(t, data, s3CompressedData)
+
 				r, err := cb.Get(ctx, uncompressedKey)
 				require.NoError(t, err)
 				s3UncompressedData, err := ioutil.ReadAll(r)
 				require.NoError(t, err)
+				require.NoError(t, r.Close())
 				assert.Equal(t, data, s3UncompressedData)
 			},
 		},
@@ -303,7 +307,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 	}
 }
 
-func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *credentials.Credentials, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
+func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aws.CredentialsProvider, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
 	return []bucketTestCase{
 		{
 			id: "VerifyBucketType",
@@ -321,7 +325,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				}
 
 				rawBucket := b.(*s3BucketLarge)
-				_, err := rawBucket.svc.GetBucketLocationWithContext(ctx, input)
+				_, err := rawBucket.svc.GetBucketLocation(ctx, input)
 				assert.NoError(t, err)
 
 				badOptions := S3Options{
@@ -332,7 +336,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				badBucket, err := NewS3MultiPartBucket(badOptions)
 				require.NoError(t, err)
 				rawBucket = badBucket.(*s3BucketLarge)
-				_, err = rawBucket.svc.GetBucketLocationWithContext(ctx, input)
+				_, err = rawBucket.svc.GetBucketLocation(ctx, input)
 				assert.Error(t, err)
 			},
 		},
@@ -433,10 +437,10 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Bucket: aws.String(s3BucketName),
 					Key:    aws.String(rawBucket.normalizeKey(key1)),
 				}
-				objectACLOutput, err := rawBucket.svc.GetObjectAcl(objectACLInput)
+				objectACLOutput, err := rawBucket.svc.GetObjectAcl(ctx, objectACLInput)
 				require.NoError(t, err)
 				require.Equal(t, 1, len(objectACLOutput.Grants))
-				assert.Equal(t, "FULL_CONTROL", *objectACLOutput.Grants[0].Permission)
+				assert.Equal(t, s3Types.PermissionFullControl, objectACLOutput.Grants[0].Permission)
 
 				// explicitly set permissions
 				openOptions := S3Options{
@@ -459,10 +463,10 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Bucket: aws.String(s3BucketName),
 					Key:    aws.String(rawBucket.normalizeKey(key2)),
 				}
-				objectACLOutput, err = rawBucket.svc.GetObjectAcl(objectACLInput)
+				objectACLOutput, err = rawBucket.svc.GetObjectAcl(ctx, objectACLInput)
 				require.NoError(t, err)
 				require.Equal(t, 2, len(objectACLOutput.Grants))
-				assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
+				assert.Equal(t, s3Types.PermissionRead, objectACLOutput.Grants[1].Permission)
 
 				// copy with permissions
 				destKey := testutil.NewUUID()
@@ -474,7 +478,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				require.NoError(t, b.Copy(ctx, copyOpts))
 				require.NoError(t, err)
 				require.Equal(t, 2, len(objectACLOutput.Grants))
-				assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
+				assert.Equal(t, s3Types.PermissionRead, objectACLOutput.Grants[1].Permission)
 			},
 		},
 		{
@@ -513,9 +517,9 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Bucket: aws.String(s3BucketName),
 					Key:    aws.String(rawBucket.normalizeKey(key)),
 				}
-				getObjectOutput, err := rawBucket.svc.GetObject(getObjectInput)
+				getObjectOutput, err := rawBucket.svc.GetObject(ctx, getObjectInput)
 				require.NoError(t, err)
-				assert.Nil(t, getObjectOutput.ContentType)
+				assert.Equal(t, "binary/octet-stream", aws.ToString(getObjectOutput.ContentType))
 
 				// explicitly set content type
 				htmlOptions := S3Options{
@@ -538,10 +542,9 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 					Bucket: aws.String(s3BucketName),
 					Key:    aws.String(rawBucket.normalizeKey(key)),
 				}
-				getObjectOutput, err = rawBucket.svc.GetObject(getObjectInput)
+				getObjectOutput, err = rawBucket.svc.GetObject(ctx, getObjectInput)
 				require.NoError(t, err)
-				require.NotNil(t, getObjectOutput.ContentType)
-				assert.Equal(t, "html/text", *getObjectOutput.ContentType)
+				assert.Equal(t, "html/text", aws.ToString(getObjectOutput.ContentType))
 			},
 		},
 		{
@@ -586,11 +589,14 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *c
 				require.NoError(t, err)
 				s3CompressedData, err := ioutil.ReadAll(cr)
 				require.NoError(t, err)
+				require.NoError(t, cr.Close())
 				assert.Equal(t, data, s3CompressedData)
+
 				r, err := cb.Get(ctx, uncompressedKey)
 				require.NoError(t, err)
 				s3UncompressedData, err := ioutil.ReadAll(r)
 				require.NoError(t, err)
+				require.NoError(t, r.Close())
 				assert.Equal(t, data, s3UncompressedData)
 			},
 		},

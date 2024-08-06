@@ -13,8 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/evergreen-ci/pail/testutil"
+	"github.com/evergreen-ci/utility"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,7 +52,7 @@ func TestBucket(t *testing.T) {
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Region := "us-east-1"
 	defer func() {
-		require.NoError(t, testutil.CleanupS3Bucket(s3Credentials, s3BucketName, s3Prefix, s3Region))
+		require.NoError(t, testutil.CleanupS3Bucket(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region))
 	}()
 
 	for _, impl := range []struct {
@@ -315,7 +316,7 @@ func TestBucket(t *testing.T) {
 			// ('/') separator where the OS specific separator is
 			// different.
 			if impl.name == "LocalSlashSeparator" && runtime.GOOS != "windows" {
-				t.Skip()
+				t.Skip("skipping test on Windows due to different OS-specific path separator")
 			}
 
 			for _, test := range impl.tests {
@@ -1153,7 +1154,9 @@ func TestS3ArchiveBucket(t *testing.T) {
 	s3BucketName := "build-test-curator"
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Region := "us-east-1"
-	defer func() { require.NoError(t, testutil.CleanupS3Bucket(s3Credentials, s3BucketName, s3Prefix, s3Region)) }()
+	defer func() {
+		require.NoError(t, testutil.CleanupS3Bucket(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region))
+	}()
 
 	for _, impl := range []struct {
 		name        string
@@ -1543,4 +1546,108 @@ func setDeleteOnSync(b Bucket, set bool) {
 		i.deleteOnPull = set
 		setDeleteOnSync(i.Bucket, set)
 	}
+}
+
+func TestPreSign(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	awsKey := os.Getenv("AWS_KEY")
+	awsSecret := os.Getenv("AWS_SECRET")
+	s3Credentials := CreateAWSCredentials(awsKey, awsSecret, "")
+	s3BucketName := "build-test-curator"
+	s3Prefix := testutil.NewUUID() + "-"
+	s3Object := testutil.NewUUID()
+	s3Region := "us-east-1"
+	defer func() {
+		require.NoError(t, testutil.CleanupS3Bucket(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region))
+	}()
+
+	b, err := NewS3Bucket(S3Options{
+		Credentials: s3Credentials,
+		Region:      s3Region,
+		Name:        s3BucketName,
+		Prefix:      s3Prefix,
+		MaxRetries:  aws.Int(5),
+	})
+	require.NoError(t, err)
+	data := "hello world"
+	require.NoError(t, b.Put(ctx, s3Object, strings.NewReader(data)))
+
+	req := PreSignRequestParams{
+		AwsKey:    awsKey,
+		AwsSecret: awsSecret,
+		Region:    s3Region,
+		Bucket:    s3BucketName,
+		FileKey:   consistentJoin([]string{s3Prefix, s3Object}),
+	}
+	url, err := PreSign(ctx, req)
+	require.NoError(t, err)
+	assert.NotZero(t, url)
+
+	c := utility.GetHTTPClient()
+	defer utility.PutHTTPClient(c)
+
+	resp, err := c.Get(url)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, data, string(body))
+}
+
+func TestGetHeadObject(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	awsKey := os.Getenv("AWS_KEY")
+	awsSecret := os.Getenv("AWS_SECRET")
+	s3Credentials := CreateAWSCredentials(awsKey, awsSecret, "")
+	s3BucketName := "build-test-curator"
+	s3Prefix := testutil.NewUUID() + "-"
+	s3Object := testutil.NewUUID()
+	s3Region := "us-east-1"
+	defer func() {
+		require.NoError(t, testutil.CleanupS3Bucket(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region))
+	}()
+
+	b, err := NewS3Bucket(S3Options{
+		Credentials: s3Credentials,
+		Region:      s3Region,
+		Name:        s3BucketName,
+		Prefix:      s3Prefix,
+		MaxRetries:  aws.Int(5),
+	})
+	require.NoError(t, err)
+	require.NoError(t, b.Put(ctx, s3Object, strings.NewReader("hello world")))
+
+	exists, err := b.Exists(ctx, s3Object)
+	require.NoError(t, err)
+	assert.True(t, exists)
+
+	t.Run("FailsWithNonexistentObject", func(t *testing.T) {
+		req := PreSignRequestParams{
+			AwsKey:    awsKey,
+			AwsSecret: awsSecret,
+			Region:    s3Region,
+			Bucket:    s3BucketName,
+			FileKey:   consistentJoin([]string{s3Prefix, "DNE"}),
+		}
+		headObject, err := GetHeadObject(ctx, req)
+		assert.Error(t, err)
+		assert.Nil(t, headObject)
+	})
+
+	t.Run("SucceedsWithExistingObject", func(t *testing.T) {
+		req := PreSignRequestParams{
+			AwsKey:    awsKey,
+			AwsSecret: awsSecret,
+			Region:    s3Region,
+			Bucket:    s3BucketName,
+			FileKey:   consistentJoin([]string{s3Prefix, s3Object}),
+		}
+		headObject, err := GetHeadObject(ctx, req)
+		assert.NoError(t, err)
+		assert.NotNil(t, headObject)
+	})
 }

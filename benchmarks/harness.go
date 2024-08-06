@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/evergreen-ci/pail"
 	"github.com/evergreen-ci/pail/testutil"
 	"github.com/evergreen-ci/poplar"
@@ -66,7 +66,7 @@ func basicPullIteration(makeBucket syncBucketConstructor, makePayload makePayloa
 					return errors.Wrap(err, "making bucket")
 				}
 				defer func() {
-					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Credentials, opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
+					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(ctx, opts.Credentials, opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
 				}()
 
 				dir, err := makePayload(ctx, b, opts)
@@ -146,7 +146,7 @@ func basicPushIteration(makeBucket syncBucketConstructor, makePayload makePayloa
 					return errors.Wrap(err, "making bucket")
 				}
 				defer func() {
-					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(opts.Credentials, opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
+					grip.Error(errors.Wrap(testutil.CleanupS3Bucket(ctx, opts.Credentials, opts.Name, opts.Prefix, opts.Region), "cleaning up remote store"))
 				}()
 				dir, err := makePayload(ctx, b, opts)
 				defer func() {
