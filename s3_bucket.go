@@ -12,13 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	s3Manager "github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/smithy-go"
 	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
@@ -32,13 +34,13 @@ type S3Permissions string
 
 // Valid S3 permissions.
 const (
-	S3PermissionsPrivate                S3Permissions = s3.ObjectCannedACLPrivate
-	S3PermissionsPublicRead             S3Permissions = s3.ObjectCannedACLPublicRead
-	S3PermissionsPublicReadWrite        S3Permissions = s3.ObjectCannedACLPublicReadWrite
-	S3PermissionsAuthenticatedRead      S3Permissions = s3.ObjectCannedACLAuthenticatedRead
-	S3PermissionsAWSExecRead            S3Permissions = s3.ObjectCannedACLAwsExecRead
-	S3PermissionsBucketOwnerRead        S3Permissions = s3.ObjectCannedACLBucketOwnerRead
-	S3PermissionsBucketOwnerFullControl S3Permissions = s3.ObjectCannedACLBucketOwnerFullControl
+	S3PermissionsPrivate                S3Permissions = S3Permissions(string(s3Types.ObjectCannedACLPrivate))
+	S3PermissionsPublicRead             S3Permissions = S3Permissions(string(s3Types.ObjectCannedACLPublicRead))
+	S3PermissionsPublicReadWrite        S3Permissions = S3Permissions(string(s3Types.ObjectCannedACLPublicReadWrite))
+	S3PermissionsAuthenticatedRead      S3Permissions = S3Permissions(string(s3Types.ObjectCannedACLAuthenticatedRead))
+	S3PermissionsAWSExecRead            S3Permissions = S3Permissions(string(s3Types.ObjectCannedACLAwsExecRead))
+	S3PermissionsBucketOwnerRead        S3Permissions = S3Permissions(string(s3Types.ObjectCannedACLBucketOwnerRead))
+	S3PermissionsBucketOwnerFullControl S3Permissions = S3Permissions(string(s3Types.ObjectCannedACLBucketOwnerFullControl))
 )
 
 // Validate checks that the S3Permissions string is valid.
@@ -72,8 +74,7 @@ type s3Bucket struct {
 	compress            bool
 	verbose             bool
 	batchSize           int
-	sess                *session.Session
-	svc                 *s3.S3
+	svc                 *s3.Client
 	name                string
 	prefix              string
 	permissions         S3Permissions
@@ -95,7 +96,8 @@ type S3Options struct {
 	// DeleteOnPull will delete all objects from the target that do not
 	// exist in the source after the completion of Pull.
 	DeleteOnPull bool
-	// Compress enables gzipping of uploaded objects.
+	// Compress enables gzipping of uploaded objects. For downloading, objects
+	// that are compressed with gzip are automatically decoded.
 	Compress bool
 	// UseSingleFileChecksums forces the bucket to checksum files before
 	// running uploads and download operation (rather than doing these
@@ -109,7 +111,7 @@ type S3Options struct {
 	MaxRetries *int
 	// Credentials allows the passing in of explicit AWS credentials. These
 	// will override the default credentials chain. (Optional)
-	Credentials *credentials.Credentials
+	Credentials aws.CredentialsProvider
 	// SharedCredentialsFilepath, when not empty, will override the default
 	// credentials chain and the Credentials value (see above). (Optional)
 	SharedCredentialsFilepath string
@@ -125,7 +127,7 @@ type S3Options struct {
 	// applying changes to the AssumeRoleProvider struct created with this
 	// session. This field is ignored if AssumeRoleARN is not set.
 	// (Optional)
-	AssumeRoleOptions []func(*stscreds.AssumeRoleProvider)
+	AssumeRoleOptions []func(*stscreds.AssumeRoleOptions)
 	// Region specifies the AWS region.
 	Region string
 	// Name specifies the name of the bucket.
@@ -137,23 +139,23 @@ type S3Options struct {
 	// `https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html`
 	// for more information.
 	Permissions S3Permissions
-	// ContentType sets the standard MIME type of the objet data. Defaults
+	// ContentType sets the standard MIME type of the object data. Defaults
 	// to nil. See
 	//`https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.17`
 	// for more information.
 	ContentType string
 }
 
-// CreateAWSCredentials is a wrapper for creating AWS credentials.
-func CreateAWSCredentials(awsKey, awsPassword, awsToken string) *credentials.Credentials {
-	return credentials.NewStaticCredentials(awsKey, awsPassword, awsToken)
+// CreateAWSCredentials is a wrapper for creating static AWS credentials.
+func CreateAWSCredentials(awsKey, awsPassword, awsToken string) aws.CredentialsProvider {
+	return credentials.NewStaticCredentialsProvider(awsKey, awsPassword, awsToken)
 }
 
 func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
 
 func (s *s3Bucket) denormalizeKey(key string) string { return consistentTrimPrefix(key, s.prefix) }
 
-func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) {
+func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options) (*s3Bucket, error) {
 	if options.Permissions != "" {
 		if err := options.Permissions.Validate(); err != nil {
 			return nil, errors.WithStack(err)
@@ -164,47 +166,38 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		return nil, errors.New("ambiguous delete on sync options set")
 	}
 
-	config := sessionConfig{
-		region:     options.Region,
-		client:     client,
-		maxRetries: aws.IntValue(options.MaxRetries),
+	config := configOpts{
+		region:                    options.Region,
+		maxRetries:                aws.ToInt(options.MaxRetries),
+		client:                    client,
+		sharedCredentialsFilepath: options.SharedCredentialsFilepath,
+		sharedCredentialsProfile:  options.SharedCredentialsProfile,
 	}
-
-	if options.SharedCredentialsFilepath != "" || options.SharedCredentialsProfile != "" {
-		sharedCredentials := credentials.NewSharedCredentials(options.SharedCredentialsFilepath, options.SharedCredentialsProfile)
-		_, err := sharedCredentials.Get()
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid credentials from profile '%s'", options.SharedCredentialsProfile)
-		}
-		config.credentials = sharedCredentials
-	} else if options.Credentials != nil {
-		_, err := options.Credentials.Get()
-		if err != nil {
-			return nil, errors.Wrap(err, "invalid credentials")
-		}
-		config.credentials = options.Credentials
-	}
-
-	sess, err := getSession(config)
+	cfg, err := getCachedConfig(ctx, config)
 	if err != nil {
-		return nil, errors.Wrap(err, "connecting to AWS")
+		return nil, errors.Wrap(err, "getting AWS config")
 	}
 
-	var svcConfigs []*aws.Config
-	if options.AssumeRoleARN != "" {
-		svcConfigs = append(svcConfigs, &aws.Config{
-			Credentials: stscreds.NewCredentials(sess, options.AssumeRoleARN, options.AssumeRoleOptions...),
+	var s3Opts []func(*s3.Options)
+	if options.Credentials != nil {
+		s3Opts = append(s3Opts, func(opts *s3.Options) {
+			opts.Credentials = options.Credentials
+		})
+	} else if options.AssumeRoleARN != "" {
+		s3Opts = append(s3Opts, func(opts *s3.Options) {
+			assumeRoleClient := sts.New(sts.Options{})
+			opts.Credentials = stscreds.NewAssumeRoleProvider(assumeRoleClient, options.AssumeRoleARN, options.AssumeRoleOptions...)
 		})
 	}
 
-	svc := s3.New(sess, svcConfigs...)
+	svc := s3.NewFromConfig(*cfg, s3Opts...)
+
 	return &s3Bucket{
 		name:                options.Name,
 		prefix:              options.Prefix,
 		compress:            options.Compress,
 		singleFileChecksums: options.UseSingleFileChecksums,
 		verbose:             options.Verbose,
-		sess:                sess,
 		svc:                 svc,
 		permissions:         options.Permissions,
 		contentType:         options.ContentType,
@@ -215,42 +208,57 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 	}, nil
 }
 
-var sessionCache = make(map[sessionConfig]*session.Session)
+var configCache = make(map[configOpts]*aws.Config)
 
-type sessionConfig struct {
-	region      string
-	maxRetries  int
-	credentials *credentials.Credentials
-	client      *http.Client
+type configOpts struct {
+	region                    string
+	maxRetries                int
+	sharedCredentialsFilepath string
+	sharedCredentialsProfile  string
+	client                    *http.Client
 }
 
-func getSession(config sessionConfig) (*session.Session, error) {
-	isDefault := config.credentials == nil && config.client == nil
-	if isDefault && sessionCache[config] != nil {
-		return sessionCache[config], nil
+func getCachedConfig(ctx context.Context, cfgOpts configOpts) (*aws.Config, error) {
+	isDefault := cfgOpts.client == nil &&
+		cfgOpts.sharedCredentialsFilepath == "" &&
+		cfgOpts.sharedCredentialsProfile == ""
+	if isDefault && configCache[cfgOpts] != nil {
+		return configCache[cfgOpts], nil
 	}
 
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(config.region),
-		MaxRetries:  aws.Int(config.maxRetries),
-		Credentials: config.credentials,
-		HTTPClient:  config.client,
-	})
+	var newCfgOpts []func(*config.LoadOptions) error
+	if cfgOpts.maxRetries != 0 {
+		newCfgOpts = append(newCfgOpts, config.WithRetryMaxAttempts(cfgOpts.maxRetries))
+	}
+	if cfgOpts.region != "" {
+		newCfgOpts = append(newCfgOpts, config.WithRegion(cfgOpts.region))
+	}
+	if cfgOpts.client != nil {
+		newCfgOpts = append(newCfgOpts, config.WithHTTPClient(cfgOpts.client))
+	}
+	if cfgOpts.sharedCredentialsFilepath != "" {
+		newCfgOpts = append(newCfgOpts, config.WithSharedCredentialsFiles([]string{cfgOpts.sharedCredentialsFilepath}))
+	}
+	if cfgOpts.sharedCredentialsProfile != "" {
+		newCfgOpts = append(newCfgOpts, config.WithSharedConfigProfile(cfgOpts.sharedCredentialsProfile))
+	}
+
+	newCfg, err := config.LoadDefaultConfig(ctx, newCfgOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating new session")
 	}
 	if isDefault {
-		sessionCache[config] = sess
+		configCache[cfgOpts] = &newCfg
 	}
 
-	return sess, nil
+	return &newCfg, nil
 }
 
 // NewS3Bucket returns a Bucket implementation backed by S3. This
 // implementation does not support multipart uploads, if you would like to add
 // objects larger than 5 gigabytes see NewS3MultiPartBucket.
-func NewS3Bucket(options S3Options) (Bucket, error) {
-	bucket, err := newS3BucketBase(nil, options)
+func NewS3Bucket(ctx context.Context, options S3Options) (Bucket, error) {
+	bucket, err := newS3BucketBase(ctx, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -261,8 +269,8 @@ func NewS3Bucket(options S3Options) (Bucket, error) {
 // an existing HTTP client connection. This implementation does not support
 // multipart uploads, if you would like to add objects larger than 5
 // gigabytes see NewS3MultiPartBucket.
-func NewS3BucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
-	bucket, err := newS3BucketBase(client, options)
+func NewS3BucketWithHTTPClient(ctx context.Context, client *http.Client, options S3Options) (Bucket, error) {
+	bucket, err := newS3BucketBase(ctx, client, options)
 	if err != nil {
 		return nil, err
 	}
@@ -271,8 +279,8 @@ func NewS3BucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, 
 
 // NewS3MultiPartBucket returns a Bucket implementation backed by S3
 // that supports multipart uploads for large objects.
-func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
-	bucket, err := newS3BucketBase(nil, options)
+func NewS3MultiPartBucket(ctx context.Context, options S3Options) (Bucket, error) {
+	bucket, err := newS3BucketBase(ctx, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -284,8 +292,8 @@ func NewS3MultiPartBucket(options S3Options) (Bucket, error) {
 // NewS3MultiPartBucketWithHTTPClient returns a Bucket implementation backed
 // by S3 with an existing HTTP client connection that supports multipart
 // uploads for large objects.
-func NewS3MultiPartBucketWithHTTPClient(client *http.Client, options S3Options) (Bucket, error) {
-	bucket, err := newS3BucketBase(client, options)
+func NewS3MultiPartBucketWithHTTPClient(ctx context.Context, client *http.Client, options S3Options) (Bucket, error) {
+	bucket, err := newS3BucketBase(ctx, client, options)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +309,7 @@ func (s *s3Bucket) Check(ctx context.Context) error {
 		Bucket: aws.String(s.name),
 	}
 
-	_, err := s.svc.HeadBucketWithContext(ctx, input)
+	_, err := s.svc.HeadBucket(ctx, input)
 	// Aside from a 404 Not Found error, HEAD bucket returns a 403
 	// Forbidden error. If the latter is the case, that is OK because
 	// we know the bucket exists and the given credentials may have
@@ -309,23 +317,29 @@ func (s *s3Bucket) Check(ctx context.Context) error {
 	// https://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketHEAD.html
 	// for more information.
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NotFound" {
-			return errors.Wrap(err, "finding bucket")
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			if apiErr.ErrorCode() == "NotFound" {
+				return errors.Wrap(err, "finding bucket")
+			}
 		}
 	}
 	return nil
 }
 
 func (s *s3Bucket) Exists(ctx context.Context, key string) (bool, error) {
-	_, err := s.svc.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
+	_, err := s.svc.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(s.name),
 		Key:    aws.String(s.normalizeKey(key)),
 	})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NotFound" {
-			return false, nil
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			if apiErr.ErrorCode() == "NotFound" {
+				return false, nil
+			}
 		}
-		return false, errors.Wrap(err, "getting S3 object head")
+		return false, errors.Wrap(err, "getting S3 head object")
 	}
 
 	return true, nil
@@ -338,7 +352,7 @@ type smallWriteCloser struct {
 	dryRun      bool
 	compress    bool
 	verbose     bool
-	svc         *s3.S3
+	svc         *s3.Client
 	buffer      []byte
 	name        string
 	ctx         context.Context
@@ -353,12 +367,12 @@ type largeWriteCloser struct {
 	compress       bool
 	dryRun         bool
 	verbose        bool
-	partNumber     int64
+	partNumber     int32
 	minSize        int
-	svc            *s3.S3
+	svc            *s3.Client
 	ctx            context.Context
 	buffer         []byte
-	completedParts []*s3.CompletedPart
+	completedParts []s3Types.CompletedPart
 	name           string
 	key            string
 	permissions    S3Permissions
@@ -379,14 +393,14 @@ func (w *largeWriteCloser) create() error {
 		input := &s3.CreateMultipartUploadInput{
 			Bucket:      aws.String(w.name),
 			Key:         aws.String(w.key),
-			ACL:         aws.String(string(w.permissions)),
+			ACL:         s3Types.ObjectCannedACL(string(w.permissions)),
 			ContentType: aws.String(w.contentType),
 		}
 		if w.compress {
 			input.ContentEncoding = aws.String(compressionEncoding)
 		}
 
-		result, err := w.svc.CreateMultipartUploadWithContext(w.ctx, input)
+		result, err := w.svc.CreateMultipartUpload(w.ctx, input)
 		if err != nil {
 			return errors.Wrap(err, "creating a multipart upload")
 		}
@@ -410,13 +424,13 @@ func (w *largeWriteCloser) complete() error {
 		input := &s3.CompleteMultipartUploadInput{
 			Bucket: aws.String(w.name),
 			Key:    aws.String(w.key),
-			MultipartUpload: &s3.CompletedMultipartUpload{
+			MultipartUpload: &s3Types.CompletedMultipartUpload{
 				Parts: w.completedParts,
 			},
 			UploadId: aws.String(w.uploadID),
 		}
 
-		_, err := w.svc.CompleteMultipartUploadWithContext(w.ctx, input)
+		_, err := w.svc.CompleteMultipartUpload(w.ctx, input)
 		if err != nil {
 			abortErr := w.abort()
 			if abortErr != nil {
@@ -443,7 +457,7 @@ func (w *largeWriteCloser) abort() error {
 		UploadId: aws.String(w.uploadID),
 	}
 
-	_, err := w.svc.AbortMultipartUploadWithContext(w.ctx, input)
+	_, err := w.svc.AbortMultipartUpload(w.ctx, input)
 	return err
 }
 
@@ -464,13 +478,13 @@ func (w *largeWriteCloser) flush() error {
 	}
 	if !w.dryRun {
 		input := &s3.UploadPartInput{
-			Body:       aws.ReadSeekCloser(strings.NewReader(string(w.buffer))), // nolint:staticcheck
+			Body:       s3Manager.ReadSeekCloser(strings.NewReader(string(w.buffer))),
 			Bucket:     aws.String(w.name),
 			Key:        aws.String(w.key),
-			PartNumber: aws.Int64(w.partNumber),
+			PartNumber: aws.Int32(w.partNumber),
 			UploadId:   aws.String(w.uploadID),
 		}
-		result, err := w.svc.UploadPartWithContext(w.ctx, input)
+		result, err := w.svc.UploadPart(w.ctx, input)
 		if err != nil {
 			abortErr := w.abort()
 			if abortErr != nil {
@@ -478,9 +492,9 @@ func (w *largeWriteCloser) flush() error {
 			}
 			return errors.Wrap(err, "uploading part")
 		}
-		w.completedParts = append(w.completedParts, &s3.CompletedPart{
+		w.completedParts = append(w.completedParts, s3Types.CompletedPart{
 			ETag:       result.ETag,
-			PartNumber: aws.Int64(w.partNumber),
+			PartNumber: aws.Int32(w.partNumber),
 		})
 	}
 
@@ -544,17 +558,17 @@ func (w *smallWriteCloser) Close() error {
 	}
 
 	input := &s3.PutObjectInput{
-		Body:        aws.ReadSeekCloser(strings.NewReader(string(w.buffer))), // nolint:staticcheck
+		Body:        s3Manager.ReadSeekCloser(strings.NewReader(string(w.buffer))),
 		Bucket:      aws.String(w.name),
 		Key:         aws.String(w.key),
-		ACL:         aws.String(string(w.permissions)),
+		ACL:         s3Types.ObjectCannedACL(string(w.permissions)),
 		ContentType: aws.String(w.contentType),
 	}
 	if w.compress {
 		input.ContentEncoding = aws.String(compressionEncoding)
 	}
 
-	_, err := w.svc.PutObjectWithContext(w.ctx, input)
+	_, err := w.svc.PutObject(w.ctx, input)
 	return errors.Wrap(err, "copying data to file")
 
 }
@@ -673,13 +687,20 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 		Key:    aws.String(s.normalizeKey(key)),
 	}
 
-	result, err := s.svc.GetObjectWithContext(ctx, input)
+	result, err := s.svc.GetObject(ctx, input)
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchKey {
-			err = MakeKeyNotFoundError(err)
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			if apiErr.ErrorCode() == "NoSuchKey" {
+				return nil, MakeKeyNotFoundError(err)
+			}
 		}
 		return nil, err
 	}
+	if aws.ToString(result.ContentEncoding) == "gzip" {
+		return gzip.NewReader(result.Body)
+	}
+
 	return result.Body, nil
 }
 
@@ -744,9 +765,10 @@ func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, target, file 
 		Key:     aws.String(target),
 		IfMatch: aws.String(localmd5),
 	}
-	_, err = s.svc.HeadObjectWithContext(ctx, input)
-	if aerr, ok := err.(awserr.Error); ok {
-		if aerr.Code() == "PreconditionFailed" || aerr.Code() == "NotFound" {
+	_, err = s.svc.HeadObject(ctx, input)
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		if apiErr.ErrorCode() == "PreconditionFailed" || apiErr.ErrorCode() == "NotFound" {
 			return true, nil
 		}
 	}
@@ -1008,11 +1030,11 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 		Bucket:     aws.String(s.name),
 		CopySource: aws.String(options.SourceKey),
 		Key:        aws.String(s.normalizeKey(options.DestinationKey)),
-		ACL:        aws.String(string(s.permissions)),
+		ACL:        s3Types.ObjectCannedACL(string(s.permissions)),
 	}
 
 	if !s.dryRun {
-		_, err := s.svc.CopyObjectWithContext(ctx, input)
+		_, err := s.svc.CopyObject(ctx, input)
 		if err != nil {
 			return errors.Wrap(err, "copying data")
 		}
@@ -1036,7 +1058,7 @@ func (s *s3Bucket) Remove(ctx context.Context, key string) error {
 			Key:    aws.String(s.normalizeKey(key)),
 		}
 
-		_, err := s.svc.DeleteObjectWithContext(ctx, input)
+		_, err := s.svc.DeleteObject(ctx, input)
 		if err != nil {
 			return errors.Wrap(err, "removing data")
 		}
@@ -1044,13 +1066,13 @@ func (s *s3Bucket) Remove(ctx context.Context, key string) error {
 	return nil
 }
 
-func (s *s3Bucket) deleteObjectsWrapper(ctx context.Context, toDelete *s3.Delete) error {
+func (s *s3Bucket) deleteObjectsWrapper(ctx context.Context, toDelete *s3Types.Delete) error {
 	if len(toDelete.Objects) > 0 {
 		input := &s3.DeleteObjectsInput{
 			Bucket: aws.String(s.name),
 			Delete: toDelete,
 		}
-		_, err := s.svc.DeleteObjectsWithContext(ctx, input)
+		_, err := s.svc.DeleteObjects(ctx, input)
 		if err != nil {
 			return errors.Wrap(err, "removing data")
 		}
@@ -1071,18 +1093,17 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 	catcher := grip.NewBasicCatcher()
 	if !s.dryRun {
 		count := 0
-		toDelete := &s3.Delete{}
+		toDelete := &s3Types.Delete{}
 		for _, key := range keys {
-			// Key limit for s3.DeleteObjectsWithContext, call
-			// function and reset.
+			// Key limit for s3.DeleteObjects, call function and reset.
 			if count == s.batchSize {
 				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 				count = 0
-				toDelete = &s3.Delete{}
+				toDelete = &s3Types.Delete{}
 			}
 			toDelete.Objects = append(
 				toDelete.Objects,
-				&s3.ObjectIdentifier{Key: aws.String(s.normalizeKey(key))},
+				s3Types.ObjectIdentifier{Key: aws.String(s.normalizeKey(key))},
 			)
 			count++
 		}
@@ -1174,14 +1195,14 @@ func (s *s3BucketLarge) List(ctx context.Context, prefix string) (BucketIterator
 	return s.listHelper(ctx, s, s.normalizeKey(prefix))
 }
 
-func getObjectsWrapper(ctx context.Context, s *s3Bucket, prefix, marker string) ([]*s3.Object, bool, error) {
+func getObjectsWrapper(ctx context.Context, s *s3Bucket, prefix, marker string) ([]s3Types.Object, bool, error) {
 	input := &s3.ListObjectsInput{
 		Bucket: aws.String(s.name),
 		Prefix: aws.String(prefix),
 		Marker: aws.String(marker),
 	}
 
-	result, err := s.svc.ListObjectsWithContext(ctx, input)
+	result, err := s.svc.ListObjects(ctx, input)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "listing objects")
 	}
@@ -1189,7 +1210,7 @@ func getObjectsWrapper(ctx context.Context, s *s3Bucket, prefix, marker string) 
 }
 
 type s3BucketIterator struct {
-	contents    []*s3.Object
+	contents    []s3Types.Object
 	idx         int
 	isTruncated bool
 	err         error
@@ -1242,25 +1263,25 @@ type s3ArchiveBucket struct {
 // supports syncing the local file system as a single archive file in S3 rather
 // than creating an individual object for each file. This SyncBucket is not
 // compatible with regular Bucket implementations.
-func NewS3ArchiveBucket(options S3Options) (SyncBucket, error) {
-	bucket, err := NewS3MultiPartBucket(options)
+func NewS3ArchiveBucket(ctx context.Context, options S3Options) (SyncBucket, error) {
+	bucket, err := NewS3MultiPartBucket(ctx, options)
 	if err != nil {
 		return nil, err
 	}
-	return newS3ArchiveBucketWithMultiPart(bucket, options)
+	return newS3ArchiveBucketWithMultiPart(bucket)
 }
 
 // NewS3ArchiveBucketWithHTTPClient is the same as NewS3ArchiveBucket but
 // allows the user to specify an existing HTTP client connection.
-func NewS3ArchiveBucketWithHTTPClient(client *http.Client, options S3Options) (SyncBucket, error) {
-	bucket, err := NewS3MultiPartBucketWithHTTPClient(client, options)
+func NewS3ArchiveBucketWithHTTPClient(ctx context.Context, client *http.Client, options S3Options) (SyncBucket, error) {
+	bucket, err := NewS3MultiPartBucketWithHTTPClient(ctx, client, options)
 	if err != nil {
 		return nil, err
 	}
-	return newS3ArchiveBucketWithMultiPart(bucket, options)
+	return newS3ArchiveBucketWithMultiPart(bucket)
 }
 
-func newS3ArchiveBucketWithMultiPart(bucket Bucket, options S3Options) (*s3ArchiveBucket, error) {
+func newS3ArchiveBucketWithMultiPart(bucket Bucket) (*s3ArchiveBucket, error) {
 	largeBucket, ok := bucket.(*s3BucketLarge)
 	if !ok {
 		return nil, errors.New("bucket is not a large multipart bucket")
@@ -1378,59 +1399,61 @@ type PreSignRequestParams struct {
 	Region          string
 }
 
-// PreSign returns a presigned URL that expires in 24 hours.
-func PreSign(r PreSignRequestParams) (string, error) {
-	var creds *credentials.Credentials
-	// Use static credentials if they're provided.
-	// If not the SDK will default to the credentials chain.
-	if r.AwsKey != "" {
-		creds = credentials.NewStaticCredentialsFromCreds(credentials.Value{
-			AccessKeyID:     r.AwsKey,
-			SecretAccessKey: r.AwsSecret,
-			SessionToken:    r.AwsSessionToken,
+func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, error) {
+	region := p.Region
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	cfgOpts := configOpts{
+		region: region,
+	}
+
+	cfg, err := getCachedConfig(ctx, cfgOpts)
+	if err != nil {
+		return nil, errors.Wrap(err, "getting AWS config")
+	}
+
+	var s3Opts []func(*s3.Options)
+	if p.AwsKey != "" {
+		s3Opts = append(s3Opts, func(opts *s3.Options) {
+			opts.Credentials = CreateAWSCredentials(p.AwsKey, p.AwsSecret, p.AwsSessionToken)
 		})
 	}
-	sess, err := getSession(sessionConfig{
-		region:      endpoints.UsEast1RegionID,
-		credentials: creds,
-	})
-	if err != nil {
-		return "", errors.Wrap(err, "connecting to AWS")
-	}
-	svc := s3.New(sess)
 
-	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(r.Bucket),
-		Key:    aws.String(r.FileKey),
-	})
-
-	urlStr, err := req.Presign(PresignExpireTime)
-	return urlStr, err
+	return s3.NewFromConfig(*cfg, s3Opts...), nil
 }
 
-// GetHeadObject fetches the metadata of an S3 object.
-func GetHeadObject(r PreSignRequestParams) (*s3.HeadObjectOutput, error) {
-	session, err := getSession(sessionConfig{
-		region: r.Region,
-		credentials: credentials.NewStaticCredentialsFromCreds(credentials.Value{
-			AccessKeyID:     r.AwsKey,
-			SecretAccessKey: r.AwsSecret,
-			SessionToken:    r.AwsSessionToken,
-		}),
-	})
+// PreSign returns a presigned URL that expires in 24 hours.
+func PreSign(ctx context.Context, r PreSignRequestParams) (string, error) {
+	svc, err := r.getS3Client(ctx)
 	if err != nil {
-		return nil, err
+		return "", errors.Wrap(err, "getting S3 client")
 	}
-	svc := s3.New(session)
+	presignClient := s3.NewPresignClient(svc)
 
-	headObject, err := svc.HeadObject(&s3.HeadObjectInput{
+	req, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(r.Bucket),
 		Key:    aws.String(r.FileKey),
 	})
-
 	if err != nil {
-		return nil, err
+		return "", errors.Wrap(err, "pre-signing object")
 	}
 
-	return headObject, nil
+	return req.URL, nil
+}
+
+// GetHeadObject fetches the metadata of an S3 object. Warning: despite the
+// input parameters, the function doesn't pre-sign the request to get the head
+// object at all.
+func GetHeadObject(ctx context.Context, r PreSignRequestParams) (*s3.HeadObjectOutput, error) {
+	svc, err := r.getS3Client(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "getting S3 client")
+	}
+
+	return svc.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(r.Bucket),
+		Key:    aws.String(r.FileKey),
+	})
 }
