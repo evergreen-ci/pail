@@ -185,7 +185,7 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 		})
 	} else if options.AssumeRoleARN != "" {
 		s3Opts = append(s3Opts, func(opts *s3.Options) {
-			assumeRoleClient := sts.New(sts.Options{})
+			assumeRoleClient := sts.NewFromConfig(*cfg)
 			opts.Credentials = stscreds.NewAssumeRoleProvider(assumeRoleClient, options.AssumeRoleARN, options.AssumeRoleOptions...)
 		})
 	}
