@@ -123,6 +123,10 @@ type S3Options struct {
 	// `https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html` for
 	// more information. (Optional)
 	AssumeRoleARN string
+	// AssumeRoleRegion specifies the region to use for the assuming the
+	// AssumeRoleARN. If this is not set and AssumeRoleARN is set,
+	// AssumeRoleRegion will default to "us-east-1".
+	AssumeRoleRegion string
 	// AssumeRoleOptions provide a mechanism to override defaults by
 	// applying changes to the AssumeRoleProvider struct created with this
 	// session. This field is ignored if AssumeRoleARN is not set.
@@ -185,7 +189,13 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 		})
 	} else if options.AssumeRoleARN != "" {
 		s3Opts = append(s3Opts, func(opts *s3.Options) {
-			assumeRoleClient := sts.New(sts.Options{})
+			region := options.AssumeRoleRegion
+			if region == "" {
+				region = "us-east-1"
+			}
+			assumeRoleClient := sts.New(sts.Options{
+				Region: region,
+			})
 			opts.Credentials = stscreds.NewAssumeRoleProvider(assumeRoleClient, options.AssumeRoleARN, options.AssumeRoleOptions...)
 		})
 	}
