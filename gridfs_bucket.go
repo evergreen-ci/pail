@@ -81,7 +81,7 @@ func (b *gridfsBucket) Check(ctx context.Context) error {
 }
 
 func (b *gridfsBucket) Exists(ctx context.Context, key string) (bool, error) {
-	grid, err := b.bucket(ctx)
+	grid, err := b.bucket()
 	if err != nil {
 		return false, errors.Wrap(err, "resolving bucket")
 	}
@@ -103,11 +103,7 @@ func (b *gridfsBucket) Join(elems ...string) string { return consistentJoin(elem
 // supports a single read and a single write deadline for a bucket instance.
 // This function sets the read and write deadlines to allow it to respect the
 // context timeouts passed in by the caller.
-func (b *gridfsBucket) bucket(ctx context.Context) (*mongo.GridFSBucket, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, errors.Wrap(err, "fetching bucket with canceled context")
-	}
-
+func (b *gridfsBucket) bucket() (*mongo.GridFSBucket, error) {
 	return b.client.Database(b.opts.Database).GridFSBucket(options.GridFSBucket().SetName(b.opts.Name)), nil
 }
 
@@ -121,7 +117,7 @@ func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser,
 		"key":           name,
 	})
 
-	grid, err := b.bucket(ctx)
+	grid, err := b.bucket()
 	if err != nil {
 		return nil, errors.Wrap(err, "resolving bucket")
 	}
@@ -147,7 +143,7 @@ func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, 
 		"key":           name,
 	})
 
-	grid, err := b.bucket(ctx)
+	grid, err := b.bucket()
 	if err != nil {
 		return nil, errors.Wrap(err, "resolving bucket")
 	}
@@ -173,7 +169,7 @@ func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) er
 		"key":           name,
 	})
 
-	grid, err := b.bucket(ctx)
+	grid, err := b.bucket()
 	if err != nil {
 		return errors.Wrap(err, "resolving bucket")
 	}
@@ -398,7 +394,7 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 		"keys":          keys,
 	})
 
-	grid, err := b.bucket(ctx)
+	grid, err := b.bucket()
 	if err != nil {
 		return errors.Wrap(err, "resolving bucket")
 	}
@@ -472,7 +468,7 @@ func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator,
 		"prefix":        prefix,
 	})
 
-	grid, err := b.bucket(ctx)
+	grid, err := b.bucket()
 	if err != nil {
 		return nil, errors.Wrap(err, "resolving bucket")
 	}
