@@ -19,8 +19,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type bucketTestCase struct {
@@ -34,7 +34,9 @@ func TestBucket(t *testing.T) {
 
 	uuid := testutil.NewUUID()
 
-	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:27017"))
+	connCtx, connCancel := context.WithTimeout(ctx, time.Second)
+	defer connCancel()
+	client, err := mongo.Connect(connCtx, options.Client().ApplyURI("mongodb://localhost:27017"))
 	require.NoError(t, err)
 	dbName := "pail-bucket-test"
 	defer func() {
