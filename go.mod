@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.58.3
 	github.com/aws/aws-sdk-go-v2/service/sts v1.30.3
 	github.com/aws/smithy-go v1.20.3
-	github.com/evergreen-ci/poplar v0.0.0-20240827180934-84db74d6081b
+	github.com/evergreen-ci/poplar v0.0.0-20211028170046-0999224b53df
 	github.com/evergreen-ci/utility v0.0.0-20230616220713-1332f9621270
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mongodb/grip v0.0.0-20240213223901-f906268d82b9
@@ -40,8 +40,8 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dghubble/oauth1 v0.7.2 // indirect
-	github.com/evergreen-ci/aviation v0.0.0-20240509141021-0e3a1c91cc79 // indirect
-	github.com/evergreen-ci/birch v0.0.0-20220401151432-c792c3d8e0eb // indirect
+	github.com/evergreen-ci/aviation v0.0.0-20211026175554-41a4410c650f // indirect
+	github.com/evergreen-ci/birch v0.0.0-20211025210128-7f3409c2b515 // indirect
 	github.com/evergreen-ci/gimlet v0.0.0-20240822210219-7b6025d55663 // indirect
 	github.com/evergreen-ci/negroni v1.0.1-0.20211028183800-67b6d7c2c035 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
@@ -51,7 +51,7 @@ require (
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-github/v53 v53.0.0 // indirect
@@ -64,7 +64,7 @@ require (
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-xmpp v0.0.0-20210723025538-3871461df959 // indirect
-	github.com/mongodb/ftdc v0.0.0-20240827140352-f76d3c066734 // indirect
+	github.com/mongodb/ftdc v0.0.0-20211018154918-80dd1c22e4cf // indirect
 	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431 // indirect
 	github.com/phyber/negroni-gzip v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -83,6 +83,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
+	go.mongodb.org/mongo-driver v1.12.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.42.0 // indirect
 	go.opentelemetry.io/otel v1.16.0 // indirect
 	go.opentelemetry.io/otel/metric v1.16.0 // indirect
@@ -96,8 +97,8 @@ require (
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987 // indirect
-	google.golang.org/grpc v1.51.0 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
+	google.golang.org/grpc v1.41.0 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
