@@ -72,7 +72,6 @@ type s3Bucket struct {
 	deleteOnPull        bool
 	singleFileChecksums bool
 	compress            bool
-	ifNotExists         bool
 	verbose             bool
 	batchSize           int
 	svc                 *s3.Client
@@ -145,9 +144,6 @@ type S3Options struct {
 	//`https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.17`
 	// for more information.
 	ContentType string
-	// IfNotExists, when set to true, will avoid overwriting an already-existing
-	// object at the destination key if it already exists.
-	IfNotExists bool
 }
 
 // CreateAWSCredentials is a wrapper for creating static AWS credentials.
@@ -209,7 +205,6 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 		batchSize:           1000,
 		deleteOnPush:        options.DeleteOnPush || options.DeleteOnSync,
 		deleteOnPull:        options.DeleteOnPull || options.DeleteOnSync,
-		ifNotExists:         options.IfNotExists,
 	}, nil
 }
 
@@ -356,7 +351,6 @@ type smallWriteCloser struct {
 	isClosed    bool
 	dryRun      bool
 	compress    bool
-	ifNotExists bool
 	verbose     bool
 	svc         *s3.Client
 	buffer      []byte
@@ -370,7 +364,6 @@ type smallWriteCloser struct {
 type largeWriteCloser struct {
 	isCreated      bool
 	isClosed       bool
-	ifNotExists    bool
 	compress       bool
 	dryRun         bool
 	verbose        bool
@@ -398,17 +391,11 @@ func (w *largeWriteCloser) create() error {
 
 	if !w.dryRun {
 		input := &s3.CreateMultipartUploadInput{
-			Bucket: aws.String(w.name),
-			Key:    aws.String(w.key),
-			ACL:    s3Types.ObjectCannedACL(string(w.permissions)),
+			Bucket:      aws.String(w.name),
+			Key:         aws.String(w.key),
+			ACL:         s3Types.ObjectCannedACL(string(w.permissions)),
+			ContentType: aws.String(w.contentType),
 		}
-
-		// a pointer to an empty string doesn't have the default content-type
-		// applied, so we do the check ourselves here.
-		if w.contentType != "" {
-			input.ContentType = aws.String(w.contentType)
-		}
-
 		if w.compress {
 			input.ContentEncoding = aws.String(compressionEncoding)
 		}
@@ -441,10 +428,6 @@ func (w *largeWriteCloser) complete() error {
 				Parts: w.completedParts,
 			},
 			UploadId: aws.String(w.uploadID),
-		}
-
-		if w.ifNotExists {
-			input.IfNoneMatch = aws.String("*")
 		}
 
 		_, err := w.svc.CompleteMultipartUpload(w.ctx, input)
@@ -575,22 +558,12 @@ func (w *smallWriteCloser) Close() error {
 	}
 
 	input := &s3.PutObjectInput{
-		Body:   s3Manager.ReadSeekCloser(strings.NewReader(string(w.buffer))),
-		Bucket: aws.String(w.name),
-		Key:    aws.String(w.key),
-		ACL:    s3Types.ObjectCannedACL(string(w.permissions)),
+		Body:        s3Manager.ReadSeekCloser(strings.NewReader(string(w.buffer))),
+		Bucket:      aws.String(w.name),
+		Key:         aws.String(w.key),
+		ACL:         s3Types.ObjectCannedACL(string(w.permissions)),
+		ContentType: aws.String(w.contentType),
 	}
-
-	// a pointer to an empty string doesn't have the default content-type
-	// applied, so we do the check ourselves here.
-	if w.contentType != "" {
-		input.ContentType = aws.String(w.contentType)
-	}
-
-	if w.ifNotExists {
-		input.IfNoneMatch = aws.String("*")
-	}
-
 	if w.compress {
 		input.ContentEncoding = aws.String(compressionEncoding)
 	}
@@ -659,7 +632,6 @@ func (s *s3BucketSmall) Writer(ctx context.Context, key string) (io.WriteCloser,
 		contentType: s.contentType,
 		dryRun:      s.dryRun,
 		compress:    s.compress,
-		ifNotExists: s.ifNotExists,
 	}
 	if s.compress {
 		return &compressingWriteCloser{
@@ -690,7 +662,6 @@ func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser,
 		contentType: s.contentType,
 		dryRun:      s.dryRun,
 		compress:    s.compress,
-		ifNotExists: s.ifNotExists,
 		verbose:     s.verbose,
 	}
 	if s.compress {
