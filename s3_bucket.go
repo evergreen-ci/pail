@@ -144,6 +144,9 @@ type S3Options struct {
 	//`https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.17`
 	// for more information.
 	ContentType string
+	// Expiry sets the minimum expiration time for the credentials. (Optional)
+	// This only applies if the credentials are temporary.
+	Expiry time.Duration
 }
 
 // CreateAWSCredentials is a wrapper for creating static AWS credentials.
@@ -187,6 +190,14 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 		s3Opts = append(s3Opts, func(opts *s3.Options) {
 			assumeRoleClient := sts.NewFromConfig(*cfg)
 			opts.Credentials = stscreds.NewAssumeRoleProvider(assumeRoleClient, options.AssumeRoleARN, options.AssumeRoleOptions...)
+		})
+	}
+
+	if options.Expiry != 0 {
+		s3Opts = append(s3Opts, func(opts *s3.Options) {
+			opts.Credentials = aws.NewCredentialsCache(opts.Credentials, func(opts *aws.CredentialsCacheOptions) {
+				opts.ExpiryWindow = options.Expiry
+			})
 		})
 	}
 
