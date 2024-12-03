@@ -215,6 +215,7 @@ type configOpts struct {
 	maxRetries                int
 	sharedCredentialsFilepath string
 	sharedCredentialsProfile  string
+	expiry                    time.Duration
 	client                    *http.Client
 }
 
@@ -241,6 +242,11 @@ func getCachedConfig(ctx context.Context, cfgOpts configOpts) (*aws.Config, erro
 	}
 	if cfgOpts.sharedCredentialsProfile != "" {
 		newCfgOpts = append(newCfgOpts, config.WithSharedConfigProfile(cfgOpts.sharedCredentialsProfile))
+	}
+	if cfgOpts.expiry != 0 {
+		newCfgOpts = append(newCfgOpts, config.WithCredentialsCacheOptions(func(cco *aws.CredentialsCacheOptions) {
+			cco.ExpiryWindow = cfgOpts.expiry
+		}))
 	}
 
 	newCfg, err := config.LoadDefaultConfig(ctx, newCfgOpts...)
@@ -1397,6 +1403,7 @@ type PreSignRequestParams struct {
 	AwsSecret       string
 	AwsSessionToken string
 	Region          string
+	Expiry          time.Duration
 }
 
 func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, error) {
@@ -1407,6 +1414,7 @@ func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, err
 
 	cfgOpts := configOpts{
 		region: region,
+		expiry: p.Expiry,
 	}
 
 	cfg, err := getCachedConfig(ctx, cfgOpts)
