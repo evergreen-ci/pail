@@ -1397,13 +1397,13 @@ const PresignExpireTime = 24 * time.Hour
 
 // PreSignRequestParams holds all the parameters needed to sign a URL or fetch S3 object metadata.
 type PreSignRequestParams struct {
-	Bucket          string
-	FileKey         string
-	AwsKey          string
-	AwsSecret       string
-	AwsSessionToken string
-	Region          string
-	Expiry          time.Duration
+	Bucket                string
+	FileKey               string
+	AwsKey                string
+	AwsSecret             string
+	AwsSessionToken       string
+	Region                string
+	SignatureExpiryWindow time.Duration
 }
 
 func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, error) {
@@ -1414,7 +1414,7 @@ func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, err
 
 	cfgOpts := configOpts{
 		region: region,
-		expiry: p.Expiry,
+		expiry: p.SignatureExpiryWindow,
 	}
 
 	cfg, err := getCachedConfig(ctx, cfgOpts)
