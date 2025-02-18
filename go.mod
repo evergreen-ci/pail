@@ -1,6 +1,6 @@
 module github.com/evergreen-ci/pail
 
-go 1.20
+go 1.24
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.30.3
