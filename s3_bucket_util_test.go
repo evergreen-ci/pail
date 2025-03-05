@@ -242,6 +242,46 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			},
 		},
 		{
+			id: "TestIfNotExists",
+			test: func(t *testing.T, b Bucket) {
+				key := testutil.NewUUID()
+				ifNotExistsOptions := S3Options{
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + testutil.NewUUID(),
+					IfNotExists: true,
+				}
+
+				ifNotExistsBucket, err := NewS3Bucket(ctx, ifNotExistsOptions)
+				require.NoError(t, err)
+				writer, err := ifNotExistsBucket.Writer(ctx, key)
+				require.NoError(t, err)
+
+				payload := []byte("hello world")
+
+				_, err = writer.Write(payload)
+				require.NoError(t, err)
+				require.NoError(t, writer.Close())
+
+				_, err = writer.Write([]byte("hello world 2"))
+				require.NoError(t, err)
+				require.Error(t, writer.Close())
+
+				rawBucket := ifNotExistsBucket.(*s3BucketSmall)
+				getObjectInput := &s3.GetObjectInput{
+					Bucket: aws.String(s3BucketName),
+					Key:    aws.String(rawBucket.normalizeKey(key)),
+				}
+				getObjectOutput, err := rawBucket.svc.GetObject(ctx, getObjectInput)
+				require.NoError(t, err)
+				content, err := io.ReadAll(getObjectOutput.Body)
+				require.NoError(t, err)
+
+				assert.Equal(t, payload, content)
+			},
+		},
+		{
 			id: "TestCompressingWriter",
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketSmall)
@@ -545,6 +585,46 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 				getObjectOutput, err = rawBucket.svc.GetObject(ctx, getObjectInput)
 				require.NoError(t, err)
 				assert.Equal(t, "html/text", aws.ToString(getObjectOutput.ContentType))
+			},
+		},
+		{
+			id: "TestIfNotExists",
+			test: func(t *testing.T, b Bucket) {
+				key := testutil.NewUUID()
+				ifNotExistsOptions := S3Options{
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + testutil.NewUUID(),
+					IfNotExists: true,
+				}
+
+				ifNotExistsBucket, err := NewS3MultiPartBucket(ctx, ifNotExistsOptions)
+				require.NoError(t, err)
+				writer, err := ifNotExistsBucket.Writer(ctx, key)
+				require.NoError(t, err)
+
+				payload := []byte("hello world")
+
+				_, err = writer.Write(payload)
+				require.NoError(t, err)
+				require.NoError(t, writer.Close())
+
+				_, err = writer.Write([]byte("hello world 2"))
+				require.NoError(t, err)
+				require.Error(t, writer.Close())
+
+				rawBucket := ifNotExistsBucket.(*s3BucketLarge)
+				getObjectInput := &s3.GetObjectInput{
+					Bucket: aws.String(s3BucketName),
+					Key:    aws.String(rawBucket.normalizeKey(key)),
+				}
+				getObjectOutput, err := rawBucket.svc.GetObject(ctx, getObjectInput)
+				require.NoError(t, err)
+				content, err := io.ReadAll(getObjectOutput.Body)
+				require.NoError(t, err)
+
+				assert.Equal(t, payload, content)
 			},
 		},
 		{
