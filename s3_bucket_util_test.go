@@ -42,7 +42,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 				assert.NoError(t, err)
 
 				badOptions := S3Options{
-					Credentials: CreateAWSCredentials("asdf", "asdf", "asdf"),
+					Credentials: CreateAWSStaticCredentials("asdf", "asdf", "asdf"),
 					Region:      s3Region,
 					Name:        s3BucketName,
 				}
@@ -369,7 +369,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 				assert.NoError(t, err)
 
 				badOptions := S3Options{
-					Credentials: CreateAWSCredentials("asdf", "asdf", "asdf"),
+					Credentials: CreateAWSStaticCredentials("asdf", "asdf", "asdf"),
 					Region:      s3Region,
 					Name:        s3BucketName,
 				}

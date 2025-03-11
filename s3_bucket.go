@@ -150,9 +150,13 @@ type S3Options struct {
 	IfNotExists bool
 }
 
-// CreateAWSCredentials is a wrapper for creating static AWS credentials.
-func CreateAWSCredentials(awsKey, awsPassword, awsToken string) aws.CredentialsProvider {
+// CreateAWSStaticCredentials is a wrapper for creating static AWS credentials.
+func CreateAWSStaticCredentials(awsKey, awsPassword, awsToken string) aws.CredentialsProvider {
 	return credentials.NewStaticCredentialsProvider(awsKey, awsPassword, awsToken)
+}
+
+func CreateAWSAssumeRoleCredentials(client *sts.Client, roleARN string) aws.CredentialsProvider {
+	return stscreds.NewAssumeRoleProvider(client, roleARN)
 }
 
 func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
@@ -1428,9 +1432,10 @@ const PresignExpireTime = 24 * time.Hour
 type PreSignRequestParams struct {
 	Bucket                string
 	FileKey               string
-	AwsKey                string
-	AwsSecret             string
-	AwsSessionToken       string
+	AWSKey                string
+	AWSSecret             string
+	AWSSessionToken       string
+	AWSRoleARN            string
 	Region                string
 	SignatureExpiryWindow time.Duration
 }
@@ -1452,9 +1457,14 @@ func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, err
 	}
 
 	var s3Opts []func(*s3.Options)
-	if p.AwsKey != "" {
+	if p.AWSKey != "" {
 		s3Opts = append(s3Opts, func(opts *s3.Options) {
-			opts.Credentials = CreateAWSCredentials(p.AwsKey, p.AwsSecret, p.AwsSessionToken)
+			opts.Credentials = CreateAWSStaticCredentials(p.AWSKey, p.AWSSecret, p.AWSSessionToken)
+		})
+	} else if p.AWSRoleARN != "" {
+		stsClient := sts.NewFromConfig(*cfg)
+		s3Opts = append(s3Opts, func(opts *s3.Options) {
+			opts.Credentials = CreateAWSAssumeRoleCredentials(stsClient, p.AWSRoleARN)
 		})
 	}
 
