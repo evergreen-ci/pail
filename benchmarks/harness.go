@@ -333,7 +333,7 @@ func makeLocalTree(numFiles int, bytesPerFile int) makePayload {
 
 func s3Opts() pail.S3Options {
 	return pail.S3Options{
-		Credentials: pail.CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
+		Credentials: pail.CreateAWSStaticCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), ""),
 		Region:      "us-east-1",
 		Name:        "build-test-curator",
 		Prefix:      testutil.NewUUID(),

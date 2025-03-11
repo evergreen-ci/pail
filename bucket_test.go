@@ -45,7 +45,7 @@ func TestBucket(t *testing.T) {
 	tempdir := t.TempDir()
 	require.NoError(t, err, os.MkdirAll(filepath.Join(tempdir, uuid), 0700))
 
-	s3Credentials := CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
+	s3Credentials := CreateAWSStaticCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
 	s3BucketName := "build-test-curator"
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Region := "us-east-1"
@@ -1148,7 +1148,7 @@ func TestS3ArchiveBucket(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { require.NoError(t, os.RemoveAll(tempdir)) }()
 
-	s3Credentials := CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
+	s3Credentials := CreateAWSStaticCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
 	s3BucketName := "build-test-curator"
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Region := "us-east-1"
@@ -1552,7 +1552,7 @@ func TestPreSign(t *testing.T) {
 
 	awsKey := os.Getenv("AWS_KEY")
 	awsSecret := os.Getenv("AWS_SECRET")
-	s3Credentials := CreateAWSCredentials(awsKey, awsSecret, "")
+	s3Credentials := CreateAWSStaticCredentials(awsKey, awsSecret, "")
 	s3BucketName := "build-test-curator"
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Object := testutil.NewUUID()
@@ -1573,8 +1573,8 @@ func TestPreSign(t *testing.T) {
 	require.NoError(t, b.Put(ctx, s3Object, strings.NewReader(data)))
 
 	req := PreSignRequestParams{
-		AwsKey:    awsKey,
-		AwsSecret: awsSecret,
+		AWSKey:    awsKey,
+		AWSSecret: awsSecret,
 		Region:    s3Region,
 		Bucket:    s3BucketName,
 		FileKey:   consistentJoin([]string{s3Prefix, s3Object}),
@@ -1600,7 +1600,7 @@ func TestGetHeadObject(t *testing.T) {
 
 	awsKey := os.Getenv("AWS_KEY")
 	awsSecret := os.Getenv("AWS_SECRET")
-	s3Credentials := CreateAWSCredentials(awsKey, awsSecret, "")
+	s3Credentials := CreateAWSStaticCredentials(awsKey, awsSecret, "")
 	s3BucketName := "build-test-curator"
 	s3Prefix := testutil.NewUUID() + "-"
 	s3Object := testutil.NewUUID()
@@ -1625,8 +1625,8 @@ func TestGetHeadObject(t *testing.T) {
 
 	t.Run("FailsWithNonexistentObject", func(t *testing.T) {
 		req := PreSignRequestParams{
-			AwsKey:    awsKey,
-			AwsSecret: awsSecret,
+			AWSKey:    awsKey,
+			AWSSecret: awsSecret,
 			Region:    s3Region,
 			Bucket:    s3BucketName,
 			FileKey:   consistentJoin([]string{s3Prefix, "DNE"}),
@@ -1638,8 +1638,8 @@ func TestGetHeadObject(t *testing.T) {
 
 	t.Run("SucceedsWithExistingObject", func(t *testing.T) {
 		req := PreSignRequestParams{
-			AwsKey:    awsKey,
-			AwsSecret: awsSecret,
+			AWSKey:    awsKey,
+			AWSSecret: awsSecret,
 			Region:    s3Region,
 			Bucket:    s3BucketName,
 			FileKey:   consistentJoin([]string{s3Prefix, s3Object}),
