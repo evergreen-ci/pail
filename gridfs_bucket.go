@@ -11,9 +11,11 @@ import (
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // GridFSOptions support the use and creation of GridFS backed buckets.
@@ -68,7 +70,7 @@ func NewGridFSBucket(ctx context.Context, opts GridFSOptions) (Bucket, error) {
 		return nil, err
 	}
 
-	client, err := mongo.Connect(options.Client().ApplyURI(opts.MongoDBURI))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(opts.MongoDBURI))
 	if err != nil {
 		return nil, errors.Wrap(err, "constructing client")
 	}
@@ -81,7 +83,7 @@ func (b *gridfsBucket) Check(ctx context.Context) error {
 }
 
 func (b *gridfsBucket) Exists(ctx context.Context, key string) (bool, error) {
-	grid, err := b.bucket()
+	grid, err := b.bucket(ctx)
 	if err != nil {
 		return false, errors.Wrap(err, "resolving bucket")
 	}
@@ -103,8 +105,26 @@ func (b *gridfsBucket) Join(elems ...string) string { return consistentJoin(elem
 // supports a single read and a single write deadline for a bucket instance.
 // This function sets the read and write deadlines to allow it to respect the
 // context timeouts passed in by the caller.
-func (b *gridfsBucket) bucket() (*mongo.GridFSBucket, error) {
-	return b.client.Database(b.opts.Database).GridFSBucket(options.GridFSBucket().SetName(b.opts.Name)), nil
+func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, errors.Wrap(err, "fetching bucket with canceled context")
+	}
+
+	gfs, err := gridfs.NewBucket(b.client.Database(b.opts.Database), options.GridFSBucket().SetName(b.opts.Name))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	// The streaming GridFS functions do not accept a context so we need to
+	// set the deadline from the passed-in context here, if it exists, in
+	// order to respect context timeouts passed in by the caller.
+	dl, ok := ctx.Deadline()
+	if ok {
+		_ = gfs.SetReadDeadline(dl)
+		_ = gfs.SetWriteDeadline(dl)
+	}
+
+	return gfs, nil
 }
 
 func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser, error) {
@@ -117,7 +137,7 @@ func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser,
 		"key":           name,
 	})
 
-	grid, err := b.bucket()
+	grid, err := b.bucket(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolving bucket")
 	}
@@ -126,7 +146,7 @@ func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser,
 		return &mockWriteCloser{}, nil
 	}
 
-	writer, err := grid.OpenUploadStream(ctx, b.normalizeKey(name))
+	writer, err := grid.OpenUploadStream(b.normalizeKey(name))
 	if err != nil {
 		return nil, errors.Wrap(err, "opening stream")
 	}
@@ -143,14 +163,14 @@ func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, 
 		"key":           name,
 	})
 
-	grid, err := b.bucket()
+	grid, err := b.bucket(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolving bucket")
 	}
 
-	reader, err := grid.OpenDownloadStreamByName(ctx, b.normalizeKey(name))
+	reader, err := grid.OpenDownloadStreamByName(b.normalizeKey(name))
 	if err != nil {
-		if err == mongo.ErrFileNotFound {
+		if err == gridfs.ErrFileNotFound {
 			err = MakeKeyNotFoundError(err)
 		}
 		return nil, errors.Wrap(err, "opening stream")
@@ -169,7 +189,7 @@ func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) er
 		"key":           name,
 	})
 
-	grid, err := b.bucket()
+	grid, err := b.bucket(ctx)
 	if err != nil {
 		return errors.Wrap(err, "resolving bucket")
 	}
@@ -178,7 +198,7 @@ func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) er
 		return nil
 	}
 
-	if _, err = grid.UploadFromStream(ctx, b.normalizeKey(name), input); err != nil {
+	if _, err = grid.UploadFromStream(b.normalizeKey(name), input); err != nil {
 		return errors.Wrap(err, "uploading file")
 	}
 
@@ -394,7 +414,7 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 		"keys":          keys,
 	})
 
-	grid, err := b.bucket()
+	grid, err := b.bucket(ctx)
 	if err != nil {
 		return errors.Wrap(err, "resolving bucket")
 	}
@@ -404,7 +424,7 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 		normalizedKeys[i] = b.normalizeKey(key)
 	}
 
-	cur, err := grid.Find(ctx, bson.M{"filename": bson.M{"$in": normalizedKeys}})
+	cur, err := grid.Find(bson.M{"filename": bson.M{"$in": normalizedKeys}})
 	if err != nil {
 		return errors.Wrap(err, "finding file(s)")
 	}
@@ -422,7 +442,7 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 			continue
 		}
 
-		if err = grid.Delete(ctx, document.ID); err != nil {
+		if err = grid.Delete(document.ID); err != nil {
 			catcher.Wrap(err, "deleting GridFS file")
 			break
 		}
@@ -468,16 +488,16 @@ func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator,
 		"prefix":        prefix,
 	})
 
-	grid, err := b.bucket()
+	grid, err := b.bucket(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolving bucket")
 	}
 
 	filter := bson.M{}
 	if prefix != "" {
-		filter = bson.M{"filename": bson.Regex{Pattern: fmt.Sprintf("^%s.*", b.normalizeKey(prefix))}}
+		filter = bson.M{"filename": primitive.Regex{Pattern: fmt.Sprintf("^%s.*", b.normalizeKey(prefix))}}
 	}
-	cursor, err := grid.Find(ctx, filter, options.GridFSFind().SetSort(bson.M{"filename": 1}))
+	cursor, err := grid.Find(filter, options.GridFSFind().SetSort(bson.M{"filename": 1}))
 	if err != nil {
 		return nil, errors.Wrap(err, "finding file")
 	}
