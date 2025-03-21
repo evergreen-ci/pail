@@ -628,6 +628,39 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			},
 		},
 		{
+			id: "TestGetToWriter",
+			test: func(t *testing.T, b Bucket) {
+				s3b, ok := b.(FastGetS3Bucket)
+				assert.Equal(t, true, ok)
+
+				key := testutil.NewUUID()
+
+				payload := []byte("hello world")
+				ctx := t.Context()
+
+				err := s3b.Put(ctx, key, bytes.NewReader(payload))
+				require.NoError(t, err)
+
+				localPath := filepath.Join(tempdir, key)
+
+				require.NoError(t, os.MkdirAll(localPath, 0700))
+				f, err := os.CreateTemp(localPath, "get-to-writer")
+				require.NoError(t, err)
+
+				t.Cleanup(func() {
+					os.RemoveAll(localPath)
+				})
+
+				err = s3b.GetToWriter(ctx, key, f)
+				require.NoError(t, err)
+
+				got, err := os.ReadFile(f.Name())
+				require.NoError(t, err)
+
+				assert.Equal(t, payload, got)
+			},
+		},
+		{
 			id: "TestCompressingWriter",
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketLarge)

@@ -292,6 +292,16 @@ func NewS3BucketWithHTTPClient(ctx context.Context, client *http.Client, options
 	return &s3BucketSmall{s3Bucket: *bucket}, nil
 }
 
+// NewFastGetS3BucketWithHttpClient does the same thing as NewS3BucketWithHTTPClient,
+// but returns the FastGetS3Bucket interface instead.
+func NewFastGetS3BucketWithHTTPClient(ctx context.Context, client *http.Client, options S3Options) (FastGetS3Bucket, error) {
+	bucket, err := newS3BucketBase(ctx, client, options)
+	if err != nil {
+		return nil, err
+	}
+	return &s3BucketSmall{s3Bucket: *bucket}, nil
+}
+
 // NewS3MultiPartBucket returns a Bucket implementation backed by S3
 // that supports multipart uploads for large objects.
 func NewS3MultiPartBucket(ctx context.Context, options S3Options) (Bucket, error) {
@@ -792,6 +802,33 @@ func (s *s3Bucket) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	})
 
 	return s.Reader(ctx, key)
+}
+
+// GetToWriter fetches the key from this bucket and writes the contents to
+// an io.WriterAt in parallel. This function uses the s3Manager.Downloader
+// API to download and write to this writer in parallel using byte ranges. This
+// method is significantly more efficient at fetching large files than Get.
+func (s *s3Bucket) GetToWriter(ctx context.Context, key string, w io.WriterAt) error {
+	downloader := s3Manager.NewDownloader(s.svc)
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(s.name),
+		Key:    aws.String(s.normalizeKey(key)),
+	}
+
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"operation":     "GetToWriter",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+	})
+
+	if _, err := downloader.Download(ctx, w, input); err != nil {
+		return errors.Wrapf(err, "downloading file")
+	}
+
+	return nil
 }
 
 func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, target, file string) (bool, error) {
