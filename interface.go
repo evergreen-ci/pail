@@ -92,6 +92,17 @@ type Bucket interface {
 	List(context.Context, string) (BucketIterator, error)
 }
 
+// FastGetS3Bucket is a Bucket but with an additional method, GetToWriter. Only S3
+// bucket types can support this access pattern.
+type FastGetS3Bucket interface {
+	Bucket
+	// GetToWriter allows the user to pass in an io.WriterAt (which is likely
+	// going to be a file) that has the contents of the remote key automatically
+	// copied to it in parallel. GetToWriter is significantly more efficient for
+	// large files than a Bucket.Get.
+	GetToWriter(context.Context, string, io.WriterAt) error
+}
+
 // SyncBucket defines an interface to access a remote blob store and synchronize
 // the local file system tree with the remote store.
 type SyncBucket interface {
