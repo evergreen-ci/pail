@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -753,17 +754,45 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 	return result.Body, nil
 }
 
-func putHelper(ctx context.Context, b Bucket, key string, r io.Reader) error {
-	f, err := b.Writer(ctx, key)
-	if err != nil {
-		return errors.WithStack(err)
+func putHelper(ctx context.Context, b s3Bucket, key string, r io.Reader) error {
+	if b.dryRun {
+		return nil
 	}
-	_, err = io.Copy(f, r)
-	if err != nil {
-		_ = f.Close()
-		return errors.Wrap(err, "copying data to file")
+
+	input := &s3.PutObjectInput{
+		Body:   s3Manager.ReadSeekCloser(r),
+		Bucket: aws.String(b.name),
+		Key:    aws.String(key),
+		ACL:    s3Types.ObjectCannedACL(string(b.permissions)),
 	}
-	return errors.WithStack(f.Close())
+
+	// a pointer to an empty string doesn't have the default content-type
+	// applied, so we do the check ourselves here.
+	if b.contentType != "" {
+		input.ContentType = aws.String(b.contentType)
+	}
+
+	if b.ifNotExists {
+		input.IfNoneMatch = aws.String("*")
+	}
+
+	if b.compress {
+		input.ContentEncoding = aws.String(compressionEncoding)
+	}
+
+	uploader := s3Manager.NewUploader(b.svc)
+	uploader.Concurrency = runtime.NumCPU()
+	_, err := uploader.Upload(ctx, input)
+
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":      "s3",
+		"dry_run":   b.dryRun,
+		"operation": "put finished",
+		"bucket":    b.name,
+		"key":       key,
+	})
+
+	return errors.Wrap(err, "uploading file")
 }
 
 func (s *s3BucketSmall) Put(ctx context.Context, key string, r io.Reader) error {
@@ -776,7 +805,7 @@ func (s *s3BucketSmall) Put(ctx context.Context, key string, r io.Reader) error 
 		"key":           key,
 	})
 
-	return putHelper(ctx, s, key, r)
+	return putHelper(ctx, s.s3Bucket, key, r)
 }
 
 func (s *s3BucketLarge) Put(ctx context.Context, key string, r io.Reader) error {
@@ -789,7 +818,7 @@ func (s *s3BucketLarge) Put(ctx context.Context, key string, r io.Reader) error 
 		"key":           key,
 	})
 
-	return putHelper(ctx, s, key, r)
+	return putHelper(ctx, s.s3Bucket, key, r)
 }
 
 func (s *s3Bucket) Get(ctx context.Context, key string) (io.ReadCloser, error) {
