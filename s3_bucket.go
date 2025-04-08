@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -810,6 +811,13 @@ func (s *s3Bucket) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 // method is significantly more efficient at fetching large files than Get.
 func (s *s3Bucket) GetToWriter(ctx context.Context, key string, w io.WriterAt) error {
 	downloader := s3Manager.NewDownloader(s.svc)
+
+	// After quite a bit of testing, a minimum of 10 seems to perform the best,
+	// even on distros with fewer than 10 cores. 10 is also what the AWS cli
+	// defaults to. See DEVPROD-16611 for more information on this testing.
+	const minConcurrency = 10
+
+	downloader.Concurrency = max(runtime.NumCPU(), minConcurrency)
 
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(s.name),
