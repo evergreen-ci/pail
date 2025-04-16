@@ -2,6 +2,7 @@ package pail
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"io"
@@ -754,17 +755,53 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 	return result.Body, nil
 }
 
-func putHelper(ctx context.Context, b Bucket, key string, r io.Reader) error {
-	f, err := b.Writer(ctx, key)
-	if err != nil {
-		return errors.WithStack(err)
+func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error {
+	if b.dryRun {
+		return nil
 	}
-	_, err = io.Copy(f, r)
-	if err != nil {
-		_ = f.Close()
-		return errors.Wrap(err, "copying data to file")
+
+	if b.compress {
+		var buf bytes.Buffer
+
+		w := gzip.NewWriter(&buf)
+
+		if _, err := io.Copy(w, r); err != nil {
+			return errors.Wrap(err, "gzipping file")
+		}
+
+		r = bytes.NewReader(buf.Bytes())
 	}
-	return errors.WithStack(f.Close())
+
+	uploader := s3Manager.NewUploader(b.svc)
+	uploader.Concurrency = getManagerConcurrency()
+
+	key = b.normalizeKey(key)
+
+	input := &s3.PutObjectInput{
+		Body:   s3Manager.ReadSeekCloser(r),
+		Bucket: aws.String(b.name),
+		Key:    aws.String(key),
+		ACL:    s3Types.ObjectCannedACL(string(b.permissions)),
+	}
+
+	if b.contentType != "" {
+		input.ContentType = aws.String(b.contentType)
+	}
+
+	if b.ifNotExists {
+		input.IfNoneMatch = aws.String("*")
+	}
+
+	if b.compress {
+		input.ContentEncoding = aws.String(compressionEncoding)
+	}
+
+	if _, err := uploader.Upload(ctx, input); err != nil {
+		return errors.Wrapf(err, "uploading file")
+	}
+
+	return nil
+
 }
 
 func (s *s3BucketSmall) Put(ctx context.Context, key string, r io.Reader) error {
@@ -777,7 +814,7 @@ func (s *s3BucketSmall) Put(ctx context.Context, key string, r io.Reader) error 
 		"key":           key,
 	})
 
-	return putHelper(ctx, s, key, r)
+	return putHelper(ctx, &s.s3Bucket, key, r)
 }
 
 func (s *s3BucketLarge) Put(ctx context.Context, key string, r io.Reader) error {
@@ -790,7 +827,7 @@ func (s *s3BucketLarge) Put(ctx context.Context, key string, r io.Reader) error 
 		"key":           key,
 	})
 
-	return putHelper(ctx, s, key, r)
+	return putHelper(ctx, &s.s3Bucket, key, r)
 }
 
 func (s *s3Bucket) Get(ctx context.Context, key string) (io.ReadCloser, error) {
@@ -805,19 +842,22 @@ func (s *s3Bucket) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	return s.Reader(ctx, key)
 }
 
+func getManagerConcurrency() int {
+	// After quite a bit of testing, a minimum of 10 seems to perform the best,
+	// even on distros with fewer than 10 cores. 10 is also what the AWS cli
+	// defaults to. See DEVPROD-16611 for more information on this testing.
+	const minConcurrency = 10
+
+	return max(runtime.NumCPU(), minConcurrency)
+}
+
 // GetToWriter fetches the key from this bucket and writes the contents to
 // an io.WriterAt in parallel. This function uses the s3Manager.Downloader
 // API to download and write to this writer in parallel using byte ranges. This
 // method is significantly more efficient at fetching large files than Get.
 func (s *s3Bucket) GetToWriter(ctx context.Context, key string, w io.WriterAt) error {
 	downloader := s3Manager.NewDownloader(s.svc)
-
-	// After quite a bit of testing, a minimum of 10 seems to perform the best,
-	// even on distros with fewer than 10 cores. 10 is also what the AWS cli
-	// defaults to. See DEVPROD-16611 for more information on this testing.
-	const minConcurrency = 10
-
-	downloader.Concurrency = max(runtime.NumCPU(), minConcurrency)
+	downloader.Concurrency = getManagerConcurrency()
 
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(s.name),
