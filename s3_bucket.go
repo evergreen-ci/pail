@@ -769,6 +769,10 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error 
 			return errors.Wrap(err, "gzipping file")
 		}
 
+		if err := w.Close(); err != nil {
+			return errors.Wrap(err, "closing gzip writer")
+		}
+
 		r = bytes.NewReader(buf.Bytes())
 	}
 

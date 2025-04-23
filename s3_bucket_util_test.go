@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	s3Manager "github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/evergreen-ci/pail/testutil"
@@ -338,6 +340,45 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 				require.NoError(t, err)
 				require.NoError(t, r.Close())
 				assert.Equal(t, data, s3UncompressedData)
+			},
+		},
+		{
+			id: "TestCompressingPut",
+			test: func(t *testing.T, b Bucket) {
+				rawBucket := b.(*s3BucketSmall)
+				s3Options := S3Options{
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      rawBucket.prefix,
+					MaxRetries:  aws.Int(20),
+					Compress:    true,
+				}
+				client := &http.Client{}
+				cb, err := NewFastGetS3BucketWithHTTPClient(ctx, client, s3Options)
+				require.NoError(t, err)
+
+				data := []byte{}
+				for i := 0; i < 300; i++ {
+					data = append(data, []byte(testutil.NewUUID())...)
+				}
+
+				compressedKey := testutil.NewUUID()
+				require.NoError(t, cb.Put(ctx, compressedKey, bytes.NewReader(data)))
+
+				buf := s3Manager.NewWriteAtBuffer([]byte{})
+				require.NoError(t, cb.GetToWriter(ctx, compressedKey, buf))
+
+				s3CompressedData, err := io.ReadAll(bytes.NewReader(buf.Bytes()))
+				require.NoError(t, err)
+
+				gzr, err := gzip.NewReader(bytes.NewReader(s3CompressedData))
+				require.NoError(t, err)
+				gotData, err := io.ReadAll(gzr)
+				require.NoError(t, err)
+				require.NoError(t, gzr.Close())
+
+				assert.Equal(t, data, gotData)
 			},
 		},
 		{
