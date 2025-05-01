@@ -157,8 +157,10 @@ func CreateAWSStaticCredentials(awsKey, awsPassword, awsToken string) aws.Creden
 	return credentials.NewStaticCredentialsProvider(awsKey, awsPassword, awsToken)
 }
 
-func CreateAWSAssumeRoleCredentials(client *sts.Client, roleARN string) aws.CredentialsProvider {
-	return stscreds.NewAssumeRoleProvider(client, roleARN)
+func CreateAWSAssumeRoleCredentials(client *sts.Client, roleARN string, externalID *string) aws.CredentialsProvider {
+	return stscreds.NewAssumeRoleProvider(client, roleARN, func(aro *stscreds.AssumeRoleOptions) {
+		aro.ExternalID = externalID
+	})
 }
 
 func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
@@ -1522,12 +1524,17 @@ const PresignExpireTime = 24 * time.Hour
 type PreSignRequestParams struct {
 	Bucket                string
 	FileKey               string
-	AWSKey                string
-	AWSSecret             string
-	AWSSessionToken       string
-	AWSRoleARN            string
 	Region                string
 	SignatureExpiryWindow time.Duration
+
+	// Static credentials specific fields.
+	AWSKey          string
+	AWSSecret       string
+	AWSSessionToken string
+
+	// AssumeRole specific fields.
+	AWSRoleARN string
+	ExternalID *string
 }
 
 func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, error) {
@@ -1554,7 +1561,7 @@ func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, err
 	} else if p.AWSRoleARN != "" {
 		stsClient := sts.NewFromConfig(*cfg)
 		s3Opts = append(s3Opts, func(opts *s3.Options) {
-			opts.Credentials = CreateAWSAssumeRoleCredentials(stsClient, p.AWSRoleARN)
+			opts.Credentials = CreateAWSAssumeRoleCredentials(stsClient, p.AWSRoleARN, p.ExternalID)
 		})
 	}
 
