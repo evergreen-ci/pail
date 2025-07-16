@@ -245,7 +245,8 @@ func getCachedConfig(ctx context.Context, cfgOpts configOpts) (*aws.Config, erro
 		cfgOpts.sharedCredentialsProfile == ""
 	// We completely lock the mutex to ensure that we do not create multiple
 	// configurations. This locks it for this read and later in this function
-	// when we write the new configuration to the cache.
+	// when we write the new configuration to the cache. This effectively
+	// makes reading + writing atomic.
 	awsConfigs.mutex.Lock()
 	defer awsConfigs.mutex.Unlock()
 	if isDefault && awsConfigs.cache[cfgOpts] != nil {
