@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -221,7 +222,13 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 	}, nil
 }
 
-var configCache = make(map[configOpts]*aws.Config)
+var awsConfigs = struct {
+	mutex sync.Mutex
+	cache map[configOpts]*aws.Config
+}{
+	mutex: sync.Mutex{},
+	cache: make(map[configOpts]*aws.Config),
+}
 
 type configOpts struct {
 	region                    string
@@ -236,8 +243,13 @@ func getCachedConfig(ctx context.Context, cfgOpts configOpts) (*aws.Config, erro
 	isDefault := cfgOpts.client == nil &&
 		cfgOpts.sharedCredentialsFilepath == "" &&
 		cfgOpts.sharedCredentialsProfile == ""
-	if isDefault && configCache[cfgOpts] != nil {
-		return configCache[cfgOpts], nil
+	// We completely lock the mutex to ensure that we do not create multiple
+	// configurations. This locks it for this read and later in this function
+	// when we write the new configuration to the cache.
+	awsConfigs.mutex.Lock()
+	defer awsConfigs.mutex.Unlock()
+	if isDefault && awsConfigs.cache[cfgOpts] != nil {
+		return awsConfigs.cache[cfgOpts], nil
 	}
 
 	var newCfgOpts []func(*config.LoadOptions) error
@@ -267,7 +279,7 @@ func getCachedConfig(ctx context.Context, cfgOpts configOpts) (*aws.Config, erro
 		return nil, errors.Wrap(err, "creating new session")
 	}
 	if isDefault {
-		configCache[cfgOpts] = &newCfg
+		awsConfigs.cache[cfgOpts] = &newCfg
 	}
 
 	return &newCfg, nil
