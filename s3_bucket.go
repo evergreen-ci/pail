@@ -1295,6 +1295,63 @@ func (s *s3BucketSmall) RemoveMatching(ctx context.Context, expression string) e
 	return removeMatching(ctx, expression, s)
 }
 
+// MoveObjects moves multiple objects from sourceKeys in this bucket to destKeys in another bucket specified by destBucket.
+// The lengths of sourceKeys and destKeys must match.
+func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKeys, destKeys []string) error {
+	if len(sourceKeys) != len(destKeys) {
+		return errors.New("sourceKeys and destKeys must have the same length")
+	}
+	catcher := grip.NewBasicCatcher()
+	var objectsToDelete []s3Types.ObjectIdentifier
+	for i, srcKey := range sourceKeys {
+		dstKey := destKeys[i]
+		grip.DebugWhen(s.verbose, message.Fields{
+			"type":          "s3",
+			"dry_run":       s.dryRun,
+			"operation":     "move",
+			"source_bucket": s.name,
+			"dest_bucket":   destBucket.String(),
+			"source_key":    srcKey,
+			"dest_key":      dstKey,
+		})
+		if s.dryRun {
+			continue
+		}
+		copyOpts := CopyOptions{
+			SourceKey:         srcKey,
+			DestinationKey:    dstKey,
+			DestinationBucket: destBucket,
+			IsDestination:     false,
+		}
+		err := s.Copy(ctx, copyOpts)
+		if err != nil {
+			catcher.Add(errors.Wrapf(err, "copying object to destination bucket as %s", dstKey))
+			continue
+		}
+		objectsToDelete = append(objectsToDelete, s3Types.ObjectIdentifier{Key: aws.String(s.normalizeKey(srcKey))})
+	}
+	// Batch delete all successfully copied source objects
+	if !s.dryRun && len(objectsToDelete) > 0 {
+		input := &s3.DeleteObjectsInput{
+			Bucket: aws.String(s.name),
+			Delete: &s3Types.Delete{Objects: objectsToDelete},
+		}
+		_, err := s.svc.DeleteObjects(ctx, input)
+		if err != nil {
+			catcher.Add(errors.Wrap(err, "batch deleting original objects after transfer"))
+		}
+	}
+	return catcher.Resolve()
+}
+
+func (s *s3BucketSmall) MoveObjects(ctx context.Context, destBucket Bucket, sourceKeys, destKeys []string) error {
+	return s.s3Bucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys)
+}
+
+func (s *s3BucketLarge) MoveObjects(ctx context.Context, destBucket Bucket, sourceKeys, destKeys []string) error {
+	return s.s3Bucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys)
+}
+
 func (s *s3BucketLarge) RemoveMatching(ctx context.Context, expression string) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",

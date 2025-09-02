@@ -44,6 +44,10 @@ type gridfsBucket struct {
 	client *mongo.Client
 }
 
+func (b *gridfsBucket) String() string {
+	return b.opts.Name
+}
+
 func (b *gridfsBucket) normalizeKey(key string) string { return b.Join(b.opts.Prefix, key) }
 
 func (b *gridfsBucket) denormalizeKey(key string) string {
@@ -535,4 +539,8 @@ func (iter *gridfsIterator) Next(ctx context.Context) bool {
 		b:      iter.bucket,
 	}
 	return true
+}
+
+func (b *gridfsBucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKeys, destKeys []string) error {
+	return errors.New("MoveObjects is not implemented for GridFS buckets")
 }

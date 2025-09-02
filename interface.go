@@ -90,6 +90,12 @@ type Bucket interface {
 	// the given prefix. Contents are iterated lexicographically by key
 	// name.
 	List(context.Context, string) (BucketIterator, error)
+
+	// String returns the bucket name.
+	String() string
+	// MoveObjects moves multiple objects from sourceKeys in this bucket to destKeys in another bucket specified by destBucket.
+	// The lengths of sourceKeys and destKeys must match.
+	MoveObjects(ctx context.Context, destBucket Bucket, sourceKeys, destKeys []string) error
 }
 
 // FastGetS3Bucket is a Bucket but with an additional method, GetToWriter. Only S3
