@@ -24,6 +24,10 @@ type localFileSystem struct {
 	verbose      bool
 }
 
+func (b *localFileSystem) String() string {
+	return b.path
+}
+
 // LocalOptions describes the configuration of a local Bucket.
 type LocalOptions struct {
 	Path   string
@@ -359,6 +363,12 @@ func (b *localFileSystem) RemoveMatching(ctx context.Context, expression string)
 	})
 
 	return removeMatching(ctx, expression, b)
+}
+
+// MoveObjects moves multiple objects from sourceKeys in this local bucket to destKeys in another bucket.
+// Not implemented for local buckets.
+func (b *localFileSystem) MoveObjects(ctx context.Context, destBucket Bucket, sourceKeys, destKeys []string) error {
+	return errors.New("MoveObjects is not implemented for local buckets")
 }
 
 func (b *localFileSystem) Push(ctx context.Context, opts SyncOptions) error {
