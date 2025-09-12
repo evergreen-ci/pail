@@ -93,6 +93,7 @@ type Bucket interface {
 
 	// String returns the bucket name.
 	String() string
+	
 	// MoveObjects moves multiple objects from sourceKeys in this bucket to destKeys in another bucket specified by destBucket.
 	// The lengths of sourceKeys and destKeys must match.
 	MoveObjects(ctx context.Context, destBucket Bucket, sourceKeys, destKeys []string) error
