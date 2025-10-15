@@ -350,7 +350,6 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 				rawBucket := b.(*s3BucketSmall)
 				// Enable uploading checksums.
 				rawBucket.uploadChecksumSha256 = true
-				// Base64 of Sha256 of "hello world"
 				hasher := sha256.New()
 				hasher.Write([]byte("hello world"))
 				sum := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
@@ -359,6 +358,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 				key := testutil.NewUUID()
 
 				t.Run("Put", func(t *testing.T) {
+					// This uploads the object with the checksum.
 					require.NoError(t, b.Put(ctx, key, bytes.NewReader([]byte("hello world"))))
 				})
 
