@@ -353,11 +353,8 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 				rawBucket.verifyChecksumSha256 = sum
 
 				key := testutil.NewUUID()
-				writer, err := b.Writer(ctx, key)
-				require.NoError(t, err)
-				_, err = writer.Write([]byte("hello world"))
-				require.NoError(t, err)
-				require.NoError(t, writer.Close())
+
+				require.NoError(t, b.Put(ctx, key, bytes.NewReader([]byte("hello world"))))
 
 				// Check via raw s3 client that the checksum was uploaded.
 				getObjectInput := &s3.GetObjectInput{
