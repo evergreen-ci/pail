@@ -343,6 +343,43 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			},
 		},
 		{
+			id: "TestChecksumSha256",
+			test: func(t *testing.T, b Bucket) {
+				rawBucket := b.(*s3BucketSmall)
+				// Enable uploading checksums.
+				rawBucket.uploadChecksumSha256 = true
+				// Checksum of "hello world"
+				sum := "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+				rawBucket.verifyChecksumSha256 = sum
+
+				key := testutil.NewUUID()
+				writer, err := b.Writer(ctx, key)
+				require.NoError(t, err)
+				_, err = writer.Write([]byte("hello world"))
+				require.NoError(t, err)
+				require.NoError(t, writer.Close())
+
+				// Check via raw s3 client that the checksum was uploaded.
+				getObjectInput := &s3.GetObjectInput{
+					Bucket:       aws.String(s3BucketName),
+					Key:          aws.String(rawBucket.normalizeKey(key)),
+					ChecksumMode: s3Types.ChecksumModeEnabled,
+				}
+				getObjectOutput, err := rawBucket.svc.GetObject(ctx, getObjectInput)
+				require.NoError(t, err)
+				assert.Equal(t, "application/octet-stream", aws.ToString(getObjectOutput.ContentType))
+				assert.Equal(t, sum, aws.ToString(getObjectOutput.ChecksumSHA256))
+
+				newFile, err := os.Create(filepath.Join(tempdir, "checksum"))
+				require.NoError(t, err)
+				defer newFile.Close()
+				require.NoError(t, rawBucket.GetToWriter(ctx, key, newFile))
+				contents, err := os.ReadFile(newFile.Name())
+				require.NoError(t, err)
+				assert.Equal(t, "hello world", string(contents))
+			},
+		},
+		{
 			id: "TestCompressingPut",
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketSmall)
