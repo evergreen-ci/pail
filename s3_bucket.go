@@ -819,18 +819,6 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error 
 		r = bytes.NewReader(buf.Bytes())
 	}
 
-	var checksumSha256 string
-	if b.uploadChecksumSha256 {
-		var buf bytes.Buffer
-		h := utility.NewSHA256Hash()
-		tr := io.TeeReader(r, h)
-		if _, err := io.Copy(&buf, tr); err != nil {
-			return errors.Wrap(err, "checksumming file")
-		}
-		checksumSha256 = h.Sum()
-		r = bytes.NewReader(buf.Bytes())
-	}
-
 	uploader := s3Manager.NewUploader(b.svc)
 	uploader.Concurrency = getManagerConcurrency()
 
@@ -846,7 +834,6 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error 
 
 	if b.uploadChecksumSha256 {
 		input.ChecksumAlgorithm = s3Types.ChecksumAlgorithmSha256
-		input.ChecksumSHA256 = aws.String(checksumSha256)
 	}
 
 	if b.contentType != "" {
