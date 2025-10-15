@@ -74,15 +74,20 @@ type s3Bucket struct {
 	deleteOnPush        bool
 	deleteOnPull        bool
 	singleFileChecksums bool
-	compress            bool
-	ifNotExists         bool
-	verbose             bool
-	batchSize           int
-	svc                 *s3.Client
-	name                string
-	prefix              string
-	permissions         S3Permissions
-	contentType         string
+	// verifyChecksumSha256 checks on downloads that the SHA256 checksum
+	// matches the expected value.
+	verifyChecksumSha256 string
+	// uploadChecksumSha256 enables sending the SHA256 checksum of uploads.
+	uploadChecksumSha256 bool
+	compress             bool
+	ifNotExists          bool
+	verbose              bool
+	batchSize            int
+	svc                  *s3.Client
+	name                 string
+	prefix               string
+	permissions          S3Permissions
+	contentType          string
 }
 
 // S3Options support the use and creation of S3 backed buckets.
@@ -108,6 +113,12 @@ type S3Options struct {
 	// operations independently.) Useful for large files, particularly in
 	// coordination with the parallel sync bucket implementations.
 	UseSingleFileChecksums bool
+	// VerifyChecksumSha256 enables checksum verification of downloads using the
+	// SHA256 checksum stored in S3. This requires that the object was
+	// originally uploaded with the checksum information.
+	VerifyChecksumSha256 string
+	// UploadChecksumSha256 enables sending the SHA256 checksum of uploads.
+	UploadChecksumSha256 bool
 	// Verbose sets the logging mode to "debug".
 	Verbose bool
 	// MaxRetries sets the number of retry attempts for S3 operations.
@@ -206,19 +217,21 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 	svc := s3.NewFromConfig(*cfg, s3Opts...)
 
 	return &s3Bucket{
-		name:                options.Name,
-		prefix:              options.Prefix,
-		compress:            options.Compress,
-		singleFileChecksums: options.UseSingleFileChecksums,
-		verbose:             options.Verbose,
-		svc:                 svc,
-		permissions:         options.Permissions,
-		contentType:         options.ContentType,
-		dryRun:              options.DryRun,
-		batchSize:           1000,
-		deleteOnPush:        options.DeleteOnPush || options.DeleteOnSync,
-		deleteOnPull:        options.DeleteOnPull || options.DeleteOnSync,
-		ifNotExists:         options.IfNotExists,
+		name:                 options.Name,
+		prefix:               options.Prefix,
+		compress:             options.Compress,
+		singleFileChecksums:  options.UseSingleFileChecksums,
+		verifyChecksumSha256: options.VerifyChecksumSha256,
+		uploadChecksumSha256: options.UploadChecksumSha256,
+		verbose:              options.Verbose,
+		svc:                  svc,
+		permissions:          options.Permissions,
+		contentType:          options.ContentType,
+		dryRun:               options.DryRun,
+		batchSize:            1000,
+		deleteOnPush:         options.DeleteOnPush || options.DeleteOnSync,
+		deleteOnPull:         options.DeleteOnPull || options.DeleteOnSync,
+		ifNotExists:          options.IfNotExists,
 	}, nil
 }
 
@@ -753,6 +766,10 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 		Key:    aws.String(s.normalizeKey(key)),
 	}
 
+	if s.verifyChecksumSha256 != "" {
+		input.ChecksumMode = s3Types.ChecksumModeEnabled
+	}
+
 	result, err := s.svc.GetObject(ctx, input)
 	if err != nil {
 		var apiErr smithy.APIError
@@ -762,6 +779,17 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 			}
 		}
 		return nil, err
+	}
+	if s.verifyChecksumSha256 != "" {
+		if result.ChecksumSHA256 == nil || *result.ChecksumSHA256 == "" {
+			result.Body.Close()
+			return nil, errors.New("s3 file missing sha256 checksum")
+		}
+		checkSum := *result.ChecksumSHA256
+		if s.verifyChecksumSha256 != checkSum {
+			result.Body.Close()
+			return nil, errors.Errorf("sha256 checksum verification failed: '%s' does not match '%s'", checkSum, s.verifyChecksumSha256)
+		}
 	}
 	if aws.ToString(result.ContentEncoding) == "gzip" {
 		return gzip.NewReader(result.Body)
@@ -791,6 +819,18 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error 
 		r = bytes.NewReader(buf.Bytes())
 	}
 
+	var checksumSha256 string
+	if b.verifyChecksumSha256 != "" {
+		var buf bytes.Buffer
+		h := utility.NewSHA256Hash()
+		tr := io.TeeReader(r, h)
+		if _, err := io.Copy(&buf, tr); err != nil {
+			return errors.Wrap(err, "checksumming file")
+		}
+		checksumSha256 = h.Sum()
+		r = bytes.NewReader(buf.Bytes())
+	}
+
 	uploader := s3Manager.NewUploader(b.svc)
 	uploader.Concurrency = getManagerConcurrency()
 
@@ -802,6 +842,11 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error 
 		Bucket:            aws.String(b.name),
 		Key:               aws.String(key),
 		ACL:               s3Types.ObjectCannedACL(string(b.permissions)),
+	}
+
+	if checksumSha256 != "" {
+		input.ChecksumAlgorithm = s3Types.ChecksumAlgorithmSha256
+		input.ChecksumSHA256 = aws.String(checksumSha256)
 	}
 
 	if b.contentType != "" {
@@ -882,6 +927,26 @@ func (s *s3Bucket) GetToWriter(ctx context.Context, key string, w io.WriterAt) e
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(s.name),
 		Key:    aws.String(s.normalizeKey(key)),
+	}
+
+	if s.verifyChecksumSha256 != "" {
+		// Do a head request to get the checksum value.
+		headInput := &s3.HeadObjectInput{
+			Bucket:       aws.String(s.name),
+			Key:          aws.String(s.normalizeKey(key)),
+			ChecksumMode: s3Types.ChecksumModeEnabled,
+		}
+		headResult, err := s.svc.HeadObject(ctx, headInput)
+		if err != nil {
+			return errors.Wrapf(err, "getting S3 head object")
+		}
+		if headResult.ChecksumSHA256 == nil || *headResult.ChecksumSHA256 == "" {
+			return errors.New("s3 file missing sha256 checksum")
+		}
+		checkSum := *headResult.ChecksumSHA256
+		if s.verifyChecksumSha256 != checkSum {
+			return errors.Errorf("sha256 checksum verification failed: '%s' does not match '%s'", checkSum, s.verifyChecksumSha256)
+		}
 	}
 
 	grip.DebugWhen(s.verbose, message.Fields{
