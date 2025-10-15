@@ -820,7 +820,7 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error 
 	}
 
 	var checksumSha256 string
-	if b.verifyChecksumSha256 != "" {
+	if b.uploadChecksumSha256 {
 		var buf bytes.Buffer
 		h := utility.NewSHA256Hash()
 		tr := io.TeeReader(r, h)
@@ -844,7 +844,7 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error 
 		ACL:               s3Types.ObjectCannedACL(string(b.permissions)),
 	}
 
-	if checksumSha256 != "" {
+	if b.uploadChecksumSha256 {
 		input.ChecksumAlgorithm = s3Types.ChecksumAlgorithmSha256
 		input.ChecksumSHA256 = aws.String(checksumSha256)
 	}
