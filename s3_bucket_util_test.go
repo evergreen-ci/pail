@@ -415,7 +415,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					badSum := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 
 					_, err := b.Get(t.Context(), key)
-					require.ErrorContainsf(t, err, "sha256 checksum verification failed: '%s' does not match '%s'", badSum, sum)
+					require.ErrorContains(t, err, fmt.Sprintf("sha256 checksum verification failed: '%s' does not match '%s'", badSum, sum))
 				})
 			},
 		},
