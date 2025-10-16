@@ -74,11 +74,11 @@ type s3Bucket struct {
 	deleteOnPush        bool
 	deleteOnPull        bool
 	singleFileChecksums bool
-	// verifyChecksumSha256 checks on downloads that the SHA256 checksum
+	// expectedChecksumSHA256 checks on downloads that the SHA256 checksum
 	// matches the expected value.
-	verifyChecksumSha256 string
-	// uploadChecksumSha256 enables sending the SHA256 checksum of uploads.
-	uploadChecksumSha256 bool
+	expectedChecksumSHA256 string
+	// uploadChecksumSHA256 enables sending the SHA256 checksum of uploads.
+	uploadChecksumSHA256 bool
 	compress             bool
 	ifNotExists          bool
 	verbose              bool
@@ -113,12 +113,12 @@ type S3Options struct {
 	// operations independently.) Useful for large files, particularly in
 	// coordination with the parallel sync bucket implementations.
 	UseSingleFileChecksums bool
-	// VerifyChecksumSha256 enables checksum verification of downloads using the
+	// ExpectedChecksumSHA256 enables checksum verification of downloads using the
 	// SHA256 checksum stored in S3. This requires that the object was
 	// originally uploaded with the checksum information.
-	VerifyChecksumSha256 string
-	// UploadChecksumSha256 enables sending the SHA256 checksum of uploads.
-	UploadChecksumSha256 bool
+	ExpectedChecksumSHA256 string
+	// UploadChecksumSHA256 enables sending the SHA256 checksum of uploads.
+	UploadChecksumSHA256 bool
 	// Verbose sets the logging mode to "debug".
 	Verbose bool
 	// MaxRetries sets the number of retry attempts for S3 operations.
@@ -217,21 +217,21 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 	svc := s3.NewFromConfig(*cfg, s3Opts...)
 
 	return &s3Bucket{
-		name:                 options.Name,
-		prefix:               options.Prefix,
-		compress:             options.Compress,
-		singleFileChecksums:  options.UseSingleFileChecksums,
-		verifyChecksumSha256: options.VerifyChecksumSha256,
-		uploadChecksumSha256: options.UploadChecksumSha256,
-		verbose:              options.Verbose,
-		svc:                  svc,
-		permissions:          options.Permissions,
-		contentType:          options.ContentType,
-		dryRun:               options.DryRun,
-		batchSize:            1000,
-		deleteOnPush:         options.DeleteOnPush || options.DeleteOnSync,
-		deleteOnPull:         options.DeleteOnPull || options.DeleteOnSync,
-		ifNotExists:          options.IfNotExists,
+		name:                   options.Name,
+		prefix:                 options.Prefix,
+		compress:               options.Compress,
+		singleFileChecksums:    options.UseSingleFileChecksums,
+		expectedChecksumSHA256: options.ExpectedChecksumSHA256,
+		uploadChecksumSHA256:   options.UploadChecksumSHA256,
+		verbose:                options.Verbose,
+		svc:                    svc,
+		permissions:            options.Permissions,
+		contentType:            options.ContentType,
+		dryRun:                 options.DryRun,
+		batchSize:              1000,
+		deleteOnPush:           options.DeleteOnPush || options.DeleteOnSync,
+		deleteOnPull:           options.DeleteOnPull || options.DeleteOnSync,
+		ifNotExists:            options.IfNotExists,
 	}, nil
 }
 
@@ -766,7 +766,7 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 		Key:    aws.String(s.normalizeKey(key)),
 	}
 
-	if s.verifyChecksumSha256 != "" {
+	if s.expectedChecksumSHA256 != "" {
 		input.ChecksumMode = s3Types.ChecksumModeEnabled
 	}
 
@@ -780,15 +780,15 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 		}
 		return nil, err
 	}
-	if s.verifyChecksumSha256 != "" {
-		if result.ChecksumSHA256 == nil || *result.ChecksumSHA256 == "" {
-			result.Body.Close()
-			return nil, errors.New("s3 file missing sha256 checksum")
+	if s.expectedChecksumSHA256 != "" {
+		s3Checksum := utility.FromStringPtr(result.ChecksumSHA256)
+		if s3Checksum == "" {
+			_ = result.Body.Close()
+			return nil, errors.New("s3 file missing SHA256 checksum")
 		}
-		checkSum := *result.ChecksumSHA256
-		if s.verifyChecksumSha256 != checkSum {
-			result.Body.Close()
-			return nil, errors.Errorf("sha256 checksum verification failed: '%s' does not match '%s'", checkSum, s.verifyChecksumSha256)
+		if s.expectedChecksumSHA256 != s3Checksum {
+			_ = result.Body.Close()
+			return nil, errors.Errorf("SHA256 checksum verification failed: expected '%s' but received from s3 '%s'", s.expectedChecksumSHA256, s3Checksum)
 		}
 	}
 	if aws.ToString(result.ContentEncoding) == "gzip" {
@@ -832,7 +832,7 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error 
 		ACL:               s3Types.ObjectCannedACL(string(b.permissions)),
 	}
 
-	if b.uploadChecksumSha256 {
+	if b.uploadChecksumSHA256 {
 		input.ChecksumAlgorithm = s3Types.ChecksumAlgorithmSha256
 	}
 
@@ -916,7 +916,7 @@ func (s *s3Bucket) GetToWriter(ctx context.Context, key string, w io.WriterAt) e
 		Key:    aws.String(s.normalizeKey(key)),
 	}
 
-	if s.verifyChecksumSha256 != "" {
+	if s.expectedChecksumSHA256 != "" {
 		// Do a head request to get the checksum value.
 		headInput := &s3.HeadObjectInput{
 			Bucket:       aws.String(s.name),
@@ -927,12 +927,12 @@ func (s *s3Bucket) GetToWriter(ctx context.Context, key string, w io.WriterAt) e
 		if err != nil {
 			return errors.Wrapf(err, "getting S3 head object")
 		}
-		if headResult.ChecksumSHA256 == nil || *headResult.ChecksumSHA256 == "" {
-			return errors.New("s3 file missing sha256 checksum")
+		s3Checksum := utility.FromStringPtr(headResult.ChecksumSHA256)
+		if s3Checksum == "" {
+			return errors.New("s3 file missing SHA256 checksum")
 		}
-		checkSum := *headResult.ChecksumSHA256
-		if s.verifyChecksumSha256 != checkSum {
-			return errors.Errorf("sha256 checksum verification failed: '%s' does not match '%s'", checkSum, s.verifyChecksumSha256)
+		if s.expectedChecksumSHA256 != s3Checksum {
+			return errors.Errorf("SHA256 checksum verification failed: expected '%s' but received from s3 '%s'", s.expectedChecksumSHA256, s3Checksum)
 		}
 	}
 

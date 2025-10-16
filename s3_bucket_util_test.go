@@ -345,15 +345,15 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			},
 		},
 		{
-			id: "TestChecksumSha256",
+			id: "TestChecksumSHA256",
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketSmall)
 				// Enable uploading checksums.
-				rawBucket.uploadChecksumSha256 = true
+				rawBucket.uploadChecksumSHA256 = true
 				hasher := sha256.New()
 				hasher.Write([]byte("hello world"))
 				sum := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
-				rawBucket.verifyChecksumSha256 = sum
+				rawBucket.expectedChecksumSHA256 = sum
 
 				key := testutil.NewUUID()
 
@@ -398,16 +398,16 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 
 				t.Run("FailsWithNoCheckSum", func(t *testing.T) {
 					// Disable checksum uploading but keep verification.
-					rawBucket.uploadChecksumSha256 = false
+					rawBucket.uploadChecksumSHA256 = false
 					require.NoError(t, b.Put(ctx, key, bytes.NewReader([]byte("not hello world"))))
 
 					_, err := b.Get(t.Context(), key)
-					require.ErrorContains(t, err, "s3 file missing sha256 checksum")
+					require.ErrorContains(t, err, "s3 file missing SHA256 checksum")
 				})
 
 				t.Run("FailsWithWrongCheckSum", func(t *testing.T) {
 					// Re-enable checksum uploading.
-					rawBucket.uploadChecksumSha256 = true
+					rawBucket.uploadChecksumSHA256 = true
 					require.NoError(t, b.Put(ctx, key, bytes.NewReader([]byte("not hello world"))))
 
 					hasher := sha256.New()
@@ -415,7 +415,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 					badSum := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 
 					_, err := b.Get(t.Context(), key)
-					require.ErrorContains(t, err, fmt.Sprintf("sha256 checksum verification failed: '%s' does not match '%s'", badSum, sum))
+					require.ErrorContains(t, err, fmt.Sprintf("SHA256 checksum verification failed: '%s' does not match '%s'", badSum, sum))
 				})
 			},
 		},
