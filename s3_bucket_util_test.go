@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -78,7 +80,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 
 				newFile, err := os.Create(filepath.Join(tempdir, "creds"))
 				require.NoError(t, err)
-				defer newFile.Close()
+				t.Cleanup(func() { newFile.Close() })
 				_, err = newFile.WriteString("[my_profile]\n")
 				require.NoError(t, err)
 				awsKey := fmt.Sprintf("aws_access_key_id = %s\n", os.Getenv("AWS_KEY"))
@@ -343,6 +345,91 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			},
 		},
 		{
+			id: "TestChecksumSHA256",
+			test: func(t *testing.T, b Bucket) {
+				rawBucket := b.(*s3BucketSmall)
+				fileData := "hello world"
+				hasher := sha256.New()
+				hasher.Write([]byte(fileData))
+				sum := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+				rawBucket.expectedChecksumSHA256 = sum
+
+				upload := func(t *testing.T, key string, uploadChecksum bool) {
+					rawBucket.uploadChecksumSHA256 = uploadChecksum
+					require.NoError(t, b.Put(ctx, key, bytes.NewReader([]byte(fileData))))
+				}
+
+				for tName, tCase := range map[string]func(t *testing.T, key string){
+					"Put": func(t *testing.T, key string) {
+						upload(t, key, true)
+					},
+					"Get": func(t *testing.T, key string) {
+						upload(t, key, true)
+
+						v, err := b.Get(t.Context(), key)
+						require.NoError(t, err)
+						t.Cleanup(func() { v.Close() })
+
+						contents, err := io.ReadAll(v)
+						require.NoError(t, err)
+						assert.Equal(t, "hello world", string(contents))
+					},
+					"GetToWriter": func(t *testing.T, key string) {
+						upload(t, key, true)
+
+						newFile, err := os.Create(filepath.Join(tempdir, "checksum"))
+						require.NoError(t, err)
+						t.Cleanup(func() { newFile.Close() })
+
+						require.NoError(t, rawBucket.GetToWriter(ctx, key, newFile))
+						contents, err := os.ReadFile(newFile.Name())
+						require.NoError(t, err)
+						assert.Equal(t, "hello world", string(contents))
+					},
+					"S3Client/GetObject": func(t *testing.T, key string) {
+						upload(t, key, true)
+						// Check via raw s3 client that the checksum was uploaded.
+						getObjectInput := &s3.GetObjectInput{
+							Bucket:       aws.String(s3BucketName),
+							Key:          aws.String(rawBucket.normalizeKey(key)),
+							ChecksumMode: s3Types.ChecksumModeEnabled,
+						}
+						getObjectOutput, err := rawBucket.svc.GetObject(ctx, getObjectInput)
+						require.NoError(t, err)
+						assert.Equal(t, "application/octet-stream", aws.ToString(getObjectOutput.ContentType))
+						assert.Equal(t, sum, aws.ToString(getObjectOutput.ChecksumSHA256))
+					},
+					"GetFailsWithMissingS3Checksum": func(t *testing.T, key string) {
+						upload(t, key, false)
+
+						_, err := b.Get(t.Context(), key)
+						require.ErrorContains(t, err, "s3 file missing SHA256 checksum")
+					},
+					"GetFailsWithWrongExpectedChecksum": func(t *testing.T, key string) {
+						// Can't use the upload helper since we need to set a different file content.
+						rawBucket.expectedChecksumSHA256 = sum
+						rawBucket.uploadChecksumSHA256 = true
+						require.NoError(t, b.Put(ctx, key, bytes.NewReader([]byte("not hello world"))))
+
+						hasher := sha256.New()
+						hasher.Write([]byte("not hello world"))
+						badSum := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+
+						_, err := b.Get(t.Context(), key)
+						require.ErrorContains(t, err, fmt.Sprintf("SHA256 checksum verification failed: expected '%s' but received from s3 '%s'", sum, badSum))
+					},
+				} {
+					t.Run(tName, func(t *testing.T) {
+						key := testutil.NewUUID()
+						// Enforce cleanup regardless of test outcome, this is to prevent leaking
+						// S3 objects if a test fails.
+						t.Cleanup(func() { _ = rawBucket.Remove(ctx, key) })
+						tCase(t, key)
+					})
+				}
+			},
+		},
+		{
 			id: "TestCompressingPut",
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketSmall)
@@ -444,7 +531,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 
 				newFile, err := os.Create(filepath.Join(tempdir, "creds"))
 				require.NoError(t, err)
-				defer newFile.Close()
+				t.Cleanup(func() { newFile.Close() })
 				_, err = newFile.WriteString("[my_profile]\n")
 				require.NoError(t, err)
 				awsKey := fmt.Sprintf("aws_access_key_id = %s\n", os.Getenv("AWS_KEY"))
