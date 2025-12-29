@@ -1384,14 +1384,19 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 	}
 	// Batch delete all successfully copied source objects
 	if !s.dryRun && len(objectsToDelete) > 0 {
-		input := &s3.DeleteObjectsInput{
-			Bucket: aws.String(s.name),
-			Delete: &s3Types.Delete{Objects: objectsToDelete},
+		count := 0
+		toDelete := &s3Types.Delete{}
+		for _, obj := range objectsToDelete {
+			// Key limit for s3.DeleteObjects, call function and reset.
+			if count == s.batchSize {
+				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
+				count = 0
+				toDelete = &s3Types.Delete{}
+			}
+			toDelete.Objects = append(toDelete.Objects, obj)
+			count++
 		}
-		_, err := s.svc.DeleteObjects(ctx, input)
-		if err != nil {
-			catcher.Add(errors.Wrap(err, "batch deleting original objects after transfer"))
-		}
+		catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 	}
 	return catcher.Resolve()
 }
