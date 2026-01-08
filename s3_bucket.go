@@ -1288,22 +1288,22 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 
 	catcher := grip.NewBasicCatcher()
 	if !s.dryRun {
-		count := 0
+		currBatchSize := 0
 		toDelete := &s3Types.Delete{}
 		for _, key := range keys {
 			// Key limit for s3.DeleteObjects, call function and reset.
-			if count == s.batchSize {
-				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
-				count = 0
+			if currBatchSize == s.batchSize {
+				catcher.Wrapf(s.deleteObjectsWrapper(ctx, toDelete), "flushing batch of %d objects (batch size limit reached)", currBatchSize)
+				currBatchSize = 0
 				toDelete = &s3Types.Delete{}
 			}
 			toDelete.Objects = append(
 				toDelete.Objects,
 				s3Types.ObjectIdentifier{Key: aws.String(s.normalizeKey(key))},
 			)
-			count++
+			currBatchSize++
 		}
-		catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
+		catcher.Wrapf(s.deleteObjectsWrapper(ctx, toDelete), "deleting final batch of %d objects", len(toDelete.Objects))
 	}
 	return catcher.Resolve()
 }
@@ -1384,14 +1384,19 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 	}
 	// Batch delete all successfully copied source objects
 	if !s.dryRun && len(objectsToDelete) > 0 {
-		input := &s3.DeleteObjectsInput{
-			Bucket: aws.String(s.name),
-			Delete: &s3Types.Delete{Objects: objectsToDelete},
+		count := 0
+		toDelete := &s3Types.Delete{}
+		for _, obj := range objectsToDelete {
+			// Key limit for s3.DeleteObjects, call function and reset.
+			if count == s.batchSize {
+				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
+				count = 0
+				toDelete = &s3Types.Delete{}
+			}
+			toDelete.Objects = append(toDelete.Objects, obj)
+			count++
 		}
-		_, err := s.svc.DeleteObjects(ctx, input)
-		if err != nil {
-			catcher.Add(errors.Wrap(err, "batch deleting original objects after transfer"))
-		}
+		catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 	}
 	return catcher.Resolve()
 }

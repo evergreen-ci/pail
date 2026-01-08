@@ -469,6 +469,10 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			},
 		},
 		{
+			id:   "TestMoveObjectsBatching",
+			test: makeMoveObjectsBatchingTest(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region),
+		},
+		{
 			id:   "PullWithCache",
 			test: makePullWithCacheTest(ctx, tempdir),
 		},
@@ -885,5 +889,62 @@ func makePullWithCacheTest(ctx context.Context, tempdir string) func(*testing.T,
 		require.NoError(t, err)
 
 		assert.True(t, finalInfo.ModTime().Equal(initialInfo.ModTime()))
+	}
+}
+
+func makeMoveObjectsBatchingTest(ctx context.Context, s3Credentials aws.CredentialsProvider, s3BucketName, s3Prefix, s3Region string) func(*testing.T, Bucket) {
+	return func(t *testing.T, sourceBucket Bucket) {
+		_, isSmall := sourceBucket.(*s3BucketSmall)
+		_, isLarge := sourceBucket.(*s3BucketLarge)
+		if !isSmall && !isLarge {
+			t.Skip("Test only applies to S3 buckets")
+		}
+
+		destS3Options := S3Options{
+			Credentials: s3Credentials,
+			Region:      s3Region,
+			Name:        s3BucketName,
+			Prefix:      s3Prefix + testutil.NewUUID(),
+			MaxRetries:  aws.Int(20),
+		}
+		destBucket, err := NewS3Bucket(ctx, destS3Options)
+		require.NoError(t, err)
+
+		// Create 25 objects to test batching with batch size of 10 (3 batches: 10, 10, 5)
+		numObjects := 25
+		sourceKeys := make([]string, numObjects)
+		destKeys := make([]string, numObjects)
+		defer func() {
+			assert.NoError(t, destBucket.RemoveMany(ctx, destKeys...))
+		}()
+
+		for i := 0; i < numObjects; i++ {
+			sourceKeys[i] = testutil.NewUUID()
+			destKeys[i] = "moved-" + sourceKeys[i]
+			require.NoError(t, sourceBucket.Put(ctx, sourceKeys[i], bytes.NewReader([]byte(fmt.Sprintf("data-%d", i)))))
+		}
+
+		// Set smaller batch size to test batching
+		switch sb := sourceBucket.(type) {
+		case *s3BucketSmall:
+			sb.batchSize = 10
+		case *s3BucketLarge:
+			sb.batchSize = 10
+		}
+
+		require.NoError(t, sourceBucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys))
+
+		// Verify all objects moved to destination with correct contents and removed from source
+		for i := 0; i < numObjects; i++ {
+			r, err := destBucket.Get(ctx, destKeys[i])
+			require.NoError(t, err)
+			data, err := io.ReadAll(r)
+			require.NoError(t, err)
+			require.NoError(t, r.Close())
+			assert.Equal(t, fmt.Sprintf("data-%d", i), string(data))
+
+			_, err = sourceBucket.Get(ctx, sourceKeys[i])
+			assert.Error(t, err)
+		}
 	}
 }
