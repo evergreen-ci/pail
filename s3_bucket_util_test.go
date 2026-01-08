@@ -894,6 +894,12 @@ func makePullWithCacheTest(ctx context.Context, tempdir string) func(*testing.T,
 
 func makeMoveObjectsBatchingTest(ctx context.Context, s3Credentials aws.CredentialsProvider, s3BucketName, s3Prefix, s3Region string) func(*testing.T, Bucket) {
 	return func(t *testing.T, sourceBucket Bucket) {
+		_, isSmall := sourceBucket.(*s3BucketSmall)
+		_, isLarge := sourceBucket.(*s3BucketLarge)
+		if !isSmall && !isLarge {
+			t.Skip("Test only applies to S3 buckets")
+		}
+
 		destS3Options := S3Options{
 			Credentials: s3Credentials,
 			Region:      s3Region,
@@ -924,8 +930,6 @@ func makeMoveObjectsBatchingTest(ctx context.Context, s3Credentials aws.Credenti
 			sb.batchSize = 10
 		case *s3BucketLarge:
 			sb.batchSize = 10
-		default:
-			t.Skip("Test only applies to S3 buckets")
 		}
 
 		require.NoError(t, sourceBucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys))
