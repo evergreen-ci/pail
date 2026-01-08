@@ -908,6 +908,9 @@ func makeMoveObjectsBatchingTest(ctx context.Context, s3Credentials aws.Credenti
 		numObjects := 25
 		sourceKeys := make([]string, numObjects)
 		destKeys := make([]string, numObjects)
+		defer func() {
+			assert.NoError(t, destBucket.RemoveMany(ctx, destKeys...))
+		}()
 
 		for i := 0; i < numObjects; i++ {
 			sourceKeys[i] = testutil.NewUUID()
@@ -925,18 +928,19 @@ func makeMoveObjectsBatchingTest(ctx context.Context, s3Credentials aws.Credenti
 			t.Skip("Test only applies to S3 buckets")
 		}
 
-		err = sourceBucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys)
-		require.NoError(t, err)
+		require.NoError(t, sourceBucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys))
 
-		// Verify objects moved to destination
-		r, err := destBucket.Get(ctx, destKeys[0])
-		require.NoError(t, err)
-		require.NoError(t, r.Close())
+		// Verify all objects moved to destination with correct contents and removed from source
+		for i := 0; i < numObjects; i++ {
+			r, err := destBucket.Get(ctx, destKeys[i])
+			require.NoError(t, err)
+			data, err := io.ReadAll(r)
+			require.NoError(t, err)
+			require.NoError(t, r.Close())
+			assert.Equal(t, fmt.Sprintf("data-%d", i), string(data))
 
-		// Verify objects removed from source
-		_, err = sourceBucket.Get(ctx, sourceKeys[0])
-		assert.Error(t, err)
-
-		require.NoError(t, destBucket.RemoveMany(ctx, destKeys...))
+			_, err = sourceBucket.Get(ctx, sourceKeys[i])
+			assert.Error(t, err)
+		}
 	}
 }
