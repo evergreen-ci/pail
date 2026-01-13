@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExtractPrefixHierarchy(t *testing.T) {
@@ -65,6 +66,7 @@ func TestFindMatchingRule(t *testing.T) {
 	// Longest prefix match
 	result := FindMatchingRule(rules, "sandbox/temp/file.txt")
 	assert.Equal(t, "r2", result.ID)
+	require.NotNil(t, result.ExpirationDays)
 	assert.Equal(t, int32(7), *result.ExpirationDays)
 
 	// Parent prefix match

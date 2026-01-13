@@ -3,6 +3,7 @@ package pail
 import (
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/evergreen-ci/utility"
 )
 
 // LifecycleRule represents a simplified S3 bucket lifecycle rule with commonly needed fields extracted.
@@ -47,7 +48,7 @@ func convertLifecycleRules(output *s3.GetBucketLifecycleConfigurationOutput) []L
 	rules := make([]LifecycleRule, 0, len(output.Rules))
 	for _, awsRule := range output.Rules {
 		rule := LifecycleRule{
-			ID:     extractString(awsRule.ID),
+			ID:     utility.FromStringPtr(awsRule.ID),
 			Prefix: extractPrefix(awsRule),
 			Status: string(awsRule.Status),
 		}
@@ -110,14 +111,6 @@ func extractPrefix(rule s3Types.LifecycleRule) string {
 	return ""
 }
 
-// extractString safely extracts a string from a pointer, returning empty string if nil.
-func extractString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
-
 // FindMatchingRule finds the most specific lifecycle rule that matches the given file key.
 // It uses longest-prefix matching: for "a/b/c/file.txt", it tries "a/b/c/", "a/b/", "a/", and "".
 // Only enabled rules are considered. Returns nil if no matching enabled rule is found.
@@ -146,10 +139,6 @@ func FindMatchingRule(rules []LifecycleRule, fileKey string) *LifecycleRule {
 // For "a/b/c/file.txt", returns ["a/b/c/", "a/b/", "a/", ""].
 // For "file.txt", returns [""].
 func extractPrefixHierarchy(fileKey string) []string {
-	if fileKey == "" {
-		return []string{""}
-	}
-
 	var prefixes []string
 
 	// Find all slash positions
