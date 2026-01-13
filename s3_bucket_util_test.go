@@ -74,6 +74,26 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			},
 		},
 		{
+			id: "TestGetLifecycleConfiguration",
+			test: func(t *testing.T, b Bucket) {
+				rawBucket := b.(*s3BucketSmall)
+
+				rawBucket.name = "mciuploads"
+				rules, err := rawBucket.GetLifecycleConfiguration(ctx)
+				require.NoError(t, err)
+				assert.NotNil(t, rules)
+			},
+		},
+		{
+			id: "TestGetLifecycleConfigurationFailsWhenBucketDNE",
+			test: func(t *testing.T, b Bucket) {
+				rawBucket := b.(*s3BucketSmall)
+				rawBucket.name = testutil.NewUUID()
+				_, err := rawBucket.GetLifecycleConfiguration(ctx)
+				assert.Error(t, err)
+			},
+		},
+		{
 			id: "TestSharedCredentialsOption",
 			test: func(t *testing.T, b Bucket) {
 				require.NoError(t, b.Check(ctx))
@@ -526,6 +546,26 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 				rawBucket := b.(*s3BucketLarge)
 				rawBucket.name = testutil.NewUUID()
 				assert.Error(t, rawBucket.Check(ctx))
+			},
+		},
+		{
+			id: "TestGetLifecycleConfiguration",
+			test: func(t *testing.T, b Bucket) {
+				rawBucket := b.(*s3BucketLarge)
+
+				rawBucket.name = "mciuploads"
+				rules, err := rawBucket.GetLifecycleConfiguration(ctx)
+				require.NoError(t, err)
+				assert.NotNil(t, rules)
+			},
+		},
+		{
+			id: "TestGetLifecycleConfigurationFailsWhenBucketDNE",
+			test: func(t *testing.T, b Bucket) {
+				rawBucket := b.(*s3BucketLarge)
+				rawBucket.name = testutil.NewUUID()
+				_, err := rawBucket.GetLifecycleConfiguration(ctx)
+				assert.Error(t, err)
 			},
 		},
 		{
