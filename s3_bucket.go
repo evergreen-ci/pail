@@ -400,6 +400,37 @@ func (s *s3Bucket) Exists(ctx context.Context, key string) (bool, error) {
 	return true, nil
 }
 
+// GetLifecycleConfiguration retrieves the lifecycle configuration for the S3 bucket.
+// Returns simplified lifecycle rules with commonly needed fields extracted.
+// Returns an empty slice with no error if the bucket has no lifecycle configuration.
+func (s *s3Bucket) GetLifecycleConfiguration(ctx context.Context) ([]LifecycleRule, error) {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"operation":     "get lifecycle configuration",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+	})
+
+	input := &s3.GetBucketLifecycleConfigurationInput{
+		Bucket: aws.String(s.name),
+	}
+
+	result, err := s.svc.GetBucketLifecycleConfiguration(ctx, input)
+	if err != nil {
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			// NoSuchLifecycleConfiguration is not an error condition - it just means
+			// the bucket doesn't have lifecycle rules configured
+			if apiErr.ErrorCode() == "NoSuchLifecycleConfiguration" {
+				return []LifecycleRule{}, nil
+			}
+		}
+		return nil, errors.Wrap(err, "getting bucket lifecycle configuration")
+	}
+
+	return convertLifecycleRules(result), nil
+}
+
 func (s *s3Bucket) Join(elems ...string) string { return consistentJoin(elems) }
 
 type smallWriteCloser struct {
