@@ -1,8 +1,8 @@
 package pail
 
 import (
-	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/evergreen-ci/utility"
 )
 
@@ -20,7 +20,7 @@ type LifecycleRule struct {
 	// ExpirationDays is the number of days after creation when objects expire (nil if not set)
 	ExpirationDays *int32
 
-	// TransitionToIADays is the number of days after creation when objects transition to STANDARD_IA (nil if not set)
+	// TransitionToIADays is the number of days after creation when objects should transition to STANDARD_IA (nil if not set)
 	TransitionToIADays *int32
 
 	// TransitionToGlacierDays is the number of days after creation when objects transition to GLACIER (nil if not set)
