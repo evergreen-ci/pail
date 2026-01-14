@@ -120,7 +120,7 @@ func FindMatchingRule(rules []LifecycleRule, fileKey string) *LifecycleRule {
 	}
 
 	// Extract prefix hierarchy from file key
-	prefixes := extractPrefixHierarchy(fileKey)
+	prefixes := ExtractPrefixHierarchy(fileKey)
 
 	// For each prefix (from longest to shortest), find matching enabled rule
 	for _, prefix := range prefixes {
@@ -135,10 +135,10 @@ func FindMatchingRule(rules []LifecycleRule, fileKey string) *LifecycleRule {
 	return nil
 }
 
-// extractPrefixHierarchy extracts all possible prefixes from a file key in descending order of specificity.
+// ExtractPrefixHierarchy extracts all possible prefixes from a file key in descending order of specificity.
 // For "a/b/c/file.txt", returns ["a/b/c/", "a/b/", "a/", ""].
 // For "file.txt", returns [""].
-func extractPrefixHierarchy(fileKey string) []string {
+func ExtractPrefixHierarchy(fileKey string) []string {
 	var prefixes []string
 
 	// Find all slash positions

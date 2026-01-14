@@ -47,7 +47,7 @@ func TestExtractPrefixHierarchy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := extractPrefixHierarchy(tt.fileKey)
+			result := ExtractPrefixHierarchy(tt.fileKey)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
