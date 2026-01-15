@@ -1446,7 +1446,8 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 				"key":     normalizedKey,
 				"bucket":  s.name,
 			})
-			// Fall back to individual delete for this key
+			// Fall back to individual delete for this key. DeleteObject (singular) uses HTTP headers
+			// instead of XML serialization, which can handle all character types via URL encoding.
 			if err := s.Remove(ctx, srcKey); err != nil {
 				catcher.Add(errors.Wrapf(err, "individually deleting object with XML-incompatible characters '%s'", srcKey))
 			}
