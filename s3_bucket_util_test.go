@@ -493,6 +493,10 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			test: makeMoveObjectsBatchingTest(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 		{
+			id:   "TestMoveObjectsWithXMLIncompatibleChars",
+			test: makeMoveObjectsWithXMLIncompatibleCharsTest(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region),
+		},
+		{
 			id:   "PullWithCache",
 			test: makePullWithCacheTest(ctx, tempdir),
 		},
@@ -985,6 +989,93 @@ func makeMoveObjectsBatchingTest(ctx context.Context, s3Credentials aws.Credenti
 
 			_, err = sourceBucket.Get(ctx, sourceKeys[i])
 			assert.Error(t, err)
+		}
+	}
+}
+
+func makeMoveObjectsWithXMLIncompatibleCharsTest(ctx context.Context, s3Credentials aws.CredentialsProvider, s3BucketName, s3Prefix, s3Region string) func(*testing.T, Bucket) {
+	return func(t *testing.T, sourceBucket Bucket) {
+		_, isSmall := sourceBucket.(*s3BucketSmall)
+		_, isLarge := sourceBucket.(*s3BucketLarge)
+		if !isSmall && !isLarge {
+			t.Skip("Test only applies to S3 buckets")
+		}
+
+		destS3Options := S3Options{
+			Credentials: s3Credentials,
+			Region:      s3Region,
+			Name:        s3BucketName,
+			Prefix:      s3Prefix + testutil.NewUUID(),
+			MaxRetries:  aws.Int(20),
+		}
+		destBucket, err := NewS3Bucket(ctx, destS3Options)
+		require.NoError(t, err)
+
+		// Test keys with various XML-incompatible characters
+		testCases := []struct {
+			name      string
+			sourceKey string
+			destKey   string
+			data      string
+		}{
+			{
+				name:      "key with newline",
+				sourceKey: "test\nkey",
+				destKey:   "moved-test-key-newline",
+				data:      "data-newline",
+			},
+			{
+				name:      "key with carriage return",
+				sourceKey: "test\rkey",
+				destKey:   "moved-test-key-cr",
+				data:      "data-cr",
+			},
+			{
+				name:      "key with control character",
+				sourceKey: "test\x01key",
+				destKey:   "moved-test-key-control",
+				data:      "data-control",
+			},
+			{
+				name:      "normal key",
+				sourceKey: "test-normal-key",
+				destKey:   "moved-test-normal-key",
+				data:      "data-normal",
+			},
+		}
+
+		sourceKeys := make([]string, len(testCases))
+		destKeys := make([]string, len(testCases))
+
+		// Create test objects
+		for i, tc := range testCases {
+			sourceKeys[i] = tc.sourceKey
+			destKeys[i] = tc.destKey
+			require.NoError(t, sourceBucket.Put(ctx, tc.sourceKey, bytes.NewReader([]byte(tc.data))))
+		}
+
+		// Clean up destination objects after test
+		defer func() {
+			for _, key := range destKeys {
+				_ = destBucket.Remove(ctx, key)
+			}
+		}()
+
+		// Move objects - this should succeed even with XML-incompatible characters
+		require.NoError(t, sourceBucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys))
+
+		// Verify all objects moved to destination with correct contents
+		for i, tc := range testCases {
+			r, err := destBucket.Get(ctx, destKeys[i])
+			require.NoError(t, err, "failed to get destination key for test case: %s", tc.name)
+			data, err := io.ReadAll(r)
+			require.NoError(t, err, "failed to read data for test case: %s", tc.name)
+			require.NoError(t, r.Close())
+			assert.Equal(t, tc.data, string(data), "data mismatch for test case: %s", tc.name)
+
+			// Verify source object was deleted
+			_, err = sourceBucket.Get(ctx, sourceKeys[i])
+			assert.Error(t, err, "source key should be deleted for test case: %s", tc.name)
 		}
 	}
 }

@@ -1411,7 +1411,50 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 			catcher.Add(errors.Wrapf(err, "copying object to destination bucket as %s", dstKey))
 			continue
 		}
-		objectsToDelete = append(objectsToDelete, s3Types.ObjectIdentifier{Key: aws.String(s.normalizeKey(srcKey))})
+
+		normalizedKey := s.normalizeKey(srcKey)
+
+		// Validate key is non-empty
+		if normalizedKey == "" {
+			grip.Warning(message.Fields{
+				"message":    "skipping empty normalized key in batch delete",
+				"source_key": srcKey,
+				"bucket":     s.name,
+			})
+			catcher.Add(errors.Errorf("normalized key is empty for source key '%s', object copied but not deleted", srcKey))
+			continue
+		}
+
+		// Check for XML-incompatible characters
+		hasXMLIncompatibleChars := func(key string) bool {
+			for _, r := range key {
+				// Control characters except tab (0x09), LF (0x0A), CR (0x0D)
+				if (r >= 0x00 && r < 0x09) || (r > 0x0D && r < 0x20) {
+					return true
+				}
+				// Explicitly check for CR and LF which are also problematic
+				if r == '\r' || r == '\n' {
+					return true
+				}
+			}
+			return false
+		}
+
+		if hasXMLIncompatibleChars(normalizedKey) {
+			grip.Warning(message.Fields{
+				"message": "key contains XML-incompatible characters, using individual delete",
+				"key":     normalizedKey,
+				"bucket":  s.name,
+			})
+			// Fall back to individual delete for this key
+			if err := s.Remove(ctx, srcKey); err != nil {
+				catcher.Add(errors.Wrapf(err, "individually deleting object with XML-incompatible characters '%s'", srcKey))
+			}
+			continue
+		}
+
+		// Key is safe for batch delete
+		objectsToDelete = append(objectsToDelete, s3Types.ObjectIdentifier{Key: aws.String(normalizedKey)})
 	}
 	// Batch delete all successfully copied source objects
 	if !s.dryRun && len(objectsToDelete) > 0 {
