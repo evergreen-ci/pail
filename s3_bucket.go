@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1254,9 +1255,11 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 		"dest_key":      options.DestinationKey,
 	})
 
+	// CopySource must be URL-encoded to handle special characters (including control characters)
+	// that are invalid in HTTP header values.
 	input := &s3.CopyObjectInput{
 		Bucket:     aws.String(s.name),
-		CopySource: aws.String(options.SourceKey),
+		CopySource: aws.String(url.PathEscape(options.SourceKey)),
 		Key:        aws.String(s.normalizeKey(options.DestinationKey)),
 		ACL:        s3Types.ObjectCannedACL(string(s.permissions)),
 	}
