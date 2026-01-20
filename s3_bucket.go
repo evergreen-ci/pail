@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -1253,9 +1255,11 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 		"dest_key":      options.DestinationKey,
 	})
 
+	// CopySource must be URL-encoded to handle special characters (including control characters)
+	// that are invalid in HTTP header values.
 	input := &s3.CopyObjectInput{
 		Bucket:     aws.String(s.name),
-		CopySource: aws.String(options.SourceKey),
+		CopySource: aws.String(url.PathEscape(options.SourceKey)),
 		Key:        aws.String(s.normalizeKey(options.DestinationKey)),
 		ACL:        s3Types.ObjectCannedACL(string(s.permissions)),
 	}
@@ -1411,7 +1415,36 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 			catcher.Add(errors.Wrapf(err, "copying object to destination bucket as %s", dstKey))
 			continue
 		}
-		objectsToDelete = append(objectsToDelete, s3Types.ObjectIdentifier{Key: aws.String(s.normalizeKey(srcKey))})
+
+		normalizedKey := s.normalizeKey(srcKey)
+
+		if normalizedKey == "" {
+			catcher.Add(errors.Errorf("normalized key is empty for source key '%s', object copied but not deleted", srcKey))
+			continue
+		}
+
+		hasXMLIncompatibleChars := func(key string) bool {
+			const tab rune = '\t'
+			for _, r := range key {
+				// XML batch delete API cannot handle control characters except tab
+				if unicode.IsControl(r) && r != tab {
+					return true
+				}
+			}
+			return false
+		}
+
+		if hasXMLIncompatibleChars(normalizedKey) {
+			// Fall back to individual delete for this key. DeleteObject (singular) uses HTTP headers
+			// instead of XML serialization, which can handle all character types via URL encoding.
+			if err := s.Remove(ctx, srcKey); err != nil {
+				catcher.Add(errors.Wrapf(err, "individually deleting object with XML-incompatible characters '%s'", srcKey))
+			}
+			continue
+		}
+
+		// Key is safe for batch delete
+		objectsToDelete = append(objectsToDelete, s3Types.ObjectIdentifier{Key: aws.String(normalizedKey)})
 	}
 	// Batch delete all successfully copied source objects
 	if !s.dryRun && len(objectsToDelete) > 0 {
