@@ -958,9 +958,12 @@ func makeMoveObjectsBatchingTest(ctx context.Context, s3Credentials aws.Credenti
 		numObjects := 25
 		sourceKeys := make([]string, numObjects)
 		destKeys := make([]string, numObjects)
-		defer func() {
-			assert.NoError(t, destBucket.RemoveMany(ctx, destKeys...))
-		}()
+		t.Cleanup(func() {
+			t.Logf("Cleaning up %d destination objects", len(destKeys))
+			if err := destBucket.RemoveMany(ctx, destKeys...); err != nil {
+				t.Logf("Failed to clean up destination objects: %v", err)
+			}
+		})
 
 		for i := 0; i < numObjects; i++ {
 			sourceKeys[i] = testutil.NewUUID()
@@ -1019,63 +1022,58 @@ func makeMoveObjectsWithXMLIncompatibleCharsTest(ctx context.Context, s3Credenti
 			data      string
 		}{
 			{
-				name:      "key with newline",
+				name:      "KeyWithNewline",
 				sourceKey: "test\nkey",
 				destKey:   "moved-test-key-newline",
 				data:      "data-newline",
 			},
 			{
-				name:      "key with carriage return",
+				name:      "KeyWithCarriageReturn",
 				sourceKey: "test\rkey",
 				destKey:   "moved-test-key-cr",
 				data:      "data-cr",
 			},
 			{
-				name:      "key with control character",
+				name:      "KeyWithControlCharacter",
 				sourceKey: "test\x01key",
 				destKey:   "moved-test-key-control",
 				data:      "data-control",
 			},
 			{
-				name:      "normal key",
+				name:      "NormalKey",
 				sourceKey: "test-normal-key",
 				destKey:   "moved-test-normal-key",
 				data:      "data-normal",
 			},
 		}
 
-		sourceKeys := make([]string, len(testCases))
-		destKeys := make([]string, len(testCases))
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				// Create test object
+				require.NoError(t, sourceBucket.Put(ctx, tc.sourceKey, bytes.NewReader([]byte(tc.data))))
 
-		// Create test objects
-		for i, tc := range testCases {
-			sourceKeys[i] = tc.sourceKey
-			destKeys[i] = tc.destKey
-			require.NoError(t, sourceBucket.Put(ctx, tc.sourceKey, bytes.NewReader([]byte(tc.data))))
-		}
+				t.Cleanup(func() {
+					t.Logf("Cleaning up destination object: %s", tc.destKey)
+					if err := destBucket.Remove(ctx, tc.destKey); err != nil {
+						t.Logf("Failed to clean up destination object %s: %v", tc.destKey, err)
+					}
+				})
 
-		// Clean up destination objects after test
-		defer func() {
-			for _, key := range destKeys {
-				_ = destBucket.Remove(ctx, key)
-			}
-		}()
+				// Move object - this should succeed even with XML-incompatible characters
+				require.NoError(t, sourceBucket.MoveObjects(ctx, destBucket, []string{tc.sourceKey}, []string{tc.destKey}))
 
-		// Move objects - this should succeed even with XML-incompatible characters
-		require.NoError(t, sourceBucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys))
+				// Verify object moved to destination with correct contents
+				r, err := destBucket.Get(ctx, tc.destKey)
+				require.NoError(t, err)
+				data, err := io.ReadAll(r)
+				require.NoError(t, err)
+				require.NoError(t, r.Close())
+				assert.Equal(t, tc.data, string(data))
 
-		// Verify all objects moved to destination with correct contents
-		for i, tc := range testCases {
-			r, err := destBucket.Get(ctx, destKeys[i])
-			require.NoError(t, err, "failed to get destination key for test case: %s", tc.name)
-			data, err := io.ReadAll(r)
-			require.NoError(t, err, "failed to read data for test case: %s", tc.name)
-			require.NoError(t, r.Close())
-			assert.Equal(t, tc.data, string(data), "data mismatch for test case: %s", tc.name)
-
-			// Verify source object was deleted
-			_, err = sourceBucket.Get(ctx, sourceKeys[i])
-			assert.Error(t, err, "source key should be deleted for test case: %s", tc.name)
+				// Verify source object was deleted
+				_, err = sourceBucket.Get(ctx, tc.sourceKey)
+				assert.Error(t, err)
+			})
 		}
 	}
 }

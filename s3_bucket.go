@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -1414,26 +1415,16 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 
 		normalizedKey := s.normalizeKey(srcKey)
 
-		// Validate key is non-empty
 		if normalizedKey == "" {
-			grip.Warning(message.Fields{
-				"message":    "skipping empty normalized key in batch delete",
-				"source_key": srcKey,
-				"bucket":     s.name,
-			})
 			catcher.Add(errors.Errorf("normalized key is empty for source key '%s', object copied but not deleted", srcKey))
 			continue
 		}
 
-		// Check for XML-incompatible characters
 		hasXMLIncompatibleChars := func(key string) bool {
+			const tab rune = '\t'
 			for _, r := range key {
-				// Control characters except tab (0x09), LF (0x0A), CR (0x0D)
-				if (r >= 0x00 && r < 0x09) || (r > 0x0D && r < 0x20) {
-					return true
-				}
-				// Explicitly check for CR and LF which are also problematic
-				if r == '\r' || r == '\n' {
+				// XML batch delete API cannot handle control characters except tab
+				if unicode.IsControl(r) && r != tab {
 					return true
 				}
 			}
@@ -1441,11 +1432,6 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 		}
 
 		if hasXMLIncompatibleChars(normalizedKey) {
-			grip.Warning(message.Fields{
-				"message": "key contains XML-incompatible characters, using individual delete",
-				"key":     normalizedKey,
-				"bucket":  s.name,
-			})
 			// Fall back to individual delete for this key. DeleteObject (singular) uses HTTP headers
 			// instead of XML serialization, which can handle all character types via URL encoding.
 			if err := s.Remove(ctx, srcKey); err != nil {
