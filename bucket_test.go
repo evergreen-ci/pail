@@ -1613,6 +1613,7 @@ func TestPreSign(t *testing.T) {
 			seedCreds, err := s3Credentials.Retrieve(t.Context())
 			require.NoError(t, err)
 
+			seedCreds.Expires = time.Now().Add(minimumCachedCredentialLifetime + time.Minute)
 			credsCacheMutex.Lock()
 			credsCache[createAssumeRoleCacheKey(roleARN, externalID)] = &seedCreds
 			credsCacheMutex.Unlock()
