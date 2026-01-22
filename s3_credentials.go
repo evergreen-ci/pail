@@ -60,12 +60,9 @@ func CreateAWSStaticCredentials(awsKey, awsPassword, awsToken string) aws.Creden
 // assumes the given role ARN using the provided STS client. An optional external
 // ID can be provided to further secure the assume role operation.
 func CreateAWSAssumeRoleCredentials(client *sts.Client, roleARN string, externalID *string) aws.CredentialsProvider {
-	return &seededCredentialProvider{
-		cacheKey: createAssumeRoleCacheKey(roleARN, externalID),
-		provider: stscreds.NewAssumeRoleProvider(client, roleARN, func(aro *stscreds.AssumeRoleOptions) {
-			aro.ExternalID = externalID
-		}),
-	}
+	return stscreds.NewAssumeRoleProvider(client, roleARN, func(aro *stscreds.AssumeRoleOptions) {
+		aro.ExternalID = externalID
+	})
 }
 
 // createAssumeRoleCacheKey generates a unique cache key for the given role ARN
