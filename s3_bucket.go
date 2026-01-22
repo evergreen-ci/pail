@@ -19,7 +19,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	s3Manager "github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -164,17 +163,6 @@ type S3Options struct {
 	// IfNotExists, when set to true, will avoid overwriting an already-existing
 	// object at the destination key if it already exists.
 	IfNotExists bool
-}
-
-// CreateAWSStaticCredentials is a wrapper for creating static AWS credentials.
-func CreateAWSStaticCredentials(awsKey, awsPassword, awsToken string) aws.CredentialsProvider {
-	return credentials.NewStaticCredentialsProvider(awsKey, awsPassword, awsToken)
-}
-
-func CreateAWSAssumeRoleCredentials(client *sts.Client, roleARN string, externalID *string) aws.CredentialsProvider {
-	return stscreds.NewAssumeRoleProvider(client, roleARN, func(aro *stscreds.AssumeRoleOptions) {
-		aro.ExternalID = externalID
-	})
 }
 
 func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
@@ -1752,7 +1740,10 @@ func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, err
 	} else if p.AWSRoleARN != "" {
 		stsClient := sts.NewFromConfig(*cfg)
 		s3Opts = append(s3Opts, func(opts *s3.Options) {
-			opts.Credentials = CreateAWSAssumeRoleCredentials(stsClient, p.AWSRoleARN, p.ExternalID)
+			opts.Credentials = WithSeed(
+				CreateAWSAssumeRoleCredentials(stsClient, p.AWSRoleARN, p.ExternalID),
+				createAssumeRoleCacheKey(p.AWSRoleARN, p.ExternalID),
+			)
 		})
 	}
 

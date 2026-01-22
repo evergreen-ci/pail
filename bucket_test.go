@@ -1592,6 +1592,36 @@ func TestPreSign(t *testing.T) {
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t, data, string(body))
+
+	roleARN := "role_arn_fake"
+	externalID := utility.ToStringPtr("external_id_fake")
+	assumeRoleReq := PreSignRequestParams{
+		AWSRoleARN: roleARN,
+		ExternalID: externalID,
+		Region:     s3Region,
+		Bucket:     s3BucketName,
+		FileKey:    consistentJoin([]string{s3Prefix, s3Object}),
+	}
+
+	t.Run("PresignWithSeededAssumeRoleCredentials", func(t *testing.T) {
+		t.Run("FailsWithInvalidCache", func(t *testing.T) {
+			_, err := PreSign(ctx, assumeRoleReq)
+			require.Error(t, err)
+		})
+
+		t.Run("PassesWithValidCache", func(t *testing.T) {
+			seedCreds, err := s3Credentials.Retrieve(t.Context())
+			require.NoError(t, err)
+
+			credsCacheMutex.Lock()
+			credsCache[createAssumeRoleCacheKey(roleARN, externalID)] = &seedCreds
+			credsCacheMutex.Unlock()
+
+			url, err := PreSign(ctx, assumeRoleReq)
+			require.NoError(t, err)
+			assert.NotZero(t, url)
+		})
+	})
 }
 
 func TestGetHeadObject(t *testing.T) {
