@@ -12,8 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func resetCredsCacheForTest(t *testing.T) {
-	t.Helper()
+const minimumCachedCredentialLifetime = 5 * time.Minute
+
+func resetCredsCacheForTest() {
 
 	credsCacheMutex.Lock()
 	defer credsCacheMutex.Unlock()
@@ -54,9 +55,9 @@ func TestSeededCredentialProvider(t *testing.T) {
 	}
 
 	t.Run("RetrieveWithNoSeed", func(t *testing.T) {
-		resetCredsCacheForTest(t)
+		resetCredsCacheForTest()
 
-		p := WithSeed(&fakeProvider{toReturn: creds(false)}, cacheKey)
+		p := WithSeed(&fakeProvider{toReturn: creds(false)}, cacheKey, minimumCachedCredentialLifetime)
 
 		c, err := p.Retrieve(t.Context())
 		require.NoError(t, err)
@@ -64,10 +65,10 @@ func TestSeededCredentialProvider(t *testing.T) {
 	})
 
 	t.Run("ReturnsSeed", func(t *testing.T) {
-		resetCredsCacheForTest(t)
+		resetCredsCacheForTest()
 
 		seedCache(creds(true))
-		p := WithSeed(&fakeProvider{toReturn: creds(false)}, cacheKey)
+		p := WithSeed(&fakeProvider{toReturn: creds(false)}, cacheKey, minimumCachedCredentialLifetime)
 
 		c, err := p.Retrieve(t.Context())
 		require.NoError(t, err)
@@ -75,12 +76,12 @@ func TestSeededCredentialProvider(t *testing.T) {
 	})
 
 	t.Run("RetrieveWhenSeedIsCloseToExpiring", func(t *testing.T) {
-		resetCredsCacheForTest(t)
+		resetCredsCacheForTest()
 
 		expiredCreds := creds(true)
 		expiredCreds.Expires = time.Now().Add(minimumCachedCredentialLifetime - time.Minute)
 		seedCache(expiredCreds)
-		p := WithSeed(&fakeProvider{toReturn: creds(false)}, cacheKey)
+		p := WithSeed(&fakeProvider{toReturn: creds(false)}, cacheKey, minimumCachedCredentialLifetime)
 
 		c, err := p.Retrieve(t.Context())
 		require.NoError(t, err)
@@ -96,10 +97,10 @@ func TestSeededCredentialProvider(t *testing.T) {
 	})
 
 	t.Run("ProviderErrorIsIgnoredIfSeeded", func(t *testing.T) {
-		resetCredsCacheForTest(t)
+		resetCredsCacheForTest()
 
 		seedCache(creds(true))
-		p := WithSeed(&fakeProvider{err: errors.New("Uh-oh")}, cacheKey)
+		p := WithSeed(&fakeProvider{err: errors.New("Uh-oh")}, cacheKey, minimumCachedCredentialLifetime)
 
 		c, err := p.Retrieve(t.Context())
 		require.NoError(t, err)
@@ -107,9 +108,9 @@ func TestSeededCredentialProvider(t *testing.T) {
 	})
 
 	t.Run("ProviderErrorIfNoSeed", func(t *testing.T) {
-		resetCredsCacheForTest(t)
+		resetCredsCacheForTest()
 
-		p := WithSeed(&fakeProvider{err: errors.New("Uh-oh")}, cacheKey)
+		p := WithSeed(&fakeProvider{err: errors.New("Uh-oh")}, cacheKey, minimumCachedCredentialLifetime)
 
 		_, err := p.Retrieve(t.Context())
 		require.ErrorContains(t, err, "Uh-oh")

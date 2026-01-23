@@ -1743,6 +1743,7 @@ func (p *PreSignRequestParams) getS3Client(ctx context.Context) (*s3.Client, err
 			opts.Credentials = WithSeed(
 				CreateAWSAssumeRoleCredentials(stsClient, p.AWSRoleARN, p.ExternalID),
 				createAssumeRoleCacheKey(p.AWSRoleARN, p.ExternalID),
+				cfgOpts.expiry,
 			)
 		})
 	}

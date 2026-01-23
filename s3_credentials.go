@@ -11,8 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-var minimumCachedCredentialLifetime = 5 * time.Minute
-
 var credsCacheMutex sync.Mutex
 var credsCache = map[string]*aws.Credentials{}
 
@@ -20,14 +18,21 @@ type seededCredentialProvider struct {
 	provider aws.CredentialsProvider
 
 	cacheKey string
+	// We use minimumLifetime rather than implementing aws's AdjustExpiresBy interface
+	// because our cache can be shared across multiple aws clients with different expiry
+	// adjustment needs. The AdjustExpiresBy interface is only called when setting new
+	// credentials in the cache, so this approach allows us to have per-client expiry
+	// adjustment needs.
+	minimumLifetime time.Duration
 }
 
+// Retrieve fetches the latest credentials from the cache or underlying provider.
 func (s *seededCredentialProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	credsCacheMutex.Lock()
 	defer credsCacheMutex.Unlock()
 
 	if cachedCreds, ok := credsCache[s.cacheKey]; ok {
-		if time.Now().Before(cachedCreds.Expires.Add(-minimumCachedCredentialLifetime)) {
+		if time.Now().Before(cachedCreds.Expires.Add(-s.minimumLifetime)) {
 			return *cachedCreds, nil
 		}
 		delete(credsCache, s.cacheKey)
@@ -44,10 +49,11 @@ func (s *seededCredentialProvider) Retrieve(ctx context.Context) (aws.Credential
 
 // WithSeed wraps the given CredentialsProvider with a caching layer that uses
 // the given cacheKey to identify cached credentials.
-func WithSeed(provider aws.CredentialsProvider, cacheKey string) aws.CredentialsProvider {
+func WithSeed(provider aws.CredentialsProvider, cacheKey string, minimumLifetime time.Duration) aws.CredentialsProvider {
 	return &seededCredentialProvider{
-		provider: provider,
-		cacheKey: cacheKey,
+		provider:        provider,
+		cacheKey:        cacheKey,
+		minimumLifetime: minimumLifetime,
 	}
 }
 
