@@ -48,7 +48,8 @@ func (s *seededCredentialProvider) Retrieve(ctx context.Context) (aws.Credential
 }
 
 // WithSeed wraps the given CredentialsProvider with a caching layer that uses
-// the given cacheKey to identify cached credentials.
+// the given cacheKey to identify cached credentials. The given minimumLifetime should
+// match the expectation of the AWS client using the credentials, e.g. the ExpiryWindow.
 func WithSeed(provider aws.CredentialsProvider, cacheKey string, minimumLifetime time.Duration) aws.CredentialsProvider {
 	return &seededCredentialProvider{
 		provider:        provider,
