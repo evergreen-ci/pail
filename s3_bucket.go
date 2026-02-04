@@ -84,6 +84,7 @@ type s3Bucket struct {
 	ifNotExists          bool
 	verbose              bool
 	batchSize            int
+	maxConcurrentCopies  int
 	svc                  *s3.Client
 	name                 string
 	prefix               string
@@ -163,6 +164,10 @@ type S3Options struct {
 	// IfNotExists, when set to true, will avoid overwriting an already-existing
 	// object at the destination key if it already exists.
 	IfNotExists bool
+	// MaxConcurrentCopies specifies the maximum number of concurrent copy
+	// operations for MoveObjects. If nil or <=0, defaults to 20.
+	// (Optional)
+	MaxConcurrentCopies *int
 }
 
 func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
@@ -206,6 +211,11 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 
 	svc := s3.NewFromConfig(*cfg, s3Opts...)
 
+	maxConcurrent := 20
+	if options.MaxConcurrentCopies != nil && *options.MaxConcurrentCopies > 0 {
+		maxConcurrent = *options.MaxConcurrentCopies
+	}
+
 	return &s3Bucket{
 		name:                   options.Name,
 		prefix:                 options.Prefix,
@@ -219,6 +229,7 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 		contentType:            options.ContentType,
 		dryRun:                 options.DryRun,
 		batchSize:              1000,
+		maxConcurrentCopies:    maxConcurrent,
 		deleteOnPush:           options.DeleteOnPush || options.DeleteOnSync,
 		deleteOnPull:           options.DeleteOnPull || options.DeleteOnSync,
 		ifNotExists:            options.IfNotExists,
@@ -1376,70 +1387,120 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 	if len(sourceKeys) != len(destKeys) {
 		return errors.New("sourceKeys and destKeys must have the same length")
 	}
-	catcher := grip.NewBasicCatcher()
-	var objectsToDelete []s3Types.ObjectIdentifier
-	for i, srcKey := range sourceKeys {
-		dstKey := destKeys[i]
-		grip.DebugWhen(s.verbose, message.Fields{
-			"type":          "s3",
-			"dry_run":       s.dryRun,
-			"operation":     "move",
-			"source_bucket": s.name,
-			"dest_bucket":   destBucket.String(),
-			"source_key":    srcKey,
-			"dest_key":      dstKey,
-		})
-		if s.dryRun {
-			continue
-		}
-		copyOpts := CopyOptions{
-			SourceKey:         srcKey,
-			DestinationKey:    dstKey,
-			DestinationBucket: destBucket,
-			IsDestination:     false,
-		}
-		err := s.Copy(ctx, copyOpts)
-		if err != nil {
-			catcher.Add(errors.Wrapf(err, "copying object to destination bucket as %s", dstKey))
-			continue
-		}
 
-		normalizedKey := s.normalizeKey(srcKey)
-
-		if normalizedKey == "" {
-			catcher.Add(errors.Errorf("normalized key is empty for source key '%s', object copied but not deleted", srcKey))
-			continue
-		}
-
-		hasXMLIncompatibleChars := func(key string) bool {
-			const tab rune = '\t'
-			for _, r := range key {
-				// XML batch delete API cannot handle control characters except tab
-				if unicode.IsControl(r) && r != tab {
-					return true
-				}
+	// Helper function to check for XML-incompatible characters
+	hasXMLIncompatibleChars := func(key string) bool {
+		const tab rune = '\t'
+		for _, r := range key {
+			// XML batch delete API cannot handle control characters except tab
+			if unicode.IsControl(r) && r != tab {
+				return true
 			}
-			return false
 		}
-
-		if hasXMLIncompatibleChars(normalizedKey) {
-			// Fall back to individual delete for this key. DeleteObject (singular) uses HTTP headers
-			// instead of XML serialization, which can handle all character types via URL encoding.
-			if err := s.Remove(ctx, srcKey); err != nil {
-				catcher.Add(errors.Wrapf(err, "individually deleting object with XML-incompatible characters '%s'", srcKey))
-			}
-			continue
-		}
-
-		// Key is safe for batch delete
-		objectsToDelete = append(objectsToDelete, s3Types.ObjectIdentifier{Key: aws.String(normalizedKey)})
+		return false
 	}
-	// Batch delete all successfully copied source objects
-	if !s.dryRun && len(objectsToDelete) > 0 {
+
+	// Early return for dry run with logging
+	if s.dryRun {
+		for i, srcKey := range sourceKeys {
+			grip.Debug(message.Fields{
+				"type":          "s3",
+				"dry_run":       true,
+				"operation":     "move",
+				"source_bucket": s.name,
+				"dest_bucket":   destBucket.String(),
+				"source_key":    srcKey,
+				"dest_key":      destKeys[i],
+			})
+		}
+		return nil
+	}
+
+	// Create work items
+	type workItem struct {
+		index  int
+		srcKey string
+		dstKey string
+	}
+
+	workChan := make(chan workItem, len(sourceKeys))
+	for i := range sourceKeys {
+		workChan <- workItem{index: i, srcKey: sourceKeys[i], dstKey: destKeys[i]}
+	}
+	close(workChan)
+
+	// Channel for collecting objects to batch delete
+	batchDeleteChan := make(chan s3Types.ObjectIdentifier, len(sourceKeys))
+
+	catcher := grip.NewBasicCatcher()
+	wg := &sync.WaitGroup{}
+
+	numWorkers := s.maxConcurrentCopies
+	if numWorkers > len(sourceKeys) {
+		numWorkers = len(sourceKeys)
+	}
+
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for work := range workChan {
+				// Logging
+				grip.DebugWhen(s.verbose, message.Fields{
+					"type":          "s3",
+					"operation":     "move",
+					"source_bucket": s.name,
+					"dest_bucket":   destBucket.String(),
+					"source_key":    work.srcKey,
+					"dest_key":      work.dstKey,
+				})
+
+				copyOpts := CopyOptions{
+					SourceKey:         work.srcKey,
+					DestinationKey:    work.dstKey,
+					DestinationBucket: destBucket,
+					IsDestination:     false,
+				}
+				if err := s.Copy(ctx, copyOpts); err != nil {
+					catcher.Add(errors.Wrapf(err, "copying object to destination bucket as %s", work.dstKey))
+					continue
+				}
+
+				normalizedKey := s.normalizeKey(work.srcKey)
+				if normalizedKey == "" {
+					catcher.Add(errors.Errorf("normalized key is empty for source key '%s', object copied but not deleted", work.srcKey))
+					continue
+				}
+
+				// Check for XML-incompatible characters
+				if hasXMLIncompatibleChars(normalizedKey) {
+					// Fall back to individual delete for this key. DeleteObject (singular) uses HTTP headers
+					// instead of XML serialization, which can handle all character types via URL encoding.
+					if err := s.Remove(ctx, work.srcKey); err != nil {
+						catcher.Add(errors.Wrapf(err, "individually deleting object with XML-incompatible characters '%s'", work.srcKey))
+					}
+					continue
+				}
+
+				batchDeleteChan <- s3Types.ObjectIdentifier{Key: aws.String(normalizedKey)}
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(batchDeleteChan)
+	}()
+
+	var objectsToDelete []s3Types.ObjectIdentifier
+	for obj := range batchDeleteChan {
+		objectsToDelete = append(objectsToDelete, obj)
+	}
+
+	if len(objectsToDelete) > 0 {
 		count := 0
 		toDelete := &s3Types.Delete{}
 		for _, obj := range objectsToDelete {
-			// Key limit for s3.DeleteObjects, call function and reset.
 			if count == s.batchSize {
 				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 				count = 0
@@ -1450,6 +1511,7 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 		}
 		catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 	}
+
 	return catcher.Resolve()
 }
 
