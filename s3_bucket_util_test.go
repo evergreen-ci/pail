@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	s3Manager "github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -495,6 +496,14 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 		{
 			id:   "TestMoveObjectsWithXMLIncompatibleChars",
 			test: makeMoveObjectsWithXMLIncompatibleCharsTest(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region),
+		},
+		{
+			id:   "TestMoveObjectsConcurrent",
+			test: makeMoveObjectsConcurrentTest(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region),
+		},
+		{
+			id:   "TestMoveObjectsPartialFailure",
+			test: makeMoveObjectsPartialFailureTest(ctx, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 		{
 			id:   "PullWithCache",
@@ -1075,5 +1084,148 @@ func makeMoveObjectsWithXMLIncompatibleCharsTest(ctx context.Context, s3Credenti
 				assert.Error(t, err)
 			})
 		}
+	}
+}
+
+func makeMoveObjectsConcurrentTest(ctx context.Context, s3Credentials aws.CredentialsProvider, s3BucketName, s3Prefix, s3Region string) func(*testing.T, Bucket) {
+	return func(t *testing.T, sourceBucket Bucket) {
+		_, isSmall := sourceBucket.(*s3BucketSmall)
+		_, isLarge := sourceBucket.(*s3BucketLarge)
+		if !isSmall && !isLarge {
+			t.Skip("Test only applies to S3 buckets")
+		}
+
+		destS3Options := S3Options{
+			Credentials:         s3Credentials,
+			Region:              s3Region,
+			Name:                s3BucketName,
+			Prefix:              s3Prefix + testutil.NewUUID(),
+			MaxRetries:          aws.Int(20),
+			MaxConcurrentCopies: aws.Int(10),
+		}
+		destBucket, err := NewS3Bucket(ctx, destS3Options)
+		require.NoError(t, err)
+
+		// Create 100 objects to test concurrent copy
+		numObjects := 100
+		sourceKeys := make([]string, numObjects)
+		destKeys := make([]string, numObjects)
+		t.Cleanup(func() {
+			t.Logf("Cleaning up %d destination objects", len(destKeys))
+			if err := destBucket.RemoveMany(ctx, destKeys...); err != nil {
+				t.Logf("Failed to clean up destination objects: %v", err)
+			}
+		})
+
+		for i := 0; i < numObjects; i++ {
+			sourceKeys[i] = testutil.NewUUID()
+			destKeys[i] = "moved-" + sourceKeys[i]
+			require.NoError(t, sourceBucket.Put(ctx, sourceKeys[i],
+				bytes.NewReader([]byte(fmt.Sprintf("data-%d", i)))))
+		}
+
+		// Time the operation
+		start := time.Now()
+		require.NoError(t, sourceBucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys))
+		duration := time.Since(start)
+		t.Logf("Moved %d objects in %v", numObjects, duration)
+
+		// Verify all objects moved correctly
+		for i := 0; i < numObjects; i++ {
+			r, err := destBucket.Get(ctx, destKeys[i])
+			require.NoError(t, err)
+			data, err := io.ReadAll(r)
+			require.NoError(t, err)
+			require.NoError(t, r.Close())
+			assert.Equal(t, fmt.Sprintf("data-%d", i), string(data))
+
+			_, err = sourceBucket.Get(ctx, sourceKeys[i])
+			assert.Error(t, err) // Should not exist in source
+		}
+	}
+}
+
+func makeMoveObjectsPartialFailureTest(ctx context.Context, s3Credentials aws.CredentialsProvider, s3BucketName, s3Prefix, s3Region string) func(*testing.T, Bucket) {
+	return func(t *testing.T, sourceBucket Bucket) {
+		_, isSmall := sourceBucket.(*s3BucketSmall)
+		_, isLarge := sourceBucket.(*s3BucketLarge)
+		if !isSmall && !isLarge {
+			t.Skip("Test only applies to S3 buckets")
+		}
+
+		destS3Options := S3Options{
+			Credentials:         s3Credentials,
+			Region:              s3Region,
+			Name:                s3BucketName,
+			Prefix:              s3Prefix + testutil.NewUUID(),
+			MaxRetries:          aws.Int(20),
+			MaxConcurrentCopies: aws.Int(5),
+		}
+		destBucket, err := NewS3Bucket(ctx, destS3Options)
+		require.NoError(t, err)
+
+		// Create 20 objects, but delete every other one to create partial failures
+		numObjects := 20
+		sourceKeys := make([]string, numObjects)
+		destKeys := make([]string, numObjects)
+		expectedSuccesses := 0
+
+		for i := 0; i < numObjects; i++ {
+			sourceKeys[i] = testutil.NewUUID()
+			destKeys[i] = "moved-" + sourceKeys[i]
+			require.NoError(t, sourceBucket.Put(ctx, sourceKeys[i],
+				bytes.NewReader([]byte(fmt.Sprintf("data-%d", i)))))
+
+			// Delete every other object to cause copy failures
+			if i%2 == 0 {
+				require.NoError(t, sourceBucket.Remove(ctx, sourceKeys[i]))
+			} else {
+				expectedSuccesses++
+			}
+		}
+
+		t.Cleanup(func() {
+			t.Logf("Cleaning up destination objects")
+			// Only cleanup objects that should have been moved successfully
+			for i := 0; i < numObjects; i++ {
+				if i%2 == 1 {
+					if err := destBucket.Remove(ctx, destKeys[i]); err != nil {
+						t.Logf("Failed to clean up destination object %s: %v", destKeys[i], err)
+					}
+				}
+			}
+		})
+
+		// Call MoveObjects - this should return errors for missing source objects
+		// but still successfully move the objects that exist
+		err = sourceBucket.MoveObjects(ctx, destBucket, sourceKeys, destKeys)
+		assert.Error(t, err, "Expected errors for missing source objects")
+
+		// Verify that objects that existed were moved successfully
+		successCount := 0
+		for i := 0; i < numObjects; i++ {
+			if i%2 == 1 {
+				// These should have been moved successfully
+				r, err := destBucket.Get(ctx, destKeys[i])
+				if assert.NoError(t, err, "Object %d should have been moved successfully", i) {
+					data, err := io.ReadAll(r)
+					require.NoError(t, err)
+					require.NoError(t, r.Close())
+					assert.Equal(t, fmt.Sprintf("data-%d", i), string(data))
+					successCount++
+				}
+
+				// Verify removed from source
+				_, err = sourceBucket.Get(ctx, sourceKeys[i])
+				assert.Error(t, err, "Object %d should not exist in source", i)
+			} else {
+				// These should have failed to copy
+				_, err := destBucket.Get(ctx, destKeys[i])
+				assert.Error(t, err, "Object %d should not exist in destination (copy should have failed)", i)
+			}
+		}
+
+		assert.Equal(t, expectedSuccesses, successCount, "Expected %d successful moves", expectedSuccesses)
+		t.Logf("Successfully moved %d objects out of %d attempted (with expected failures)", successCount, numObjects)
 	}
 }
