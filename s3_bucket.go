@@ -1445,7 +1445,12 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 		go func() {
 			defer wg.Done()
 			for work := range workChan {
-				// Logging
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
 				grip.DebugWhen(s.verbose, message.Fields{
 					"type":          "s3",
 					"operation":     "move",
