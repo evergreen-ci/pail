@@ -266,6 +266,62 @@ func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			},
 		},
 		{
+			id: "TestStorageClass",
+			test: func(t *testing.T, b Bucket) {
+				// default storage class (STANDARD, returned as empty by the API)
+				key := testutil.NewUUID()
+				writer, err := b.Writer(ctx, key)
+				require.NoError(t, err)
+				_, err = writer.Write([]byte("hello world"))
+				require.NoError(t, err)
+				require.NoError(t, writer.Close())
+				rawBucket := b.(*s3BucketSmall)
+				headObjectInput := &s3.HeadObjectInput{
+					Bucket: aws.String(s3BucketName),
+					Key:    aws.String(rawBucket.normalizeKey(key)),
+				}
+				headObjectOutput, err := rawBucket.svc.HeadObject(ctx, headObjectInput)
+				require.NoError(t, err)
+				assert.Equal(t, s3Types.StorageClass(""), headObjectOutput.StorageClass)
+
+				// explicitly set storage class via Writer
+				itOptions := S3Options{
+					Credentials:  s3Credentials,
+					Region:       s3Region,
+					Name:         s3BucketName,
+					Prefix:       s3Prefix + testutil.NewUUID(),
+					StorageClass: s3Types.StorageClassIntelligentTiering,
+				}
+				itBucket, err := NewS3Bucket(ctx, itOptions)
+				require.NoError(t, err)
+				key = testutil.NewUUID()
+				writer, err = itBucket.Writer(ctx, key)
+				require.NoError(t, err)
+				_, err = writer.Write([]byte("hello world"))
+				require.NoError(t, err)
+				require.NoError(t, writer.Close())
+				rawBucket = itBucket.(*s3BucketSmall)
+				headObjectInput = &s3.HeadObjectInput{
+					Bucket: aws.String(s3BucketName),
+					Key:    aws.String(rawBucket.normalizeKey(key)),
+				}
+				headObjectOutput, err = rawBucket.svc.HeadObject(ctx, headObjectInput)
+				require.NoError(t, err)
+				assert.Equal(t, s3Types.StorageClassIntelligentTiering, headObjectOutput.StorageClass)
+
+				// explicitly set storage class via Put
+				key = testutil.NewUUID()
+				require.NoError(t, itBucket.Put(ctx, key, bytes.NewReader([]byte("hello world"))))
+				headObjectInput = &s3.HeadObjectInput{
+					Bucket: aws.String(s3BucketName),
+					Key:    aws.String(rawBucket.normalizeKey(key)),
+				}
+				headObjectOutput, err = rawBucket.svc.HeadObject(ctx, headObjectInput)
+				require.NoError(t, err)
+				assert.Equal(t, s3Types.StorageClassIntelligentTiering, headObjectOutput.StorageClass)
+			},
+		},
+		{
 			id: "TestIfNotExists",
 			test: func(t *testing.T, b Bucket) {
 				key := testutil.NewUUID()
@@ -761,6 +817,62 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 				getObjectOutput, err = rawBucket.svc.GetObject(ctx, getObjectInput)
 				require.NoError(t, err)
 				assert.Equal(t, "html/text", aws.ToString(getObjectOutput.ContentType))
+			},
+		},
+		{
+			id: "TestStorageClass",
+			test: func(t *testing.T, b Bucket) {
+				// default storage class (STANDARD, returned as empty by the API)
+				key := testutil.NewUUID()
+				writer, err := b.Writer(ctx, key)
+				require.NoError(t, err)
+				_, err = writer.Write([]byte("hello world"))
+				require.NoError(t, err)
+				require.NoError(t, writer.Close())
+				rawBucket := b.(*s3BucketLarge)
+				headObjectInput := &s3.HeadObjectInput{
+					Bucket: aws.String(s3BucketName),
+					Key:    aws.String(rawBucket.normalizeKey(key)),
+				}
+				headObjectOutput, err := rawBucket.svc.HeadObject(ctx, headObjectInput)
+				require.NoError(t, err)
+				assert.Equal(t, s3Types.StorageClass(""), headObjectOutput.StorageClass)
+
+				// explicitly set storage class via Writer
+				itOptions := S3Options{
+					Credentials:  s3Credentials,
+					Region:       s3Region,
+					Name:         s3BucketName,
+					Prefix:       s3Prefix + testutil.NewUUID(),
+					StorageClass: s3Types.StorageClassIntelligentTiering,
+				}
+				itBucket, err := NewS3MultiPartBucket(ctx, itOptions)
+				require.NoError(t, err)
+				key = testutil.NewUUID()
+				writer, err = itBucket.Writer(ctx, key)
+				require.NoError(t, err)
+				_, err = writer.Write([]byte("hello world"))
+				require.NoError(t, err)
+				require.NoError(t, writer.Close())
+				rawBucket = itBucket.(*s3BucketLarge)
+				headObjectInput = &s3.HeadObjectInput{
+					Bucket: aws.String(s3BucketName),
+					Key:    aws.String(rawBucket.normalizeKey(key)),
+				}
+				headObjectOutput, err = rawBucket.svc.HeadObject(ctx, headObjectInput)
+				require.NoError(t, err)
+				assert.Equal(t, s3Types.StorageClassIntelligentTiering, headObjectOutput.StorageClass)
+
+				// explicitly set storage class via Put
+				key = testutil.NewUUID()
+				require.NoError(t, itBucket.Put(ctx, key, bytes.NewReader([]byte("hello world"))))
+				headObjectInput = &s3.HeadObjectInput{
+					Bucket: aws.String(s3BucketName),
+					Key:    aws.String(rawBucket.normalizeKey(key)),
+				}
+				headObjectOutput, err = rawBucket.svc.HeadObject(ctx, headObjectInput)
+				require.NoError(t, err)
+				assert.Equal(t, s3Types.StorageClassIntelligentTiering, headObjectOutput.StorageClass)
 			},
 		},
 		{

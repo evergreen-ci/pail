@@ -90,6 +90,7 @@ type s3Bucket struct {
 	prefix               string
 	permissions          S3Permissions
 	contentType          string
+	storageClass         s3Types.StorageClass
 }
 
 // S3Options support the use and creation of S3 backed buckets.
@@ -161,6 +162,10 @@ type S3Options struct {
 	//`https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.17`
 	// for more information.
 	ContentType string
+	// StorageClass sets the S3 storage class for uploaded objects. Defaults
+	// to S3's default storage class (STANDARD) if not set. See
+	// https://aws.amazon.com/s3/storage-classes/ for more information.
+	StorageClass s3Types.StorageClass
 	// IfNotExists, when set to true, will avoid overwriting an already-existing
 	// object at the destination key if it already exists.
 	IfNotExists bool
@@ -227,6 +232,7 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 		svc:                    svc,
 		permissions:            options.Permissions,
 		contentType:            options.ContentType,
+		storageClass:           options.StorageClass,
 		dryRun:                 options.DryRun,
 		batchSize:              1000,
 		maxConcurrentCopies:    maxConcurrent,
@@ -435,18 +441,19 @@ func (s *s3Bucket) GetLifecycleConfiguration(ctx context.Context) ([]LifecycleRu
 func (s *s3Bucket) Join(elems ...string) string { return consistentJoin(elems) }
 
 type smallWriteCloser struct {
-	isClosed    bool
-	dryRun      bool
-	compress    bool
-	ifNotExists bool
-	verbose     bool
-	svc         *s3.Client
-	buffer      []byte
-	name        string
-	ctx         context.Context
-	key         string
-	permissions S3Permissions
-	contentType string
+	isClosed     bool
+	dryRun       bool
+	compress     bool
+	ifNotExists  bool
+	verbose      bool
+	svc          *s3.Client
+	buffer       []byte
+	name         string
+	ctx          context.Context
+	key          string
+	permissions  S3Permissions
+	contentType  string
+	storageClass s3Types.StorageClass
 }
 
 type largeWriteCloser struct {
@@ -466,6 +473,7 @@ type largeWriteCloser struct {
 	key            string
 	permissions    S3Permissions
 	contentType    string
+	storageClass   s3Types.StorageClass
 	uploadID       string
 }
 
@@ -489,6 +497,10 @@ func (w *largeWriteCloser) create() error {
 		// applied, so we do the check ourselves here.
 		if w.contentType != "" {
 			input.ContentType = aws.String(w.contentType)
+		}
+
+		if w.storageClass != "" {
+			input.StorageClass = w.storageClass
 		}
 
 		if w.compress {
@@ -669,6 +681,10 @@ func (w *smallWriteCloser) Close() error {
 		input.ContentType = aws.String(w.contentType)
 	}
 
+	if w.storageClass != "" {
+		input.StorageClass = w.storageClass
+	}
+
 	if w.ifNotExists {
 		input.IfNoneMatch = aws.String("*")
 	}
@@ -733,15 +749,16 @@ func (s *s3BucketSmall) Writer(ctx context.Context, key string) (io.WriteCloser,
 	})
 
 	writer := &smallWriteCloser{
-		name:        s.name,
-		svc:         s.svc,
-		ctx:         ctx,
-		key:         s.normalizeKey(key),
-		permissions: s.permissions,
-		contentType: s.contentType,
-		dryRun:      s.dryRun,
-		compress:    s.compress,
-		ifNotExists: s.ifNotExists,
+		name:         s.name,
+		svc:          s.svc,
+		ctx:          ctx,
+		key:          s.normalizeKey(key),
+		permissions:  s.permissions,
+		contentType:  s.contentType,
+		storageClass: s.storageClass,
+		dryRun:       s.dryRun,
+		compress:     s.compress,
+		ifNotExists:  s.ifNotExists,
 	}
 	if s.compress {
 		return &compressingWriteCloser{
@@ -763,17 +780,18 @@ func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser,
 	})
 
 	writer := &largeWriteCloser{
-		minSize:     s.minPartSize,
-		name:        s.name,
-		svc:         s.svc,
-		ctx:         ctx,
-		key:         s.normalizeKey(key),
-		permissions: s.permissions,
-		contentType: s.contentType,
-		dryRun:      s.dryRun,
-		compress:    s.compress,
-		ifNotExists: s.ifNotExists,
-		verbose:     s.verbose,
+		minSize:      s.minPartSize,
+		name:         s.name,
+		svc:          s.svc,
+		ctx:          ctx,
+		key:          s.normalizeKey(key),
+		permissions:  s.permissions,
+		contentType:  s.contentType,
+		storageClass: s.storageClass,
+		dryRun:       s.dryRun,
+		compress:     s.compress,
+		ifNotExists:  s.ifNotExists,
+		verbose:      s.verbose,
 	}
 	if s.compress {
 		return &compressingWriteCloser{
@@ -870,6 +888,10 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) error 
 
 	if b.contentType != "" {
 		input.ContentType = aws.String(b.contentType)
+	}
+
+	if b.storageClass != "" {
+		input.StorageClass = b.storageClass
 	}
 
 	if b.ifNotExists {
