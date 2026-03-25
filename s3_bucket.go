@@ -74,7 +74,6 @@ type s3Bucket struct {
 	dryRun              bool
 	deleteOnPush        bool
 	deleteOnPull        bool
-	singleFileChecksums bool
 	// expectedChecksumSHA256 checks on downloads that the SHA256 checksum
 	// matches the expected value.
 	expectedChecksumSHA256 string
@@ -111,11 +110,6 @@ type S3Options struct {
 	// Compress enables gzipping of uploaded objects. For downloading, objects
 	// that are compressed with gzip are automatically decoded.
 	Compress bool
-	// UseSingleFileChecksums forces the bucket to checksum files before
-	// running uploads and download operation (rather than doing these
-	// operations independently.) Useful for large files, particularly in
-	// coordination with the parallel sync bucket implementations.
-	UseSingleFileChecksums bool
 	// ExpectedChecksumSHA256 enables checksum verification of downloads using the
 	// SHA256 checksum stored in S3. This requires that the object was
 	// originally uploaded with the checksum information.
@@ -225,7 +219,6 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 		name:                   options.Name,
 		prefix:                 options.Prefix,
 		compress:               options.Compress,
-		singleFileChecksums:    options.UseSingleFileChecksums,
 		expectedChecksumSHA256: options.ExpectedChecksumSHA256,
 		uploadChecksumSHA256:   options.UploadChecksumSHA256,
 		verbose:                options.Verbose,
@@ -1005,27 +998,6 @@ func (s *s3Bucket) GetToWriter(ctx context.Context, key string, w io.WriterAt) e
 	return nil
 }
 
-func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, target, file string) (bool, error) {
-	localmd5, err := utility.MD5SumFile(file)
-	if err != nil {
-		return false, errors.Wrapf(err, "checksumming '%s'", file)
-	}
-	input := &s3.HeadObjectInput{
-		Bucket:  aws.String(s.name),
-		Key:     aws.String(target),
-		IfMatch: aws.String(localmd5),
-	}
-	_, err = s.svc.HeadObject(ctx, input)
-	var apiErr smithy.APIError
-	if errors.As(err, &apiErr) {
-		if apiErr.ErrorCode() == "PreconditionFailed" || apiErr.ErrorCode() == "NotFound" {
-			return true, nil
-		}
-	}
-
-	return false, errors.Wrapf(err, "checking if object '%s' exists", target)
-}
-
 func doUpload(ctx context.Context, b Bucket, key, path string) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -1046,16 +1018,6 @@ func (s *s3Bucket) uploadHelper(ctx context.Context, b Bucket, key, path string)
 		"key":           key,
 		"path":          path,
 	})
-
-	if s.singleFileChecksums {
-		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, key, path)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if !shouldUpload {
-			return nil
-		}
-	}
 
 	return errors.WithStack(doUpload(ctx, b, key, path))
 }
@@ -1119,17 +1081,6 @@ func (s *s3Bucket) downloadHelper(ctx context.Context, b Bucket, key, path strin
 		"path":          path,
 	})
 
-	if s.singleFileChecksums {
-		iter, err := s.listHelper(ctx, b, s.normalizeKey(key))
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if !iter.Next(ctx) {
-			return errors.New("no results found")
-		}
-		return s3DownloadWithChecksum(ctx, b, iter.Item(), path)
-	}
-
 	return doDownload(ctx, b, key, path)
 }
 
@@ -1174,13 +1125,6 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 
 		target := s.Join(opts.Remote, fn)
 		file := filepath.Join(opts.Local, fn)
-		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, target, file)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if !shouldUpload {
-			continue
-		}
 		if err = doUpload(ctx, b, target, file); err != nil {
 			return errors.WithStack(err)
 		}
@@ -1692,8 +1636,7 @@ const syncArchiveName = "archive.tar"
 
 // Push pushes the contents from opts.Local to the archive prefixed by
 // opts.Remote. This operation automatically performs DeleteOnSync in the
-// remote regardless of the bucket setting. UseSingleFileChecksums is ignored
-// if it is set on the bucket.
+// remote regardless of the bucket setting.
 func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",
@@ -1748,8 +1691,8 @@ func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
 	return nil
 }
 
-// Push pulls the contents from the archive prefixed by opts.Remote to
-// opts.Local. UseSingleFileChecksums is ignored if it is set on the bucket.
+// Pull pulls the contents from the archive prefixed by opts.Remote to
+// opts.Local.
 func (s *s3ArchiveBucket) Pull(ctx context.Context, opts SyncOptions) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",
