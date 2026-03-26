@@ -129,8 +129,8 @@ func (b *localFileSystem) Join(elems ...string) string {
 	return filepath.Join(elems...)
 }
 
-func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser, error) {
-	grip.DebugWhen(b.verbose, message.Fields{
+func (b *localFileSystem) Writer(ctx context.Context, name string) (io.WriteCloser, error) {
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "writer",
@@ -156,8 +156,8 @@ func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser
 	return f, nil
 }
 
-func (b *localFileSystem) Reader(_ context.Context, name string) (io.ReadCloser, error) {
-	grip.DebugWhen(b.verbose, message.Fields{
+func (b *localFileSystem) Reader(ctx context.Context, name string) (io.ReadCloser, error) {
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"operation":     "reader",
 		"bucket":        b.path,
@@ -178,7 +178,7 @@ func (b *localFileSystem) Reader(_ context.Context, name string) (io.ReadCloser,
 }
 
 func (b *localFileSystem) Put(ctx context.Context, name string, input io.Reader) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "put",
@@ -201,7 +201,7 @@ func (b *localFileSystem) Put(ctx context.Context, name string, input io.Reader)
 }
 
 func (b *localFileSystem) Get(ctx context.Context, name string) (io.ReadCloser, error) {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"operation":     "get",
 		"bucket":        b.path,
@@ -213,7 +213,7 @@ func (b *localFileSystem) Get(ctx context.Context, name string) (io.ReadCloser, 
 }
 
 func (b *localFileSystem) Upload(ctx context.Context, name, path string) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "upload",
@@ -233,7 +233,7 @@ func (b *localFileSystem) Upload(ctx context.Context, name, path string) error {
 }
 
 func (b *localFileSystem) Download(ctx context.Context, name, path string) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"operation":     "download",
 		"bucket":        b.path,
@@ -272,7 +272,7 @@ func (b *localFileSystem) Download(ctx context.Context, name, path string) error
 }
 
 func (b *localFileSystem) Copy(ctx context.Context, options CopyOptions) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "copy",
@@ -301,7 +301,7 @@ func (b *localFileSystem) Copy(ctx context.Context, options CopyOptions) error {
 }
 
 func (b *localFileSystem) Remove(ctx context.Context, key string) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "remove",
@@ -323,7 +323,7 @@ func (b *localFileSystem) Remove(ctx context.Context, key string) error {
 }
 
 func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "remove many",
@@ -340,7 +340,7 @@ func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error 
 }
 
 func (b *localFileSystem) RemovePrefix(ctx context.Context, prefix string) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "remove prefix",
@@ -353,7 +353,7 @@ func (b *localFileSystem) RemovePrefix(ctx context.Context, prefix string) error
 }
 
 func (b *localFileSystem) RemoveMatching(ctx context.Context, expression string) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "remove matching",
@@ -372,7 +372,7 @@ func (b *localFileSystem) MoveObjects(ctx context.Context, destBucket Bucket, so
 }
 
 func (b *localFileSystem) Push(ctx context.Context, opts SyncOptions) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"dry_run":       b.dryRun,
 		"operation":     "push",
@@ -435,7 +435,7 @@ func (b *localFileSystem) Push(ctx context.Context, opts SyncOptions) error {
 }
 
 func (b *localFileSystem) Pull(ctx context.Context, opts SyncOptions) error {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"type":          "local",
 		"operation":     "pull",
 		"bucket":        b.path,
@@ -500,7 +500,7 @@ func (b *localFileSystem) Pull(ctx context.Context, opts SyncOptions) error {
 }
 
 func (b *localFileSystem) List(ctx context.Context, prefix string) (BucketIterator, error) {
-	grip.DebugWhen(b.verbose, message.Fields{
+	grip.DebugWhen(ctx, b.verbose, message.Fields{
 		"operation":     "list",
 		"bucket":        b.path,
 		"bucket_prefix": b.prefix,

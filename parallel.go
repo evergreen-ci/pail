@@ -203,7 +203,7 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, opts SyncOptions) error {
 		}
 
 		if b.deleteOnPull && b.dryRun {
-			grip.Debug(message.Fields{
+			grip.Debug(ctx, message.Fields{
 				"dry_run": true,
 				"message": "would delete after push",
 			})
