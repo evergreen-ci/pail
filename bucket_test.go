@@ -227,23 +227,6 @@ func TestBucket(t *testing.T) {
 			tests: getS3SmallBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 		{
-			name: "S3BucketChecksums",
-			constructor: func(t *testing.T) Bucket {
-				s3Options := S3Options{
-					Credentials:            s3Credentials,
-					Region:                 s3Region,
-					Name:                   s3BucketName,
-					Prefix:                 s3Prefix + testutil.NewUUID(),
-					MaxRetries:             aws.Int(20),
-					UseSingleFileChecksums: true,
-				}
-				b, err := NewS3Bucket(ctx, s3Options)
-				require.NoError(t, err)
-				return b
-			},
-			tests: getS3SmallBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
-		},
-		{
 			name: "ParallelLocal",
 			constructor: func(t *testing.T) Bucket {
 				t.Skip()
@@ -265,7 +248,6 @@ func TestBucket(t *testing.T) {
 					Name:                   s3BucketName,
 					Prefix:                 s3Prefix + testutil.NewUUID(),
 					MaxRetries:             aws.Int(20),
-					UseSingleFileChecksums: true,
 				}
 				b, err := NewS3Bucket(ctx, s3Options)
 				require.NoError(t, err)
@@ -284,23 +266,6 @@ func TestBucket(t *testing.T) {
 					Name:        s3BucketName,
 					Prefix:      s3Prefix + testutil.NewUUID(),
 					MaxRetries:  aws.Int(20),
-				}
-				b, err := NewS3MultiPartBucket(ctx, s3Options)
-				require.NoError(t, err)
-				return b
-			},
-			tests: getS3LargeBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
-		},
-		{
-			name: "S3MultiPartBucketChecksum",
-			constructor: func(t *testing.T) Bucket {
-				s3Options := S3Options{
-					Credentials:            s3Credentials,
-					Region:                 s3Region,
-					Name:                   s3BucketName,
-					Prefix:                 s3Prefix + testutil.NewUUID(),
-					MaxRetries:             aws.Int(20),
-					UseSingleFileChecksums: true,
 				}
 				b, err := NewS3MultiPartBucket(ctx, s3Options)
 				require.NoError(t, err)
