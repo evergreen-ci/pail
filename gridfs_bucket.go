@@ -132,7 +132,7 @@ func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 }
 
 func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser, error) {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"dry_run":       b.opts.DryRun,
 		"operation":     "writer",
@@ -159,7 +159,7 @@ func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser,
 }
 
 func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, error) {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"operation":     "reader",
 		"bucket":        b.opts.Name,
@@ -184,7 +184,7 @@ func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, 
 }
 
 func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"dry_run":       b.opts.DryRun,
 		"operation":     "put",
@@ -210,7 +210,7 @@ func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) er
 }
 
 func (b *gridfsBucket) Get(ctx context.Context, name string) (io.ReadCloser, error) {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"operation":     "get",
 		"bucket":        b.opts.Name,
@@ -222,7 +222,7 @@ func (b *gridfsBucket) Get(ctx context.Context, name string) (io.ReadCloser, err
 }
 
 func (b *gridfsBucket) Upload(ctx context.Context, name, path string) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"dry_run":       b.opts.DryRun,
 		"operation":     "upload",
@@ -242,7 +242,7 @@ func (b *gridfsBucket) Upload(ctx context.Context, name, path string) error {
 }
 
 func (b *gridfsBucket) Download(ctx context.Context, name, path string) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"operation":     "download",
 		"bucket":        b.opts.Name,
@@ -271,7 +271,7 @@ func (b *gridfsBucket) Download(ctx context.Context, name, path string) error {
 }
 
 func (b *gridfsBucket) Push(ctx context.Context, opts SyncOptions) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"dry_run":       b.opts.DryRun,
 		"operation":     "push",
@@ -315,7 +315,7 @@ func (b *gridfsBucket) Push(ctx context.Context, opts SyncOptions) error {
 }
 
 func (b *gridfsBucket) Pull(ctx context.Context, opts SyncOptions) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"operation":     "pull",
 		"bucket":        b.opts.Name,
@@ -369,7 +369,7 @@ func (b *gridfsBucket) Pull(ctx context.Context, opts SyncOptions) error {
 }
 
 func (b *gridfsBucket) Copy(ctx context.Context, opts CopyOptions) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"operation":     "copy",
 		"bucket":        b.opts.Name,
@@ -396,7 +396,7 @@ func (b *gridfsBucket) Copy(ctx context.Context, opts CopyOptions) error {
 }
 
 func (b *gridfsBucket) Remove(ctx context.Context, key string) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"dry_run":       b.opts.DryRun,
 		"operation":     "remove",
@@ -409,7 +409,7 @@ func (b *gridfsBucket) Remove(ctx context.Context, key string) error {
 }
 
 func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"dry_run":       b.opts.DryRun,
 		"operation":     "remove many",
@@ -458,7 +458,7 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 }
 
 func (b *gridfsBucket) RemovePrefix(ctx context.Context, prefix string) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"dry_run":       b.opts.DryRun,
 		"operation":     "remove prefix",
@@ -471,7 +471,7 @@ func (b *gridfsBucket) RemovePrefix(ctx context.Context, prefix string) error {
 }
 
 func (b *gridfsBucket) RemoveMatching(ctx context.Context, expr string) error {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"dry_run":       b.opts.DryRun,
 		"operation":     "remove matching",
@@ -484,7 +484,7 @@ func (b *gridfsBucket) RemoveMatching(ctx context.Context, expr string) error {
 }
 
 func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator, error) {
-	grip.DebugWhen(b.opts.Verbose, message.Fields{
+	grip.DebugWhen(ctx, b.opts.Verbose, message.Fields{
 		"type":          "gridfs",
 		"operation":     "list",
 		"bucket":        b.opts.Name,
