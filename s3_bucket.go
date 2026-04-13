@@ -87,8 +87,10 @@ type s3Bucket struct {
 	svc                  *s3.Client
 	name                 string
 	prefix               string
-	permissions          S3Permissions
-	contentType          string
+	// versionID pins download operations to a specific S3 object version.
+	versionID   string
+	permissions S3Permissions
+	contentType string
 	storageClass         s3Types.StorageClass
 }
 
@@ -167,6 +169,10 @@ type S3Options struct {
 	// operations for MoveObjects. If nil or <=0, defaults to 20.
 	// (Optional)
 	MaxConcurrentCopies *int
+	// VersionID pins download operations to a specific S3 object version.
+	// When set, Get and Reader operations will request this version of the
+	// object. (Optional)
+	VersionID string
 }
 
 func (s *s3Bucket) normalizeKey(key string) string { return s.Join(s.prefix, key) }
@@ -232,6 +238,7 @@ func newS3BucketBase(ctx context.Context, client *http.Client, options S3Options
 		deleteOnPush:           options.DeleteOnPush || options.DeleteOnSync,
 		deleteOnPull:           options.DeleteOnPull || options.DeleteOnSync,
 		ifNotExists:            options.IfNotExists,
+		versionID:              options.VersionID,
 	}, nil
 }
 
@@ -809,6 +816,10 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 		Key:    aws.String(s.normalizeKey(key)),
 	}
 
+	if s.versionID != "" {
+		input.VersionId = aws.String(s.versionID)
+	}
+
 	if s.expectedChecksumSHA256 != "" {
 		input.ChecksumMode = s3Types.ChecksumModeEnabled
 	}
@@ -963,12 +974,19 @@ func (s *s3Bucket) GetToWriter(ctx context.Context, key string, w io.WriterAt) e
 		Key:    aws.String(s.normalizeKey(key)),
 	}
 
+	if s.versionID != "" {
+		input.VersionId = aws.String(s.versionID)
+	}
+
 	if s.expectedChecksumSHA256 != "" {
 		// Do a head request to get the checksum value.
 		headInput := &s3.HeadObjectInput{
 			Bucket:       aws.String(s.name),
 			Key:          aws.String(s.normalizeKey(key)),
 			ChecksumMode: s3Types.ChecksumModeEnabled,
+		}
+		if s.versionID != "" {
+			headInput.VersionId = aws.String(s.versionID)
 		}
 		headResult, err := s.svc.HeadObject(ctx, headInput)
 		if err != nil {
