@@ -1189,3 +1189,50 @@ func makeMoveObjectsWithXMLIncompatibleCharsTest(ctx context.Context, s3Credenti
 		}
 	}
 }
+
+func TestPutHelperDryRunReturnsZeroPuts(t *testing.T) {
+	ctx := t.Context()
+	b := &s3Bucket{dryRun: true}
+	n, err := putHelper(ctx, b, "key", bytes.NewReader([]byte("data")))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
+}
+
+func TestS3BucketImplementsPutCounter(t *testing.T) {
+	ctx := t.Context()
+	dir := t.TempDir()
+	srcPath := filepath.Join(dir, "src.txt")
+	require.NoError(t, os.WriteFile(srcPath, []byte("hello"), 0600))
+
+	small := &s3BucketSmall{s3Bucket: s3Bucket{dryRun: true}}
+	large := &s3BucketLarge{s3Bucket: s3Bucket{dryRun: true}}
+
+	var _ PutCounter = small
+	var _ PutCounter = large
+
+	n, err := small.UploadWithCount(ctx, "key", srcPath)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
+
+	n, err = large.UploadWithCount(ctx, "key", srcPath)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
+}
+
+func TestS3BucketImplementsStreamPutCounter(t *testing.T) {
+	ctx := t.Context()
+
+	small := &s3BucketSmall{s3Bucket: s3Bucket{dryRun: true}}
+	large := &s3BucketLarge{s3Bucket: s3Bucket{dryRun: true}}
+
+	var _ StreamPutCounter = small
+	var _ StreamPutCounter = large
+
+	n, err := small.PutWithCount(ctx, "key", bytes.NewReader([]byte("hello")))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
+
+	n, err = large.PutWithCount(ctx, "key", bytes.NewReader([]byte("hello")))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
+}
