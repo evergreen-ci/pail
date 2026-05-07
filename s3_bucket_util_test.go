@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,7 @@ import (
 	s3Manager "github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/evergreen-ci/pail/testutil"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/assert"
@@ -1217,6 +1219,13 @@ func TestS3BucketImplementsPutCounter(t *testing.T) {
 	n, err = large.UploadWithCount(ctx, "key", srcPath)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, n)
+}
+
+func TestIsAWSServiceError(t *testing.T) {
+	assert.False(t, isAWSServiceError(nil))
+	assert.False(t, isAWSServiceError(errors.New("connection refused")))
+	assert.False(t, isAWSServiceError(&smithy.GenericAPIError{Code: "InvalidAccessKeyId", Fault: smithy.FaultClient}))
+	assert.True(t, isAWSServiceError(&smithy.GenericAPIError{Code: "InternalError", Fault: smithy.FaultServer}))
 }
 
 func TestS3BucketImplementsStreamPutCounter(t *testing.T) {

@@ -892,11 +892,13 @@ func (c *countingS3Client) CompleteMultipartUpload(ctx context.Context, in *s3.C
 	return out, err
 }
 
-// isAWSServiceError returns true if err came from AWS (the request reached the service and
-// AWS responded with an error). Network failures that never reached AWS return false.
+// isAWSServiceError returns true if err is a server-side AWS error (5xx). Server-side errors
+// mean AWS accepted and processed the request, which counts as a billable API call. Client
+// errors (4xx, including 401 and 403) indicate the request was rejected before any operation
+// ran and are not billed by AWS.
 func isAWSServiceError(err error) bool {
 	var apiErr smithy.APIError
-	return errors.As(err, &apiErr)
+	return errors.As(err, &apiErr) && apiErr.ErrorFault() == smithy.FaultServer
 }
 
 // putHelper uploads r to key and returns the number of S3 PUT-equivalent API calls made.
