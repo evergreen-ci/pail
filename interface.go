@@ -93,10 +93,22 @@ type Bucket interface {
 
 	// String returns the bucket name.
 	String() string
-	
+
 	// MoveObjects moves multiple objects from sourceKeys in this bucket to destKeys in another bucket specified by destBucket.
 	// The lengths of sourceKeys and destKeys must match.
 	MoveObjects(ctx context.Context, destBucket Bucket, sourceKeys, destKeys []string) error
+}
+
+// PutCounter is an optional interface implemented by S3 buckets that returns the number of PUT-equivalent API calls made per upload.
+type PutCounter interface {
+	Bucket
+	UploadWithCount(ctx context.Context, key, path string) (int, error)
+}
+
+// StreamPutCounter is an optional interface implemented by S3 buckets that returns the number of PUT-equivalent API calls made when streaming content to S3.
+type StreamPutCounter interface {
+	Bucket
+	PutWithCount(ctx context.Context, key string, r io.Reader) (int, error)
 }
 
 // FastGetS3Bucket is a Bucket but with an additional method, GetToWriter. Only S3

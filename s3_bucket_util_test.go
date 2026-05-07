@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,7 @@ import (
 	s3Manager "github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/evergreen-ci/pail/testutil"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/assert"
@@ -1188,4 +1190,58 @@ func makeMoveObjectsWithXMLIncompatibleCharsTest(ctx context.Context, s3Credenti
 			})
 		}
 	}
+}
+
+func TestPutHelperDryRunReturnsZeroPuts(t *testing.T) {
+	ctx := t.Context()
+	b := &s3Bucket{dryRun: true}
+	n, err := putHelper(ctx, b, "key", bytes.NewReader([]byte("data")))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
+}
+
+func TestS3BucketImplementsPutCounter(t *testing.T) {
+	ctx := t.Context()
+	dir := t.TempDir()
+	srcPath := filepath.Join(dir, "src.txt")
+	require.NoError(t, os.WriteFile(srcPath, []byte("hello"), 0600))
+
+	small := &s3BucketSmall{s3Bucket: s3Bucket{dryRun: true}}
+	large := &s3BucketLarge{s3Bucket: s3Bucket{dryRun: true}}
+
+	var _ PutCounter = small
+	var _ PutCounter = large
+
+	n, err := small.UploadWithCount(ctx, "key", srcPath)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
+
+	n, err = large.UploadWithCount(ctx, "key", srcPath)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
+}
+
+func TestIsAWSServiceError(t *testing.T) {
+	assert.False(t, isAWSServiceError(nil))
+	assert.False(t, isAWSServiceError(errors.New("connection refused")))
+	assert.False(t, isAWSServiceError(&smithy.GenericAPIError{Code: "InvalidAccessKeyId", Fault: smithy.FaultClient}))
+	assert.True(t, isAWSServiceError(&smithy.GenericAPIError{Code: "InternalError", Fault: smithy.FaultServer}))
+}
+
+func TestS3BucketImplementsStreamPutCounter(t *testing.T) {
+	ctx := t.Context()
+
+	small := &s3BucketSmall{s3Bucket: s3Bucket{dryRun: true}}
+	large := &s3BucketLarge{s3Bucket: s3Bucket{dryRun: true}}
+
+	var _ StreamPutCounter = small
+	var _ StreamPutCounter = large
+
+	n, err := small.PutWithCount(ctx, "key", bytes.NewReader([]byte("hello")))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
+
+	n, err = large.PutWithCount(ctx, "key", bytes.NewReader([]byte("hello")))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, n)
 }
