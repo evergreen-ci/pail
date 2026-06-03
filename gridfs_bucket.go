@@ -527,6 +527,7 @@ func (iter *gridfsIterator) Next(ctx context.Context) bool {
 	document := struct {
 		ID       interface{} `bson:"_id"`
 		Filename string      `bson:"filename"`
+		Length   int64       `bson:"length"`
 	}{}
 	if err := iter.iter.Decode(&document); err != nil {
 		iter.err = err
@@ -537,6 +538,7 @@ func (iter *gridfsIterator) Next(ctx context.Context) bool {
 		bucket: iter.bucket.opts.Name,
 		key:    iter.bucket.denormalizeKey(document.Filename),
 		b:      iter.bucket,
+		size:   document.Length,
 	}
 	return true
 }
