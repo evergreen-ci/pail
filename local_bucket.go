@@ -537,9 +537,16 @@ func (iter *localFileSystemIterator) Next(_ context.Context) bool {
 		return false
 	}
 
+	key := iter.bucket.Join(iter.prefix, iter.files[iter.idx])
+	physPath := iter.bucket.Join(iter.bucket.path, iter.bucket.normalizeKey(key))
+	var size int64
+	if info, err := os.Stat(physPath); err == nil {
+		size = info.Size()
+	}
 	iter.item = &bucketItemImpl{
 		bucket: iter.bucket.path,
-		key:    iter.bucket.Join(iter.prefix, iter.files[iter.idx]),
+		key:    key,
+		size:   size,
 		b:      iter.bucket,
 	}
 	return true
