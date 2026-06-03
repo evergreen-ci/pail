@@ -119,3 +119,77 @@ func TestTarFile(t *testing.T) {
 		})
 	}
 }
+
+func TestEscapeCopySource(t *testing.T) {
+	for testName, tc := range map[string]struct {
+		input    string
+		expected string
+	}{
+		"EmptyStringReturnsEmpty": {
+			input:    "",
+			expected: "",
+		},
+		"PlainAlphanumericUnchanged": {
+			input:    "mybucket/project/task/0/task_logs/agent/chunk",
+			expected: "mybucket/project/task/0/task_logs/agent/chunk",
+		},
+		// '+' must be encoded as '%2B': S3 applies form-encoding semantics to the
+		// CopySource header and interprets a literal '+' as a space, causing NoSuchKey
+		// for objects whose keys contain a literal '+'.
+		"PlusSignEncodedAsPercent2B": {
+			input:    "mybucket/myproject/task_+_variant/0/task_logs/system/chunk",
+			expected: "mybucket/myproject/task_%2B_variant/0/task_logs/system/chunk",
+		},
+		"ForwardSlashNotEncoded": {
+			input:    "mybucket/prefix/key/with/slashes",
+			expected: "mybucket/prefix/key/with/slashes",
+		},
+		"TildeNotEncoded": {
+			input:    "mybucket/key~with~tildes",
+			expected: "mybucket/key~with~tildes",
+		},
+		"HyphenAndUnderscoreNotEncoded": {
+			input:    "mybucket/key-with_hyphens_and-underscores",
+			expected: "mybucket/key-with_hyphens_and-underscores",
+		},
+		"SpaceEncoded": {
+			input:    "mybucket/key with spaces",
+			expected: "mybucket/key%20with%20spaces",
+		},
+		"TabEncoded": {
+			input:    "mybucket/key\twith\ttabs",
+			expected: "mybucket/key%09with%09tabs",
+		},
+		"NewlineEncoded": {
+			input:    "mybucket/key\nwith\nnewlines",
+			expected: "mybucket/key%0Awith%0Anewlines",
+		},
+		"CarriageReturnEncoded": {
+			input:    "mybucket/key\rwith\rCR",
+			expected: "mybucket/key%0Dwith%0DCR",
+		},
+		"NullByteEncoded": {
+			input:    "mybucket/key\x00with\x00nulls",
+			expected: "mybucket/key%00with%00nulls",
+		},
+		"DELEncoded": {
+			input:    "mybucket/key\x7fwith\x7fdel",
+			expected: "mybucket/key%7Fwith%7Fdel",
+		},
+		"NonASCIIEncoded": {
+			input:    "mybucket/key\x80\xFF",
+			expected: "mybucket/key%80%FF",
+		},
+		// Realistic key path: long task ID containing both '+' and '~' with multiple
+		// path segments, matching the format used for task log chunk keys.
+		// '+' is encoded; '~' (RFC 3986 unreserved) is left as-is.
+		"LongTaskKeyPathWithPlusAndTilde": {
+			input:    "mybucket/myproject/mytask_+_myvariant__param~value/0/task_logs/system/0_100_200_50_300",
+			expected: "mybucket/myproject/mytask_%2B_myvariant__param~value/0/task_logs/system/0_100_200_50_300",
+		},
+	} {
+		t.Run(testName, func(t *testing.T) {
+			assert.Equal(t, tc.expected, escapeCopySource(tc.input))
+		})
+	}
+}
