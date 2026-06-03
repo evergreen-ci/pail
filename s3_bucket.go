@@ -7,7 +7,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1276,11 +1275,11 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 		"dest_key":      options.DestinationKey,
 	})
 
-	// CopySource must be URL-encoded to handle special characters (including control characters)
-	// that are invalid in HTTP header values.
+	// CopySource must percent-encode '+' and bytes outside printable ASCII (space,
+	// control characters, DEL, and high bytes). S3 interprets a literal '+' as a space.
 	input := &s3.CopyObjectInput{
 		Bucket:     aws.String(s.name),
-		CopySource: aws.String(url.PathEscape(options.SourceKey)),
+		CopySource: aws.String(escapeCopySource(options.SourceKey)),
 		Key:        aws.String(s.normalizeKey(options.DestinationKey)),
 		ACL:        s3Types.ObjectCannedACL(string(s.permissions)),
 	}
@@ -1292,6 +1291,25 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 		}
 	}
 	return nil
+}
+
+// escapeCopySource encodes '+' as '%2B' (S3 interprets literal '+' as a space in
+// CopySource), and percent-encodes space, control characters, DEL (0x7F), and high
+// bytes (>=0x80). Other printable ASCII, including '/', is left as-is.
+func escapeCopySource(s string) string {
+	const hextable = "0123456789ABCDEF"
+	var buf strings.Builder
+	for i := 0; i < len(s); i++ {
+		b := s[i]
+		if b == '+' || b <= 0x20 || b == 0x7F || b > 0x7E {
+			buf.WriteByte('%')
+			buf.WriteByte(hextable[b>>4])
+			buf.WriteByte(hextable[b&0x0F])
+		} else {
+			buf.WriteByte(b)
+		}
+	}
+	return buf.String()
 }
 
 func (s *s3Bucket) Remove(ctx context.Context, key string) error {
