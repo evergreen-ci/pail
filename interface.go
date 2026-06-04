@@ -172,6 +172,8 @@ type BucketItem interface {
 	Bucket() string
 	Name() string
 	Hash() string
+	// Size returns the object size in bytes.
+	Size() int64
 	Get(context.Context) (io.ReadCloser, error)
 }
 
@@ -179,6 +181,7 @@ type bucketItemImpl struct {
 	bucket string
 	key    string
 	hash   string
+	size   int64
 
 	// TODO add other info?
 
@@ -191,6 +194,7 @@ type bucketItemImpl struct {
 func (bi *bucketItemImpl) Name() string   { return bi.key }
 func (bi *bucketItemImpl) Hash() string   { return bi.hash }
 func (bi *bucketItemImpl) Bucket() string { return bi.bucket }
+func (bi *bucketItemImpl) Size() int64    { return bi.size }
 func (bi *bucketItemImpl) Get(ctx context.Context) (io.ReadCloser, error) {
 	return bi.b.Get(ctx, bi.key)
 }

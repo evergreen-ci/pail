@@ -665,14 +665,18 @@ func TestBucket(t *testing.T) {
 			t.Run("ListRespectsPrefixes", func(t *testing.T) {
 				bucket := impl.constructor(t)
 				key := testutil.NewUUID()
+				content := "foo/bar"
 
-				assert.NoError(t, writeDataToFile(ctx, bucket, key, "foo/bar"))
+				assert.NoError(t, writeDataToFile(ctx, bucket, key, content))
 
 				// There's one thing in the iterator with the
 				// correct prefix.
 				iter, err := bucket.List(ctx, "")
 				require.NoError(t, err)
-				assert.True(t, iter.Next(ctx))
+				require.True(t, iter.Next(ctx))
+				item := iter.Item()
+				require.NotNil(t, item)
+				assert.Equal(t, int64(len(content)), item.Size())
 				assert.False(t, iter.Next(ctx))
 				assert.NoError(t, iter.Err())
 

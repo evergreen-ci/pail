@@ -1692,10 +1692,15 @@ func (iter *s3BucketIterator) Next(ctx context.Context) bool {
 		}
 	}
 
+	size := int64(0)
+	if iter.contents[iter.idx].Size != nil {
+		size = *iter.contents[iter.idx].Size
+	}
 	iter.item = &bucketItemImpl{
 		bucket: iter.s.name,
 		key:    iter.s.denormalizeKey(*iter.contents[iter.idx].Key),
 		hash:   strings.Trim(*iter.contents[iter.idx].ETag, `"`),
+		size:   size,
 		b:      iter.b,
 	}
 	return true
