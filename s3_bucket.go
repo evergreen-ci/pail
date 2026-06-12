@@ -1579,6 +1579,12 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 				count = 0
 				toDelete = &s3Types.Delete{}
+				// Pause between batches to avoid S3 rate-limit errors (503 SlowDown).
+				select {
+				case <-ctx.Done():
+					return catcher.Resolve()
+				case <-time.After(500 * time.Millisecond):
+				}
 			}
 			toDelete.Objects = append(toDelete.Objects, obj)
 			count++
