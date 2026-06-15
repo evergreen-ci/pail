@@ -1059,6 +1059,10 @@ func (s *s3Bucket) GetToWriter(ctx context.Context, key string, w io.WriterAt) e
 	})
 
 	if _, err := downloader.Download(ctx, w, input); err != nil {
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NoSuchKey" {
+			return MakeKeyNotFoundError(err)
+		}
 		return errors.Wrapf(err, "downloading file")
 	}
 

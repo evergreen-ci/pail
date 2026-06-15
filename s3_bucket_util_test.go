@@ -951,6 +951,22 @@ func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials aw
 			},
 		},
 		{
+			id: "TestGetToWriterMissingKeyIsKeyNotFoundError",
+			test: func(t *testing.T, b Bucket) {
+				s3b, ok := b.(FastGetS3Bucket)
+				require.True(t, ok)
+
+				ctx := t.Context()
+				f, err := os.CreateTemp(t.TempDir(), "get-to-writer-missing")
+				require.NoError(t, err)
+				t.Cleanup(func() { assert.NoError(t, f.Close()) })
+
+				err = s3b.GetToWriter(ctx, testutil.NewUUID(), f)
+				require.Error(t, err)
+				assert.True(t, IsKeyNotFoundError(err))
+			},
+		},
+		{
 			id: "TestCompressingWriter",
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketLarge)
