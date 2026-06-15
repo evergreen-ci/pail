@@ -900,11 +900,11 @@ func isAWSServiceError(err error) bool {
 	return errors.As(err, &apiErr) && apiErr.ErrorFault() == smithy.FaultServer
 }
 
-// putHelper uploads r to key and returns the number of S3 PUT-equivalent API calls made.
-// The count is returned even on error because calls that reached AWS are billed.
-func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) (int, error) {
+// putHelper uploads r to key and returns PUT count and bytes written to S3 (post-compression
+// for compressed buckets). Both are returned even on error since AWS bills completed calls.
+func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) (puts int, bytesWritten int64, err error) {
 	if b.dryRun {
-		return 0, nil
+		return 0, 0, nil
 	}
 
 	if b.compress {
@@ -913,14 +913,23 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) (int, 
 		w := gzip.NewWriter(&buf)
 
 		if _, err := io.Copy(w, r); err != nil {
-			return 0, errors.Wrap(err, "gzipping file")
+			return 0, 0, errors.Wrap(err, "gzipping file")
 		}
 
 		if err := w.Close(); err != nil {
-			return 0, errors.Wrap(err, "closing gzip writer")
+			return 0, 0, errors.Wrap(err, "closing gzip writer")
 		}
 
 		r = bytes.NewReader(buf.Bytes())
+		bytesWritten = int64(buf.Len())
+	} else if rs, ok := r.(io.ReadSeeker); ok {
+		// Measure remaining bytes so the count reflects what S3 actually receives.
+		if start, seekErr := rs.Seek(0, io.SeekCurrent); seekErr == nil {
+			if end, seekErr := rs.Seek(0, io.SeekEnd); seekErr == nil {
+				bytesWritten = end - start
+				_, _ = rs.Seek(start, io.SeekStart)
+			}
+		}
 	}
 
 	var putCount atomic.Int32
@@ -957,8 +966,8 @@ func putHelper(ctx context.Context, b *s3Bucket, key string, r io.Reader) (int, 
 		input.ContentEncoding = aws.String(compressionEncoding)
 	}
 
-	_, err := uploader.Upload(ctx, input)
-	return int(putCount.Load()), errors.Wrapf(err, "uploading file")
+	_, uploadErr := uploader.Upload(ctx, input)
+	return int(putCount.Load()), bytesWritten, errors.Wrapf(uploadErr, "uploading file")
 }
 
 func (s *s3BucketSmall) Put(ctx context.Context, key string, r io.Reader) error {
@@ -971,7 +980,7 @@ func (s *s3BucketSmall) Put(ctx context.Context, key string, r io.Reader) error 
 		"key":           key,
 	})
 
-	_, err := putHelper(ctx, &s.s3Bucket, key, r)
+	_, _, err := putHelper(ctx, &s.s3Bucket, key, r)
 	return err
 }
 
@@ -985,7 +994,7 @@ func (s *s3BucketLarge) Put(ctx context.Context, key string, r io.Reader) error 
 		"key":           key,
 	})
 
-	_, err := putHelper(ctx, &s.s3Bucket, key, r)
+	_, _, err := putHelper(ctx, &s.s3Bucket, key, r)
 	return err
 }
 
@@ -1102,11 +1111,19 @@ func (s *s3Bucket) UploadWithCount(ctx context.Context, key, path string) (int, 
 	}
 	defer f.Close()
 
-	return putHelper(ctx, s, key, f)
+	puts, _, err := putHelper(ctx, s, key, f)
+	return puts, err
 }
 
 // PutWithCount streams r to key; returns the PUT count even on error since calls that reached AWS are billed.
 func (s *s3Bucket) PutWithCount(ctx context.Context, key string, r io.Reader) (int, error) {
+	puts, _, err := putHelper(ctx, s, key, r)
+	return puts, err
+}
+
+// PutWithCountAndBytes streams r to key; returns PUT count and bytes written to S3
+// (post-compression for compressed buckets). Both are returned even on error.
+func (s *s3Bucket) PutWithCountAndBytes(ctx context.Context, key string, r io.Reader) (int, int64, error) {
 	grip.DebugWhen(ctx, s.verbose, message.Fields{
 		"type":          "s3",
 		"dry_run":       s.dryRun,

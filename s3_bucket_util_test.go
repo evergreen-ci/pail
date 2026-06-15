@@ -1208,12 +1208,13 @@ func makeMoveObjectsWithXMLIncompatibleCharsTest(ctx context.Context, s3Credenti
 	}
 }
 
-func TestPutHelperDryRunReturnsZeroPuts(t *testing.T) {
+func TestPutHelperDryRunReturnsZeroPutsAndBytes(t *testing.T) {
 	ctx := t.Context()
 	b := &s3Bucket{dryRun: true}
-	n, err := putHelper(ctx, b, "key", bytes.NewReader([]byte("data")))
+	puts, bytesWritten, err := putHelper(ctx, b, "key", bytes.NewReader([]byte("data")))
 	assert.NoError(t, err)
-	assert.Equal(t, 0, n)
+	assert.Equal(t, 0, puts)
+	assert.Equal(t, int64(0), bytesWritten)
 }
 
 func TestS3BucketImplementsPutCounter(t *testing.T) {
@@ -1260,4 +1261,24 @@ func TestS3BucketImplementsStreamPutCounter(t *testing.T) {
 	n, err = large.PutWithCount(ctx, "key", bytes.NewReader([]byte("hello")))
 	assert.NoError(t, err)
 	assert.Equal(t, 0, n)
+}
+
+func TestS3BucketImplementsStreamPutCounterWithBytes(t *testing.T) {
+	ctx := t.Context()
+
+	small := &s3BucketSmall{s3Bucket: s3Bucket{dryRun: true}}
+	large := &s3BucketLarge{s3Bucket: s3Bucket{dryRun: true}}
+
+	var _ StreamPutCounterWithBytes = small
+	var _ StreamPutCounterWithBytes = large
+
+	puts, bytesWritten, err := small.PutWithCountAndBytes(ctx, "key", bytes.NewReader([]byte("hello")))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, puts)
+	assert.Equal(t, int64(0), bytesWritten)
+
+	puts, bytesWritten, err = large.PutWithCountAndBytes(ctx, "key", bytes.NewReader([]byte("hello")))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, puts)
+	assert.Equal(t, int64(0), bytesWritten)
 }

@@ -111,6 +111,12 @@ type StreamPutCounter interface {
 	PutWithCount(ctx context.Context, key string, r io.Reader) (int, error)
 }
 
+// StreamPutCounterWithBytes extends StreamPutCounter to also return bytes written to S3.
+type StreamPutCounterWithBytes interface {
+	Bucket
+	PutWithCountAndBytes(ctx context.Context, key string, r io.Reader) (puts int, bytesWritten int64, err error)
+}
+
 // FastGetS3Bucket is a Bucket but with an additional method, GetToWriter. Only S3
 // bucket types can support this access pattern.
 type FastGetS3Bucket interface {
