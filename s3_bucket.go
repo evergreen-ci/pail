@@ -1597,18 +1597,26 @@ func (s *s3Bucket) MoveObjects(ctx context.Context, destBucket Bucket, sourceKey
 		toDelete := &s3Types.Delete{}
 		for _, obj := range objectsToDelete {
 			if count == s.batchSize {
-				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
-				count = 0
-				toDelete = &s3Types.Delete{}
-				// Pause between batches to avoid S3 rate-limit errors (503 SlowDown).
+				// Pause before each batch to avoid S3 rate-limit errors (503 SlowDown).
 				select {
 				case <-ctx.Done():
 					return catcher.Resolve()
 				case <-time.After(500 * time.Millisecond):
 				}
+				catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
+				count = 0
+				toDelete = &s3Types.Delete{}
 			}
 			toDelete.Objects = append(toDelete.Objects, obj)
 			count++
+		}
+		// Pause before the final batch to avoid S3 rate-limit errors (503 SlowDown).
+		// This ensures the pause applies even when all objects fit in a single batch,
+		// which is the typical case for most move operations.
+		select {
+		case <-ctx.Done():
+			return catcher.Resolve()
+		case <-time.After(500 * time.Millisecond):
 		}
 		catcher.Add(s.deleteObjectsWrapper(ctx, toDelete))
 	}
