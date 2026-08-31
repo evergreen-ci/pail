@@ -1749,6 +1749,7 @@ type PreSignRequestParams struct {
 	FileKey               string
 	Region                string
 	SignatureExpiryWindow time.Duration
+	PresignDuration       time.Duration
 
 	// Static credentials specific fields.
 	AWSKey          string
@@ -1803,10 +1804,15 @@ func PreSign(ctx context.Context, r PreSignRequestParams) (string, error) {
 	}
 	presignClient := s3.NewPresignClient(svc)
 
+	var options []func(*s3.PresignOptions)
+	if r.PresignDuration != 0 {
+		options = append(options, s3.WithPresignExpires(r.PresignDuration))
+	}
+
 	req, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(r.Bucket),
 		Key:    aws.String(r.FileKey),
-	})
+	}, options...)
 	if err != nil {
 		return "", errors.Wrap(err, "pre-signing object")
 	}

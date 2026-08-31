@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -1264,6 +1265,21 @@ func TestPreSign(t *testing.T) {
 			assert.NotZero(t, url)
 		})
 	})
+}
+
+func TestPreSignDuration(t *testing.T) {
+	presignedURL, err := PreSign(t.Context(), PreSignRequestParams{
+		AWSKey:          "AKIAFAKEKEY",
+		AWSSecret:       "fake-secret",
+		Bucket:          "bucket",
+		FileKey:         "key",
+		PresignDuration: 2 * time.Hour,
+	})
+	require.NoError(t, err)
+
+	parsed, err := url.Parse(presignedURL)
+	require.NoError(t, err)
+	assert.Equal(t, "7200", parsed.Query().Get("X-Amz-Expires"))
 }
 
 func TestGetHeadObject(t *testing.T) {
